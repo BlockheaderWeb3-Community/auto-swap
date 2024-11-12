@@ -1,103 +1,28 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
-import {
-  ArrowUpDown,
-  ChevronDown,
-  ChevronUp,
-  RefreshCcw,
-  X,
-} from "lucide-react";
+import { RefreshCcw } from "lucide-react";
+import { Token, tokenPrices } from "@/constants/tokens";
+import { CustomSelect } from "./custom-select";
 
-const tokenAddresses: {
-  [key in "ETH" | "BTC" | "USDC" | "USDT" | "STRK"]: string;
-} = {
-  ETH: "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
-  BTC: "0x00da114221cb83fa859dbdb4c44beeaa0bb37c7537ad5ae66fe5e0efd20e6eb3",
-  USDC: "0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8",
-  USDT: "0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8",
-  STRK: "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
-};
-const tokenPrices: { [key in keyof typeof tokenAddresses]: number } = {
-  ETH: 2435,
-  BTC: 1,
-  USDC: 1.01,
-  USDT: 0.99,
-  STRK: 0.48,
-};
+/**
+    Swap From
+        From Token
 
-const tokenImages: { [key in keyof typeof tokenAddresses]: string } = {
-  ETH: "/coin-logos/eth-logo.png",
-  BTC: "/coin-logos/btc-logo.png",
-  USDC: "/coin-logos/usdc-logo.png",
-  USDT: "/coin-logos/usdt-logo.png",
-  STRK: "/coin-logos/strk-logo.png",
-};
-
-const CustomSelect: React.FC<{
-  selectedToken: keyof typeof tokenAddresses;
-  onTokenSelect: (token: keyof typeof tokenAddresses) => void;
-}> = ({ selectedToken, onTokenSelect }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const tokens = Object.keys(tokenAddresses) as Array<
-    keyof typeof tokenAddresses
-  >;
-
-  const handleSelect = (token: string) => {
-    onTokenSelect(token as keyof typeof tokenAddresses);
-    setIsOpen(false);
-  };
-
-  return (
-    <div className="relative h-[10.45px] w-[25%] md:h-[40px] md:w-[200px]">
-      <div
-        className="bg-[#131313] text-[#F7F7F7] border-[1px] border-[#1E1E1E] font-semibold flex h-full w-full cursor-pointer items-center justify-between gap-2 rounded-sm px-2 py-[6px] text-[10px] md:gap-2 md:rounded-full md:text-[16px]"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <span className="flex items-center gap-x-1 text-sm">
-          <img
-            src={tokenImages[selectedToken]}
-            className="w-7 h-7"
-            alt={selectedToken}
-          />
-          {selectedToken}
-        </span>
-        <span>
-          {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-        </span>
-      </div>
-
-      {isOpen && (
-        <div className="absolute left-0 top-12 z-10 w-full rounded-md bg-[#131313] border-[1px] border-[#1E1E1E] text-[8.97px] text-[#f7f7f7] shadow-lg md:text-[16px]">
-          {tokens.map((token) => (
-            <button
-              key={token}
-              className="flex items-center gap-2 cursor-pointer bg-[#131313] p-2  w-full rounded-sm border border-transparent hover:bg-opacity-90 hover:border-[#1E1E1E] hover:border transition-all duration-300 ease-in-out"
-              onClick={() => handleSelect(token)}
-            >
-              <img
-                src={tokenImages[token]}
-                className="w-5 h-5"
-                alt={`${token} logo`}
-              />
-              <span className="font-semibold">{token}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
+    Swap To
+        To Stable Coin
+        Percentage of From Token
+        Amount of From Token
+*/
 const Swapper = () => {
-  const [fromToken, setFromToken] =
-    useState<keyof typeof tokenAddresses>("ETH");
-  const [toToken, setToToken] = useState<keyof typeof tokenAddresses>("USDT");
+  const [fromToken, setFromToken] = useState<Token>("ETH");
+  const [toToken, setToToken] = useState<Token>("USDT");
   const [amount, setAmount] = useState("");
   const [equivalent, setEquivalent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [rate, setRate] = useState(0);
+  const [balance, setBalance] = useState("100");
 
   const { address } = useAccount();
 
@@ -139,8 +64,8 @@ const Swapper = () => {
         const swappedAmount = parseFloat(amount) * rate;
         console.log(
           `Swapped ${amount} ${fromToken} for ${swappedAmount.toFixed(
-            6
-          )} ${toToken}`
+            6,
+          )} ${toToken}`,
         );
         setAmount("");
         setEquivalent("0");
@@ -192,6 +117,7 @@ const Swapper = () => {
                 <CustomSelect
                   selectedToken={fromToken}
                   onTokenSelect={setFromToken}
+                  from
                 />
               </div>
             </div>
@@ -228,6 +154,8 @@ const Swapper = () => {
                 <CustomSelect
                   selectedToken={toToken}
                   onTokenSelect={setToToken}
+                  setAmount={setAmount}
+                  from={false}
                 />
               </div>
             </div>
@@ -256,8 +184,8 @@ const Swapper = () => {
           {isLoading
             ? "Processing..."
             : address
-            ? "Auto-Swap"
-            : "Connect Wallet"}
+              ? "Auto-Swap"
+              : "Connect Wallet"}
         </button>
       </form>
     </div>
