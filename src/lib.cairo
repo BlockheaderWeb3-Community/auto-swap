@@ -8,7 +8,7 @@ pub trait IAutoSwappr<TContractState> {
 mod AutoSwappr {
     #[storage]
     struct Storage {
-        balance: felt252, 
+        balance: felt252,
     }
 
     #[abi(embed_v0)]
