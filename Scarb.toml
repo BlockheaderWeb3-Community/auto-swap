@@ -7,6 +7,7 @@ edition = "2023_11"
 
 [dependencies]
 starknet = "2.8.5"
+avnu = { git = "https://github.com/avnu-labs/avnu-contracts-v2.git", branch = "main" }
 
 [dev-dependencies]
 snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry", tag = "v0.33.0" }
