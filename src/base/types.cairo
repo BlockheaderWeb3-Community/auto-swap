@@ -8,3 +8,9 @@ pub struct Route {
     percent: u128,
     additional_swap_params: Array<felt252>,
 }
+
+#[derive(Drop, Serde, Clone)]
+pub struct Assets {
+    strk: bool,
+    eth: bool
+}
