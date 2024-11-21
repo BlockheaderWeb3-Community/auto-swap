@@ -15,4 +15,17 @@ pub trait IAutoSwappr<TContractState> {
         integrator_fee_recipient: ContractAddress,
         routes: Array<Route>,
     ) -> bool;
+
+    fn get_fees_active(self: @TContractState) -> bool;
+
+    fn swap_exact_token_to(
+        ref self: TContractState,
+        token_from_address: ContractAddress,
+        token_from_amount: u256,
+        token_from_max_amount: u256,
+        token_to_address: ContractAddress,
+        token_to_amount: u256,
+        beneficiary: ContractAddress,
+        routes: Array<Route>,
+    ) -> bool;
 }
