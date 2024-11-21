@@ -1,1 +1,0 @@
-{"version":1,"contracts":[{"id":"0qlem4p402uok","package_name":"auto_swappr","contract_name":"AutoSwappr","module_path":"auto_swappr::AutoSwappr","artifacts":{"sierra":"auto_swappr_unittest_AutoSwappr.test.contract_class.json","casm":null}}]}
