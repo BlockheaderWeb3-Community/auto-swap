@@ -69,21 +69,19 @@ mod AutoSwappr {
             integrator_fee_recipient: ContractAddress,
             routes: Array<Route>,
         ) {
-            let avnu = IExchangeDispatcher { contract_address: self.avnu_exchange_address.read() };
-
-            let swap = avnu
-                .multi_route_swap(
-                    token_from_address,
-                    token_from_amount,
-                    token_to_address,
-                    token_to_amount,
-                    token_to_min_amount,
-                    beneficiary,
-                    integrator_fee_amount_bps,
-                    integrator_fee_recipient,
-                    routes
-                );
-
+            
+            let swap = self._swap(
+                token_from_address,
+                token_from_amount,
+                token_to_address,
+                token_to_amount,
+                token_to_min_amount,
+                beneficiary,
+                integrator_fee_amount_bps,
+                integrator_fee_recipient,
+                routes
+            );
+            
             assert(swap, Errors::SWAP_FAILED);
 
             self
@@ -119,7 +117,19 @@ mod AutoSwappr {
             integrator_fee_recipient: ContractAddress,
             routes: Array<Route>,
         ) -> bool {
-            false
+            let avnu = IExchangeDispatcher { contract_address: self.avnu_exchange_address.read() };
+
+            avnu.multi_route_swap(
+                    token_from_address,
+                    token_from_amount,
+                    token_to_address,
+                    token_to_amount,
+                    token_to_min_amount,
+                    beneficiary,
+                    integrator_fee_amount_bps,
+                    integrator_fee_recipient,
+                    routes
+                )
         }
 
         fn collect_fees(ref self: ContractState) {}
