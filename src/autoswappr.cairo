@@ -26,7 +26,7 @@ mod AutoSwappr {
     }
 
     #[event]
-    #[derive(starknet::Event, Drop, PartialEq)]
+    #[derive(starknet::Event, Drop)]
     enum Event {
         #[flat]
         OwnableEvent: OwnableComponent::Event,
