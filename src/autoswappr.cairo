@@ -115,7 +115,7 @@ mod AutoSwappr {
 
         fn collect_fees(ref self: ContractState) {}
     }
-   
+
     fn is_non_zero(address: ContractAddress) -> bool {
         address.into() != 0
     }
