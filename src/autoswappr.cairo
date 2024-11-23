@@ -4,7 +4,7 @@ mod AutoSwappr {
     use crate::base::types::{Route, Assets};
     use crate::base::errors::Errors;
     use core::starknet::{
-        ContractAddress, get_caller_address,
+        ContractAddress, get_caller_address, contract_address_const,
         storage::{Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePathEntry}
     };
     use openzeppelin::access::ownable::OwnableComponent;
@@ -69,6 +69,13 @@ mod AutoSwappr {
             integrator_fee_recipient: ContractAddress,
             routes: Array<Route>,
         ) {
+            let caller = get_caller_address();
+            assert(caller != self.zero_address(), Errors::ZERO_ADDRESS_CALLER);
+            assert(token_from_address != token_to_address, Errors::INVALID_TOKEN_SELECTION);
+            assert(token_from_amount != 0, Errors::FROM_TOKEN_ZERO_VALUE);
+            assert(token_to_amount != 0, Errors::TO_TOKEN_ZERO_VALUE);
+            assert(beneficiary != self.zero_address(), Errors::ZERO_ADDRESS_BENEFICIARY);
+
             let swap = self
                 ._swap(
                     token_from_address,
@@ -134,5 +141,9 @@ mod AutoSwappr {
         }
 
         fn collect_fees(ref self: ContractState) {}
+
+        fn zero_address(self: @ContractState) -> ContractAddress {
+            contract_address_const::<0>()
+        }
     }
 }
