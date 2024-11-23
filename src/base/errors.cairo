@@ -7,4 +7,6 @@ pub mod Errors {
     pub const FROM_TOKEN_ZERO_VALUE: felt252 = 'Cannot Swap From Zero';
     pub const TO_TOKEN_ZERO_VALUE: felt252 = 'Cannot Swap to Zero';
     pub const ZERO_ADDRESS_BENEFICIARY: felt252 = 'Beneficiary cannot be zero addr';
+    pub const INSUFFICIENT_BALANCE: felt252 = 'Insufficient Balance';
+    pub const TRANSFER_FAILED: felt252 = 'Transfer Failed';
 }

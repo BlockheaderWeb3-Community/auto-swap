@@ -4,11 +4,12 @@ mod AutoSwappr {
     use crate::base::types::{Route, Assets};
     use crate::base::errors::Errors;
     use core::starknet::{
-        ContractAddress, get_caller_address, contract_address_const,
+        ContractAddress, get_caller_address, contract_address_const, get_contract_address,
         storage::{Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePathEntry}
     };
     use openzeppelin::access::ownable::OwnableComponent;
     use crate::interfaces::iavnu_exchange::{IExchangeDispatcher, IExchangeDispatcherTrait};
+    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
 
@@ -70,11 +71,22 @@ mod AutoSwappr {
             routes: Array<Route>,
         ) {
             let caller = get_caller_address();
+            let this_contract = get_contract_address();
+
             assert(caller != self.zero_address(), Errors::ZERO_ADDRESS_CALLER);
             assert(token_from_address != token_to_address, Errors::INVALID_TOKEN_SELECTION);
             assert(token_from_amount != 0, Errors::FROM_TOKEN_ZERO_VALUE);
             assert(token_to_amount != 0, Errors::TO_TOKEN_ZERO_VALUE);
             assert(beneficiary != self.zero_address(), Errors::ZERO_ADDRESS_BENEFICIARY);
+
+            let from_token = IERC20Dispatcher { contract_address: token_from_address };
+
+            assert(
+                from_token.balance_of(caller) >= token_from_amount, Errors::INSUFFICIENT_BALANCE
+            );
+
+            let transfer = from_token.transfer_from(caller, this_contract, token_from_amount);
+            assert(transfer, Errors::TRANSFER_FAILED);
 
             let swap = self
                 ._swap(
