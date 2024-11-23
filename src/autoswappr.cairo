@@ -2,6 +2,7 @@
 mod AutoSwappr {
     use crate::interfaces::autoswappr::IAutoSwappr;
     use crate::base::types::{Route, Assets};
+    use crate::base::errors::Errors;
     use core::starknet::{ContractAddress, get_caller_address, get_contract_address,};
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
@@ -54,7 +55,7 @@ mod AutoSwappr {
     impl AutoSwappr of IAutoSwappr<ContractState> {
         fn subscribe(ref self: ContractState, assets: Assets) {
             let caller = get_caller_address();
-            assert(is_non_zero(caller), 'Caller cannot be zero address');
+            assert(is_non_zero(caller), Errors::ZERO_ADDRESS_CALLER);
 
             let max_u256 = u256 {
                 low: 0xffffffffffffffffffffffffffffffff, high: 0xffffffffffffffffffffffffffffffff
