@@ -3,7 +3,10 @@ mod AutoSwappr {
     use crate::interfaces::autoswappr::IAutoSwappr;
     use crate::base::types::{Route, Assets};
     use crate::base::errors::Errors;
-    use core::starknet::{ContractAddress, get_caller_address, get_contract_address,};
+    use core::starknet::{
+        ContractAddress, get_caller_address, get_contract_address,
+        storage::{Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePathEntry}
+    };
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
     use core::integer::{u256, u128};
