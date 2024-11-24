@@ -22,6 +22,8 @@ mod AutoSwappr {
 
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
 
+    impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
+
     #[storage]
     struct Storage {
         #[substorage(v0)]
@@ -29,12 +31,6 @@ mod AutoSwappr {
         fees_collector: ContractAddress,
         #[substorage(v0)]
         upgradeable: UpgradeableComponent::Storage
-    }
-
-    #[derive(use starknet::Event, Drop, PartialEq)]
-    struct UpgradedEvent{
-        new_class_hash: ClassHash,
-        upgrader: ContractAddress,
     }
     
     #[event]
@@ -44,8 +40,6 @@ mod AutoSwappr {
         OwnableEvent: OwnableComponent::Event,
         #[flat]
         UpgradeableEvent: UpgradeableComponent::Event,
-        #[flat]
-        UpgradedEvent: UpgradedEvent,
     }
 
     #[constructor]
