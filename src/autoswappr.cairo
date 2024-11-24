@@ -2,10 +2,20 @@
 mod AutoSwappr {
     use crate::interfaces::autoswappr::IAutoSwappr;
     use crate::base::types::{Route, Assets};
-    use core::starknet::{ContractAddress, ClassHash, get_caller_address,};
-    use openzeppelin_access::ownable::OwnableComponent;
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
+
+    use crate::base::errors::Errors;
+
+    use core::starknet::{
+        ContractAddress, get_caller_address, contract_address_const, get_contract_address,
+    };
+
+    use openzeppelin::access::ownable::OwnableComponent;
+    use crate::interfaces::iavnu_exchange::{IExchangeDispatcher, IExchangeDispatcherTrait};
+    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+
+    use core::integer::{u256, u128};
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
@@ -24,21 +34,50 @@ mod AutoSwappr {
         fees_collector: ContractAddress,
         #[substorage(v0)]
         upgradeable: UpgradeableComponent::Storage
+        avnu_exchange_address: ContractAddress,
+        strk_token: ContractAddress,
+        eth_token: ContractAddress,
     }
 
     #[event]
-    #[derive(starknet::Event, Drop, PartialEq)]
+    #[derive(starknet::Event, Drop)]
     enum Event {
         #[flat]
         OwnableEvent: OwnableComponent::Event,
         #[flat]
         UpgradeableEvent: UpgradeableComponent::Event,
+        SwapSuccessful: SwapSuccessful,
+        Subscribed: Subscribed,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct SwapSuccessful {
+        token_from_address: ContractAddress,
+        token_from_amount: u256,
+        token_to_address: ContractAddress,
+        token_to_amount: u256,
+        beneficiary: ContractAddress
+    }
+
+    #[derive(starknet::Event, Drop)]
+    struct Subscribed {
+        user: ContractAddress,
+        assets: Assets,
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, fees_collector: ContractAddress) {
+    fn constructor(
+        ref self: ContractState,
+        fees_collector: ContractAddress,
+        avnu_exchange_address: ContractAddress,
+        strk_token: ContractAddress,
+        eth_token: ContractAddress
+    ) {
         self.ownable.initializer(get_caller_address());
         self.fees_collector.write(fees_collector);
+        self.strk_token.write(strk_token);
+        self.eth_token.write(eth_token);
+        self.avnu_exchange_address.write(avnu_exchange_address);
     }
 
     #[abi(embed_v0)]
@@ -51,7 +90,28 @@ mod AutoSwappr {
 
     #[abi(embed_v0)]
     impl AutoSwappr of IAutoSwappr<ContractState> {
-        fn subscribe(ref self: ContractState, assets: Assets) {}
+        fn subscribe(ref self: ContractState, assets: Assets) {
+            let caller = get_caller_address();
+            assert(is_non_zero(caller), Errors::ZERO_ADDRESS_CALLER);
+
+            let max_u256 = u256 {
+                low: 0xffffffffffffffffffffffffffffffff, high: 0xffffffffffffffffffffffffffffffff
+            };
+
+            if assets.strk {
+                let strk_token_address = self.strk_token.read();
+                let strk_token = IERC20Dispatcher { contract_address: strk_token_address };
+                strk_token.approve(get_contract_address(), max_u256);
+            }
+
+            if assets.eth {
+                let eth_token_address = self.eth_token.read();
+                let eth_token = IERC20Dispatcher { contract_address: eth_token_address };
+                eth_token.approve(get_contract_address(), max_u256);
+            }
+
+            self.emit(Subscribed { user: caller, assets });
+        }
 
         fn swap(
             ref self: ContractState,
@@ -64,7 +124,39 @@ mod AutoSwappr {
             integrator_fee_amount_bps: u128,
             integrator_fee_recipient: ContractAddress,
             routes: Array<Route>,
-        ) {}
+        ) {
+            let this_contract = get_contract_address();
+
+            assert(
+                self.is_approved(this_contract, token_from_address), Errors::SPENDER_NOT_APPROVED
+            );
+
+            let swap = self
+                ._swap(
+                    token_from_address,
+                    token_from_amount,
+                    token_to_address,
+                    token_to_amount,
+                    token_to_min_amount,
+                    beneficiary,
+                    integrator_fee_amount_bps,
+                    integrator_fee_recipient,
+                    routes
+                );
+
+            assert(swap, Errors::SWAP_FAILED);
+
+            self
+                .emit(
+                    SwapSuccessful {
+                        token_from_address,
+                        token_from_amount,
+                        token_to_address,
+                        token_to_amount,
+                        beneficiary
+                    }
+                );
+        }
     }
 
     #[generate_trait]
@@ -87,9 +179,30 @@ mod AutoSwappr {
             integrator_fee_recipient: ContractAddress,
             routes: Array<Route>,
         ) -> bool {
-            false
+            let avnu = IExchangeDispatcher { contract_address: self.avnu_exchange_address.read() };
+
+            avnu
+                .multi_route_swap(
+                    token_from_address,
+                    token_from_amount,
+                    token_to_address,
+                    token_to_amount,
+                    token_to_min_amount,
+                    beneficiary,
+                    integrator_fee_amount_bps,
+                    integrator_fee_recipient,
+                    routes
+                )
         }
 
         fn collect_fees(ref self: ContractState) {}
+
+        fn zero_address(self: @ContractState) -> ContractAddress {
+            contract_address_const::<0>()
+        }
+    }
+
+    fn is_non_zero(address: ContractAddress) -> bool {
+        address.into() != 0
     }
 }
