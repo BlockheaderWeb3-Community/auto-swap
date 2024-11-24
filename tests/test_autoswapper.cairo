@@ -9,11 +9,13 @@ use starknet::{ContractAddress};
 
 use snforge_std::{
     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
-    DeclareResultTrait, spy_events, EventSpyAssertionsTrait,
+    DeclareResultTrait, spy_events, EventSpyAssertionsTrait, EventSpyTrait, EventsFilterTrait,
+    EventSpy
 };
 
 use auto_swappr::interfaces::autoswappr::{IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait};
 use auto_swappr::base::types::{Route, Assets};
+use auto_swappr::autoswappr::AutoSwappr;
 
 
 const USER_ONE: felt252 = 'JON';
@@ -60,13 +62,26 @@ fn test_unsubscribe_none() {
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
+    let mut spy = spy_events();
 
     let user_addr: ContractAddress = USER_THREE.try_into().unwrap();
     let assets: Assets = Assets { strk: false, eth: false };
 
     start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), user_addr);
     autoSwappr_dispatcher.subscribe(assets.clone());
-    autoSwappr_dispatcher.unsubscribe(assets);
+    autoSwappr_dispatcher.unsubscribe(assets.clone());
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_contract_address,
+                    AutoSwappr::Event::Unsubscribed(
+                        AutoSwappr::Unsubscribed { user: user_addr, assets }
+                    )
+                )
+            ]
+        );
 }
 
 #[test]
@@ -75,13 +90,26 @@ fn test_unsubscribe_eth() {
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
+    let mut spy = spy_events();
 
     let user_addr: ContractAddress = USER_THREE.try_into().unwrap();
     let assets: Assets = Assets { strk: false, eth: true };
 
     start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), user_addr);
     autoSwappr_dispatcher.subscribe(assets.clone());
-    autoSwappr_dispatcher.unsubscribe(assets);
+    autoSwappr_dispatcher.unsubscribe(assets.clone());
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_contract_address,
+                    AutoSwappr::Event::Unsubscribed(
+                        AutoSwappr::Unsubscribed { user: user_addr, assets }
+                    )
+                )
+            ]
+        );
 }
 
 #[test]
@@ -90,13 +118,26 @@ fn test_unsubscribe_strk() {
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
+    let mut spy = spy_events();
 
     let user_addr: ContractAddress = USER_THREE.try_into().unwrap();
     let assets: Assets = Assets { strk: true, eth: false };
 
     start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), user_addr);
     autoSwappr_dispatcher.subscribe(assets.clone());
-    autoSwappr_dispatcher.unsubscribe(assets);
+    autoSwappr_dispatcher.unsubscribe(assets.clone());
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_contract_address,
+                    AutoSwappr::Event::Unsubscribed(
+                        AutoSwappr::Unsubscribed { user: user_addr, assets }
+                    )
+                )
+            ]
+        );
 }
 
 #[test]
@@ -105,11 +146,24 @@ fn test_unsubscribe_all() {
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
+    let mut spy = spy_events();
 
     let user_addr: ContractAddress = USER_THREE.try_into().unwrap();
     let assets: Assets = Assets { strk: true, eth: true };
 
     start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), user_addr);
     autoSwappr_dispatcher.subscribe(assets.clone());
-    autoSwappr_dispatcher.unsubscribe(assets);
+    autoSwappr_dispatcher.unsubscribe(assets.clone());
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_contract_address,
+                    AutoSwappr::Event::Unsubscribed(
+                        AutoSwappr::Unsubscribed { user: user_addr, assets }
+                    )
+                )
+            ]
+        );
 }

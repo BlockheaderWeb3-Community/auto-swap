@@ -1,5 +1,5 @@
 #[starknet::contract]
-mod AutoSwappr {
+pub mod AutoSwappr {
     use crate::interfaces::autoswappr::IAutoSwappr;
     use crate::base::types::{Route, Assets};
     use crate::base::errors::Errors;
@@ -34,7 +34,7 @@ mod AutoSwappr {
 
     #[event]
     #[derive(starknet::Event, Drop)]
-    enum Event {
+    pub enum Event {
         #[flat]
         OwnableEvent: OwnableComponent::Event,
         SwapSuccessful: SwapSuccessful,
@@ -58,9 +58,9 @@ mod AutoSwappr {
     }
 
     #[derive(starknet::Event, Drop)]
-    struct Unsubscribed {
-        user: ContractAddress,
-        assets: Assets,
+    pub struct Unsubscribed {
+        pub user: ContractAddress,
+        pub assets: Assets,
     }
 
     #[constructor]
