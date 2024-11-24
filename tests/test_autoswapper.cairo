@@ -40,9 +40,14 @@ fn __setup__() -> ContractAddress {
 #[should_panic(expected: 'Caller cannot be zero addr')]
 fn test_unsubscribe_zero_addr() {
     let autoSwappr_contract_address = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher { contract_address: autoSwappr_contract_address };
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
 
-    let zero_addr: ContractAddress = 0x0000000000000000000000000000000000000000000000000000000000000000.try_into().unwrap();
+    let zero_addr: ContractAddress =
+        0x0000000000000000000000000000000000000000000000000000000000000000
+        .try_into()
+        .unwrap();
     let assets: Assets = Assets { strk: true, eth: true };
 
     start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), zero_addr);
@@ -50,9 +55,56 @@ fn test_unsubscribe_zero_addr() {
 }
 
 #[test]
-fn test_unsubscribe() {
+fn test_unsubscribe_none() {
     let autoSwappr_contract_address = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher { contract_address: autoSwappr_contract_address };
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    let user_addr: ContractAddress = USER_THREE.try_into().unwrap();
+    let assets: Assets = Assets { strk: false, eth: false };
+
+    start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), user_addr);
+    autoSwappr_dispatcher.subscribe(assets.clone());
+    autoSwappr_dispatcher.unsubscribe(assets);
+}
+
+#[test]
+fn test_unsubscribe_eth() {
+    let autoSwappr_contract_address = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    let user_addr: ContractAddress = USER_THREE.try_into().unwrap();
+    let assets: Assets = Assets { strk: false, eth: true };
+
+    start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), user_addr);
+    autoSwappr_dispatcher.subscribe(assets.clone());
+    autoSwappr_dispatcher.unsubscribe(assets);
+}
+
+#[test]
+fn test_unsubscribe_strk() {
+    let autoSwappr_contract_address = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    let user_addr: ContractAddress = USER_THREE.try_into().unwrap();
+    let assets: Assets = Assets { strk: true, eth: false };
+
+    start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), user_addr);
+    autoSwappr_dispatcher.subscribe(assets.clone());
+    autoSwappr_dispatcher.unsubscribe(assets);
+}
+
+#[test]
+fn test_unsubscribe_all() {
+    let autoSwappr_contract_address = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
 
     let user_addr: ContractAddress = USER_THREE.try_into().unwrap();
     let assets: Assets = Assets { strk: true, eth: true };
