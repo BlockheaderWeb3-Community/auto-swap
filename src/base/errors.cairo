@@ -9,4 +9,5 @@ pub mod Errors {
     pub const ZERO_ADDRESS_BENEFICIARY: felt252 = 'Beneficiary cannot be zero addr';
     pub const INSUFFICIENT_BALANCE: felt252 = 'Insufficient Balance';
     pub const TRANSFER_FAILED: felt252 = 'Transfer Failed';
+    pub const SPENDER_NOT_APPROVED: felt252 = 'Spender not approved';
 }

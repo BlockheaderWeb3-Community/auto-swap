@@ -78,15 +78,7 @@ mod AutoSwappr {
             assert(token_from_amount != 0, Errors::FROM_TOKEN_ZERO_VALUE);
             assert(token_to_amount != 0, Errors::TO_TOKEN_ZERO_VALUE);
             assert(beneficiary != self.zero_address(), Errors::ZERO_ADDRESS_BENEFICIARY);
-
-            let from_token = IERC20Dispatcher { contract_address: token_from_address };
-
-            assert(
-                from_token.balance_of(caller) >= token_from_amount, Errors::INSUFFICIENT_BALANCE
-            );
-
-            let transfer = from_token.transfer_from(caller, this_contract, token_from_amount);
-            assert(transfer, Errors::TRANSFER_FAILED);
+            assert(self.is_approved(this_contract, token_from_address), Errors::SPENDER_NOT_APPROVED);
 
             let swap = self
                 ._swap(
