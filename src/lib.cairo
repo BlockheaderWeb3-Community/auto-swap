@@ -3,8 +3,9 @@ pub mod base {
     pub mod errors;
 }
 
-mod interfaces {
+pub mod interfaces {
     pub mod autoswappr;
+    pub mod iavnu_exchange;
 }
 
 mod autoswappr;
