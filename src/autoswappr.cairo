@@ -8,7 +8,7 @@ mod AutoSwappr {
     use crate::base::errors::Errors;
 
     use core::starknet::{
-        ContractAddress, get_caller_address, contract_address_const, get_contract_address,
+        ContractAddress, get_caller_address, contract_address_const, get_contract_address, ClassHash
     };
 
     use openzeppelin::access::ownable::OwnableComponent;
@@ -33,7 +33,7 @@ mod AutoSwappr {
         ownable: OwnableComponent::Storage,
         fees_collector: ContractAddress,
         #[substorage(v0)]
-        upgradeable: UpgradeableComponent::Storage
+        upgradeable: UpgradeableComponent::Storage,
         avnu_exchange_address: ContractAddress,
         strk_token: ContractAddress,
         eth_token: ContractAddress,
