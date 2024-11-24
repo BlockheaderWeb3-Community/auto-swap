@@ -3,7 +3,7 @@ pub mod base {
     pub mod errors;
 }
 
-mod interfaces {
+pub mod interfaces {
     pub mod autoswappr;
 }
 
