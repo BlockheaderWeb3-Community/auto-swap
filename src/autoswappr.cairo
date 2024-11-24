@@ -4,8 +4,8 @@ mod AutoSwappr {
     use crate::base::types::{Route, Assets};
     use crate::base::errors::Errors;
     use core::starknet::{
-        ContractAddress, get_caller_address, get_contract_address,
-        storage::{Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePathEntry}
+        ContractAddress, get_caller_address,
+        get_contract_address, // storage::{Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePathEntry}
     };
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
@@ -93,14 +93,14 @@ mod AutoSwappr {
             if assets.strk {
                 let strk_token_address = self.strk_token.read();
                 let strk_token = IERC20Dispatcher { contract_address: strk_token_address };
-                assert(is_approved(caller, strk_token_address), Errors::TOKEN_NOT_APPROVED);
+                assert(self.is_approved(caller, strk_token_address), Errors::TOKEN_NOT_APPROVED);
                 strk_token.approve(get_contract_address(), 0);
             }
 
             if assets.eth {
                 let eth_token_address = self.eth_token.read();
                 let eth_token = IERC20Dispatcher { contract_address: eth_token_address };
-                assert(is_approved(caller, eth_token_address), Errors::TOKEN_NOT_APPROVED);
+                assert(self.is_approved(caller, eth_token_address), Errors::TOKEN_NOT_APPROVED);
                 eth_token.approve(get_contract_address(), 0);
             }
 
