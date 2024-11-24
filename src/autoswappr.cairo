@@ -63,7 +63,7 @@ mod AutoSwappr {
         avnu_exchange_address: ContractAddress,
         strk_token: ContractAddress,
         eth_token: ContractAddress
-    ){
+    ) {
         self.ownable.initializer(get_caller_address());
         self.fees_collector.write(fees_collector);
         self.strk_token.write(strk_token);
@@ -110,7 +110,9 @@ mod AutoSwappr {
         ) {
             let this_contract = get_contract_address();
 
-            assert(self.is_approved(this_contract, token_from_address), Errors::SPENDER_NOT_APPROVED);
+            assert(
+                self.is_approved(this_contract, token_from_address), Errors::SPENDER_NOT_APPROVED
+            );
 
             let swap = self
                 ._swap(
