@@ -2,17 +2,10 @@
 mod AutoSwappr {
     use crate::interfaces::autoswappr::IAutoSwappr;
     use crate::base::types::{Route, Assets};
-    use core::starknet::{
-        ContractAddress, ClassHash, syscalls, get_caller_address,
-        storage::{Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePathEntry}
-    };
-    use openzeppelin::access::ownable::OwnableComponent;
+    use core::starknet::{ContractAddress, ClassHash, get_caller_address,};
+    use openzeppelin_access::ownable::OwnableComponent;
     use openzeppelin_upgrades::UpgradeableComponent;
-    use openzeppelin_upgrades::interfaces::IUpgradeable;
-
-    use core::starknet::class_hash::class_hash_const;
-    use core::num::traits::Zero;
-
+    use openzeppelin_upgrades::interface::IUpgradeable;
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
@@ -32,7 +25,7 @@ mod AutoSwappr {
         #[substorage(v0)]
         upgradeable: UpgradeableComponent::Storage
     }
-    
+
     #[event]
     #[derive(starknet::Event, Drop, PartialEq)]
     enum Event {
@@ -53,13 +46,8 @@ mod AutoSwappr {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             self.ownable.assert_only_owner();
             self.upgradeable.upgrade(new_class_hash);
-
-            let upgrader = get_caller_address();
-            // Emit the event before contract final upgrading to snapshot the current state
-            self.emit(UpgradedEvent{ new_class_hash: ClassHash, upgrader: upgrader});
-
-            syscalls::replace_class_syscall(new_class_hash).unwrap();
         }
+    }
 
     #[abi(embed_v0)]
     impl AutoSwappr of IAutoSwappr<ContractState> {
@@ -104,5 +92,4 @@ mod AutoSwappr {
 
         fn collect_fees(ref self: ContractState) {}
     }
-}
 }
