@@ -70,14 +70,8 @@ mod AutoSwappr {
             integrator_fee_recipient: ContractAddress,
             routes: Array<Route>,
         ) {
-            let caller = get_caller_address();
             let this_contract = get_contract_address();
 
-            assert(caller != self.zero_address(), Errors::ZERO_ADDRESS_CALLER);
-            assert(token_from_address != token_to_address, Errors::INVALID_TOKEN_SELECTION);
-            assert(token_from_amount != 0, Errors::FROM_TOKEN_ZERO_VALUE);
-            assert(token_to_amount != 0, Errors::TO_TOKEN_ZERO_VALUE);
-            assert(beneficiary != self.zero_address(), Errors::ZERO_ADDRESS_BENEFICIARY);
             assert(self.is_approved(this_contract, token_from_address), Errors::SPENDER_NOT_APPROVED);
 
             let swap = self
