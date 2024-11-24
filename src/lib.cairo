@@ -5,6 +5,7 @@ pub mod base {
 
 pub mod interfaces {
     pub mod autoswappr;
+    pub mod iavnu_exchange;
 }
 
 mod autoswappr;
