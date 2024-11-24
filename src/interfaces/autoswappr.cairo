@@ -3,6 +3,8 @@ use crate::base::types::{Route, Assets};
 
 #[starknet::interface]
 pub trait IAutoSwappr<TContractState> {
+    fn unsubscribe(ref self: TContractState, assets: Assets);
+
     fn subscribe(ref self: TContractState, assets: Assets);
 
     fn swap(
