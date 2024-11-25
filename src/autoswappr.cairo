@@ -111,12 +111,14 @@ pub mod AutoSwappr {
                 let strk_token_address = self.strk_token.read();
                 let strk_token = IERC20Dispatcher { contract_address: strk_token_address };
                 strk_token.approve(get_contract_address(), 0);
+                assert(!self.is_approved(caller, strk_token_address), Errors::UNSUBSCRIBE_FAILED);
             }
 
             if assets.eth {
                 let eth_token_address = self.eth_token.read();
                 let eth_token = IERC20Dispatcher { contract_address: eth_token_address };
                 eth_token.approve(get_contract_address(), 0);
+                assert(!self.is_approved(caller, eth_token_address), Errors::UNSUBSCRIBE_FAILED);
             }
 
             self.emit(Unsubscribed { user: caller, assets });
@@ -173,7 +175,8 @@ pub mod AutoSwappr {
         fn is_approved(
             self: @ContractState, beneficiary: ContractAddress, token_contract: ContractAddress
         ) -> bool {
-            false
+            let token = IERC20Dispatcher { contract_address: token_contract };
+            token.allowance(beneficiary, get_contract_address()) > 0
         }
 
         fn _swap(
