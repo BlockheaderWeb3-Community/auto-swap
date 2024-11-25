@@ -110,14 +110,12 @@ pub mod AutoSwappr {
             if assets.strk {
                 let strk_token_address = self.strk_token.read();
                 let strk_token = IERC20Dispatcher { contract_address: strk_token_address };
-                assert(self.is_approved(caller, strk_token_address), Errors::TOKEN_NOT_APPROVED);
                 strk_token.approve(get_contract_address(), 0);
             }
 
             if assets.eth {
                 let eth_token_address = self.eth_token.read();
                 let eth_token = IERC20Dispatcher { contract_address: eth_token_address };
-                assert(self.is_approved(caller, eth_token_address), Errors::TOKEN_NOT_APPROVED);
                 eth_token.approve(get_contract_address(), 0);
             }
 
@@ -175,8 +173,7 @@ pub mod AutoSwappr {
         fn is_approved(
             self: @ContractState, beneficiary: ContractAddress, token_contract: ContractAddress
         ) -> bool {
-            let token = IERC20Dispatcher { contract_address: token_contract };
-            token.allowance(beneficiary, get_contract_address()) > 0
+            false
         }
 
         fn _swap(
