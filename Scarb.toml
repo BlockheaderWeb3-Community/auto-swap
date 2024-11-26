@@ -7,7 +7,6 @@ edition = "2023_11"
 
 [dependencies]
 starknet = "2.8.5"
-avnu = { git = "https://github.com/avnu-labs/avnu-contracts-v2.git", branch = "main" }
 openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.15.0" }
 
 [dev-dependencies]
@@ -41,6 +40,11 @@ test = "snforge test"
 # name = "SOME_THIRD_NAME"
 # url = "http://your.third.rpc.url"
 # block_id.hash = "0x123"                                    # Block to fork from (block hash)
+
+[[tool.snforge.fork]]
+name = "MAINNET"
+url = "http://127.0.0.1:5050"
+block_id.tag = "latest"
 
 # [profile.dev.cairo]                                        # Configure Cairo compiler
 # unstable-add-statements-code-locations-debug-info = true   # Should be used if you want to use coverage

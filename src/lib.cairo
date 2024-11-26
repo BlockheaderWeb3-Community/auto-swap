@@ -8,4 +8,4 @@ pub mod interfaces {
     pub mod iavnu_exchange;
 }
 
-mod autoswappr;
+pub mod autoswappr;

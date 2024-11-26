@@ -1,5 +1,5 @@
 node_modules
-
+.snfoundry_cache
 target
 
 .snfoundry_cache/

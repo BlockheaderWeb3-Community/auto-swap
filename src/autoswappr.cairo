@@ -1,5 +1,5 @@
 #[starknet::contract]
-mod AutoSwappr {
+pub mod AutoSwappr {
     use crate::interfaces::autoswappr::IAutoSwappr;
     use crate::base::types::{Route, Assets};
     use openzeppelin_upgrades::UpgradeableComponent;
@@ -8,7 +8,8 @@ mod AutoSwappr {
     use crate::base::errors::Errors;
 
     use core::starknet::{
-        ContractAddress, get_caller_address, contract_address_const, get_contract_address, ClassHash
+        ContractAddress, get_caller_address, contract_address_const, get_contract_address,
+        get_block_timestamp, ClassHash
     };
 
     use openzeppelin::access::ownable::OwnableComponent;
@@ -41,13 +42,14 @@ mod AutoSwappr {
 
     #[event]
     #[derive(starknet::Event, Drop)]
-    enum Event {
+    pub enum Event {
         #[flat]
         OwnableEvent: OwnableComponent::Event,
         #[flat]
         UpgradeableEvent: UpgradeableComponent::Event,
         SwapSuccessful: SwapSuccessful,
         Subscribed: Subscribed,
+        Unsubscribed: Unsubscribed
     }
 
     #[derive(Drop, starknet::Event)]
@@ -63,6 +65,13 @@ mod AutoSwappr {
     struct Subscribed {
         user: ContractAddress,
         assets: Assets,
+    }
+
+    #[derive(starknet::Event, Drop)]
+    pub struct Unsubscribed {
+        pub user: ContractAddress,
+        pub assets: Assets,
+        pub block_timestamp: u64
     }
 
     #[constructor]
@@ -111,6 +120,30 @@ mod AutoSwappr {
             }
 
             self.emit(Subscribed { user: caller, assets });
+        }
+
+        fn unsubscribe(ref self: ContractState, assets: Assets) {
+            let caller = get_caller_address();
+            assert(is_non_zero(caller), Errors::ZERO_ADDRESS_CALLER);
+
+            if !assets.strk {
+                let strk_token_address = self.strk_token.read();
+                let strk_token = IERC20Dispatcher { contract_address: strk_token_address };
+                strk_token.approve(get_contract_address(), 0);
+                assert(!self.is_approved(caller, strk_token_address), Errors::UNSUBSCRIBE_FAILED);
+            }
+
+            if !assets.eth {
+                let eth_token_address = self.eth_token.read();
+                let eth_token = IERC20Dispatcher { contract_address: eth_token_address };
+                eth_token.approve(get_contract_address(), 0);
+                assert(!self.is_approved(caller, eth_token_address), Errors::UNSUBSCRIBE_FAILED);
+            }
+
+            self
+                .emit(
+                    Unsubscribed { user: caller, assets, block_timestamp: get_block_timestamp() }
+                );
         }
 
         fn swap(
@@ -164,7 +197,8 @@ mod AutoSwappr {
         fn is_approved(
             self: @ContractState, beneficiary: ContractAddress, token_contract: ContractAddress
         ) -> bool {
-            false
+            let token = IERC20Dispatcher { contract_address: token_contract };
+            token.allowance(beneficiary, get_contract_address()) > 0
         }
 
         fn _swap(
