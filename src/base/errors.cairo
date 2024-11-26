@@ -15,4 +15,5 @@ pub mod Errors {
     pub const ETH_NOT_UNSUBSCRIBED: felt252 = 'Should unsubscribe ETH';
     pub const STRK_UNSUBSCRIBED: felt252 = 'Shouldn\'t unsubscribe STRK';
     pub const ETH_UNSUBSCRIBED: felt252 = 'Shouldn\'t unsubscribe ETH';
+    pub const ALLOWANCE_NOT_ZERO: felt252 = 'Allowance not zero';
 }

@@ -18,10 +18,7 @@ use auto_swappr::base::errors::Errors;
 
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
-
-const USER_ONE: felt252 = 'JON';
-const USER_TWO: felt252 = 'DOE';
-const USER_THREE: felt252 = 'USER';
+const USER: felt252 = 'USER';
 const OWNER: felt252 = 'OWNER';
 const AVNU_ADDR: felt252 = 'AVNU';
 const FEE_COLLECTOR_ADDR: felt252 = 'FEE_COLLECTOR';
@@ -29,13 +26,16 @@ const FEE_COLLECTOR_ADDR: felt252 = 'FEE_COLLECTOR';
 // *************************************************************************
 //                              SETUP
 // *************************************************************************
-fn __setup__() -> ContractAddress {
+fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     let STRK: ContractAddress = 0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d
         .try_into()
         .unwrap();
     let ETH: ContractAddress = 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7
         .try_into()
         .unwrap();
+
+    let strk_dispatcher = IERC20Dispatcher { contract_address: STRK };
+    let eth_dispatcher = IERC20Dispatcher { contract_address: ETH };
 
     let STRK_FELT: felt252 = STRK.into();
     let ETH_FELT: felt252 = ETH.into();
@@ -50,13 +50,13 @@ fn __setup__() -> ContractAddress {
         .deploy(@autoSwappr_constructor_calldata)
         .unwrap();
 
-    return (autoSwappr_contract_address);
+    return (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher);
 }
 
 #[test]
 #[should_panic(expected: 'Caller cannot be zero addr')]
 fn test_unsubscribe_zero_addr() {
-    let autoSwappr_contract_address = __setup__();
+    let (autoSwappr_contract_address, _, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -74,29 +74,24 @@ fn test_unsubscribe_zero_addr() {
 #[test]
 #[fork(url: "https://starknet-sepolia.public.blastapi.io/rpc/v0_7", block_tag: latest)]
 fn test_unsubscribe_none() {
-    let STRK: ContractAddress = 0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d
-        .try_into()
-        .unwrap();
-    let ETH: ContractAddress = 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7
-        .try_into()
-        .unwrap();
-
-    let strk_dispatcher = IERC20Dispatcher { contract_address: STRK };
-    let eth_dispatcher = IERC20Dispatcher { contract_address: ETH };
-
-    let autoSwappr_contract_address = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
 
     let mut spy = spy_events();
 
-    let user_addr: ContractAddress = USER_THREE.try_into().unwrap();
+    let user_addr: ContractAddress = USER.try_into().unwrap();
     let assets: Assets = Assets { strk: true, eth: true };
 
     let timestamp: u64 = 343000;
     start_cheat_block_timestamp(autoSwappr_contract_address.try_into().unwrap(), timestamp);
     start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), user_addr);
+
+    let strk_allowance = strk_dispatcher.allowance(user_addr, autoSwappr_contract_address);
+    let eth_allowance = eth_dispatcher.allowance(user_addr, autoSwappr_contract_address);
+    assert(strk_allowance == 0, Errors::ALLOWANCE_NOT_ZERO);
+    assert(eth_allowance == 0, Errors::ALLOWANCE_NOT_ZERO);
 
     autoSwappr_dispatcher.subscribe(assets.clone());
 
@@ -129,31 +124,23 @@ fn test_unsubscribe_none() {
 #[test]
 #[fork(url: "https://starknet-sepolia.public.blastapi.io/rpc/v0_7", block_tag: latest)]
 fn test_unsubscribe_eth() {
-    let STRK: ContractAddress = 0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d
-        .try_into()
-        .unwrap();
-    let ETH: ContractAddress = 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7
-        .try_into()
-        .unwrap();
-
-    let strk_dispatcher = IERC20Dispatcher { contract_address: STRK };
-    let eth_dispatcher = IERC20Dispatcher { contract_address: ETH };
-
-    let autoSwappr_contract_address = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
     let mut spy = spy_events();
 
-    let user_addr: ContractAddress =
-        0x20281104e6cb5884dabcdf3be376cf4ff7b680741a7bb20e5e07c26cd4870af
-        .try_into()
-        .unwrap();
+    let user_addr: ContractAddress = USER.try_into().unwrap();
     let assets: Assets = Assets { strk: true, eth: false };
 
     let timestamp: u64 = 343000;
     start_cheat_block_timestamp(autoSwappr_contract_address.try_into().unwrap(), timestamp);
     start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), user_addr);
+
+    let strk_allowance = strk_dispatcher.allowance(user_addr, autoSwappr_contract_address);
+    let eth_allowance = eth_dispatcher.allowance(user_addr, autoSwappr_contract_address);
+    assert(strk_allowance == 0, Errors::ALLOWANCE_NOT_ZERO);
+    assert(eth_allowance == 0, Errors::ALLOWANCE_NOT_ZERO);
 
     autoSwappr_dispatcher.subscribe(assets.clone());
 
@@ -185,31 +172,23 @@ fn test_unsubscribe_eth() {
 #[test]
 #[fork(url: "https://starknet-sepolia.public.blastapi.io/rpc/v0_7", block_tag: latest)]
 fn test_unsubscribe_strk() {
-    let STRK: ContractAddress = 0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d
-        .try_into()
-        .unwrap();
-    let ETH: ContractAddress = 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7
-        .try_into()
-        .unwrap();
-
-    let strk_dispatcher = IERC20Dispatcher { contract_address: STRK };
-    let eth_dispatcher = IERC20Dispatcher { contract_address: ETH };
-
-    let autoSwappr_contract_address = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
     let mut spy = spy_events();
 
-    let user_addr: ContractAddress =
-        0x20281104e6cb5884dabcdf3be376cf4ff7b680741a7bb20e5e07c26cd4870af
-        .try_into()
-        .unwrap();
+    let user_addr: ContractAddress = USER.try_into().unwrap();
     let assets: Assets = Assets { strk: false, eth: true };
 
     let timestamp: u64 = 343000;
     start_cheat_block_timestamp(autoSwappr_contract_address.try_into().unwrap(), timestamp);
     start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), user_addr);
+
+    let strk_allowance = strk_dispatcher.allowance(user_addr, autoSwappr_contract_address);
+    let eth_allowance = eth_dispatcher.allowance(user_addr, autoSwappr_contract_address);
+    assert(strk_allowance == 0, Errors::ALLOWANCE_NOT_ZERO);
+    assert(eth_allowance == 0, Errors::ALLOWANCE_NOT_ZERO);
 
     autoSwappr_dispatcher.subscribe(assets.clone());
 
@@ -241,31 +220,23 @@ fn test_unsubscribe_strk() {
 #[test]
 #[fork(url: "https://starknet-sepolia.public.blastapi.io/rpc/v0_7", block_tag: latest)]
 fn test_unsubscribe_all() {
-    let STRK: ContractAddress = 0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d
-        .try_into()
-        .unwrap();
-    let ETH: ContractAddress = 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7
-        .try_into()
-        .unwrap();
-
-    let strk_dispatcher = IERC20Dispatcher { contract_address: STRK };
-    let eth_dispatcher = IERC20Dispatcher { contract_address: ETH };
-
-    let autoSwappr_contract_address = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
     let mut spy = spy_events();
 
-    let user_addr: ContractAddress =
-        0x20281104e6cb5884dabcdf3be376cf4ff7b680741a7bb20e5e07c26cd4870af
-        .try_into()
-        .unwrap();
+    let user_addr: ContractAddress = USER.try_into().unwrap();
     let assets: Assets = Assets { strk: false, eth: false };
 
     let timestamp: u64 = 343000;
     start_cheat_block_timestamp(autoSwappr_contract_address.try_into().unwrap(), timestamp);
     start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), user_addr);
+
+    let strk_allowance = strk_dispatcher.allowance(user_addr, autoSwappr_contract_address);
+    let eth_allowance = eth_dispatcher.allowance(user_addr, autoSwappr_contract_address);
+    assert(strk_allowance == 0, Errors::ALLOWANCE_NOT_ZERO);
+    assert(eth_allowance == 0, Errors::ALLOWANCE_NOT_ZERO);
 
     autoSwappr_dispatcher.subscribe(assets.clone());
     autoSwappr_dispatcher.unsubscribe(assets.clone());
