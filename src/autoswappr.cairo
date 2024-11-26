@@ -2,11 +2,14 @@
 pub mod AutoSwappr {
     use crate::interfaces::autoswappr::IAutoSwappr;
     use crate::base::types::{Route, Assets};
+    use openzeppelin_upgrades::UpgradeableComponent;
+    use openzeppelin_upgrades::interface::IUpgradeable;
+
     use crate::base::errors::Errors;
 
     use core::starknet::{
         ContractAddress, get_caller_address, contract_address_const, get_contract_address,
-        get_block_timestamp
+        get_block_timestamp, ClassHash
     };
 
     use openzeppelin::access::ownable::OwnableComponent;
@@ -16,17 +19,22 @@ pub mod AutoSwappr {
     use core::integer::{u256, u128};
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
+    component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
 
     #[abi(embed_v0)]
     impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
 
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
 
+    impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
+
     #[storage]
     struct Storage {
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
         fees_collector: ContractAddress,
+        #[substorage(v0)]
+        upgradeable: UpgradeableComponent::Storage,
         avnu_exchange_address: ContractAddress,
         strk_token: ContractAddress,
         eth_token: ContractAddress,
@@ -37,6 +45,8 @@ pub mod AutoSwappr {
     pub enum Event {
         #[flat]
         OwnableEvent: OwnableComponent::Event,
+        #[flat]
+        UpgradeableEvent: UpgradeableComponent::Event,
         SwapSuccessful: SwapSuccessful,
         Subscribed: Subscribed,
         Unsubscribed: Unsubscribed
@@ -77,6 +87,14 @@ pub mod AutoSwappr {
         self.strk_token.write(strk_token);
         self.eth_token.write(eth_token);
         self.avnu_exchange_address.write(avnu_exchange_address);
+    }
+
+    #[abi(embed_v0)]
+    impl UpgradeableImpl of IUpgradeable<ContractState> {
+        fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
+            self.ownable.assert_only_owner();
+            self.upgradeable.upgrade(new_class_hash);
+        }
     }
 
     #[abi(embed_v0)]
