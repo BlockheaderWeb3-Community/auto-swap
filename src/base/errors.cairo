@@ -11,4 +11,8 @@ pub mod Errors {
     pub const TRANSFER_FAILED: felt252 = 'Transfer Failed';
     pub const SPENDER_NOT_APPROVED: felt252 = 'Spender not approved';
     pub const UNSUBSCRIBE_FAILED: felt252 = 'Contract not unsubscribed';
+    pub const STRK_NOT_UNSUBSCRIBED: felt252 = 'Should unsubscribe STRK';
+    pub const ETH_NOT_UNSUBSCRIBED: felt252 = 'Should unsubscribe ETH';
+    pub const STRK_UNSUBSCRIBED: felt252 = 'Shouldn\'t unsubscribe STRK';
+    pub const ETH_UNSUBSCRIBED: felt252 = 'Shouldn\'t unsubscribe ETH';
 }

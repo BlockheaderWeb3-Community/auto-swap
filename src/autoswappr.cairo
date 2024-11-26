@@ -6,7 +6,7 @@ pub mod AutoSwappr {
 
     use core::starknet::{
         ContractAddress, get_caller_address, contract_address_const, get_contract_address,
-        storage::{Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePathEntry}
+        get_block_timestamp
     };
 
     use openzeppelin::access::ownable::OwnableComponent;
@@ -61,6 +61,7 @@ pub mod AutoSwappr {
     pub struct Unsubscribed {
         pub user: ContractAddress,
         pub assets: Assets,
+        pub block_timestamp: u64
     }
 
     #[constructor]
@@ -107,21 +108,24 @@ pub mod AutoSwappr {
             let caller = get_caller_address();
             assert(is_non_zero(caller), Errors::ZERO_ADDRESS_CALLER);
 
-            if assets.strk {
+            if !assets.strk {
                 let strk_token_address = self.strk_token.read();
                 let strk_token = IERC20Dispatcher { contract_address: strk_token_address };
                 strk_token.approve(get_contract_address(), 0);
                 assert(!self.is_approved(caller, strk_token_address), Errors::UNSUBSCRIBE_FAILED);
             }
 
-            if assets.eth {
+            if !assets.eth {
                 let eth_token_address = self.eth_token.read();
                 let eth_token = IERC20Dispatcher { contract_address: eth_token_address };
                 eth_token.approve(get_contract_address(), 0);
                 assert(!self.is_approved(caller, eth_token_address), Errors::UNSUBSCRIBE_FAILED);
             }
 
-            self.emit(Unsubscribed { user: caller, assets });
+            self
+                .emit(
+                    Unsubscribed { user: caller, assets, block_timestamp: get_block_timestamp() }
+                );
         }
 
         fn swap(

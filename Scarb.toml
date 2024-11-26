@@ -7,7 +7,6 @@ edition = "2023_11"
 
 [dependencies]
 starknet = "2.8.5"
-avnu = { git = "https://github.com/avnu-labs/avnu-contracts-v2.git", branch = "main" }
 openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.15.0" }
 
 [dev-dependencies]
@@ -16,7 +15,6 @@ assert_macros = "2.8.5"
 
 [[target.starknet-contract]]
 sierra = true
-build-external-contracts = ["openzeppelin::token::erc20::erc20"]
 
 [scripts]
 test = "snforge test"
