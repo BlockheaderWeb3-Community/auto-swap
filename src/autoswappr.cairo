@@ -1,5 +1,5 @@
 #[starknet::contract]
-mod AutoSwappr {
+pub mod AutoSwappr {
     use crate::interfaces::autoswappr::IAutoSwappr;
     use crate::base::types::{Route, Assets};
     use openzeppelin_upgrades::UpgradeableComponent;
@@ -41,7 +41,7 @@ mod AutoSwappr {
 
     #[event]
     #[derive(starknet::Event, Drop)]
-    enum Event {
+    pub enum Event {
         #[flat]
         OwnableEvent: OwnableComponent::Event,
         #[flat]
@@ -68,12 +68,13 @@ mod AutoSwappr {
     #[constructor]
     fn constructor(
         ref self: ContractState,
+        owner: ContractAddress,
         fees_collector: ContractAddress,
         avnu_exchange_address: ContractAddress,
         strk_token: ContractAddress,
         eth_token: ContractAddress
     ) {
-        self.ownable.initializer(get_caller_address());
+        self.ownable.initializer(owner);
         self.fees_collector.write(fees_collector);
         self.strk_token.write(strk_token);
         self.eth_token.write(eth_token);
