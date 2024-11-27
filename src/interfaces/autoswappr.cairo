@@ -17,4 +17,10 @@ pub trait IAutoSwappr<TContractState> {
         integrator_fee_recipient: ContractAddress,
         routes: Array<Route>,
     );
+
+    fn is_approved(
+        self: @TContractState,
+        beneficiary: ContractAddress,
+        token_contract: ContractAddress,
+    ) -> bool;
 }

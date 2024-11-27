@@ -157,6 +157,16 @@ mod AutoSwappr {
                     }
                 );
         }
+
+        fn is_approved(
+            self: @ContractState,
+            beneficiary: ContractAddress,
+            token_contract: ContractAddress
+        ) -> bool {
+            let token_instance = IERC20Dispatcher { contract_address: token_contract };
+            let allowance = token_instance.allowance(beneficiary, get_contract_address());
+            allowance.low > 0 || allowance.high > 0
+        }
     }
 
     #[generate_trait]
