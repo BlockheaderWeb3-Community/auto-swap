@@ -1,14 +1,14 @@
 // *************************************************************************
-//                              Events TEST
+//                              TEST
 // *************************************************************************
 use core::option::OptionTrait;
 use core::result::ResultTrait;
 use core::traits::{TryInto, Into};
-use starknet::{ContractAddress, ClassHash};
+use starknet::{ContractAddress};
 
 use snforge_std::{
-    declare, start_cheat_caller_address, ContractClassTrait,
-    DeclareResultTrait
+    declare, start_cheat_caller_address, ContractClassTrait, DeclareResultTrait, spy_events,
+    EventSpyTrait,
 };
 
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher};
@@ -39,7 +39,7 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     let autoSwappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
 
     let mut autoSwappr_constructor_calldata: Array<felt252> = array![
-        OWNER, AVNU_ADDR, STRK_FELT, ETH_FELT
+        OWNER, FEE_COLLECTOR_ADDR, AVNU_ADDR, STRK_FELT, ETH_FELT
     ];
     let (autoSwappr_contract_address, _) = autoSwappr_class_hash
         .deploy(@autoSwappr_constructor_calldata)
@@ -62,27 +62,58 @@ fn test_zero_addr_upgrade() {
         .unwrap();
 
     start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), zero_addr);
-    let new_class_hash: ClassHash =
-        0x0000000000000000000000000000000000000000000000000000000000000000
-        .try_into()
-        .unwrap();
-    upgradeable_dispatcher.upgrade(new_class_hash);
+
+    let autoSwappr_contract_class = declare("AutoSwappr").unwrap().contract_class();
+    let autoSwappr_class_hash = autoSwappr_contract_class.class_hash;
+
+    upgradeable_dispatcher.upgrade(*autoSwappr_class_hash);
 }
-// #[test]
-// fn test_upgrade_function_wroks() {
-//     let autoSwappr_contract_address = __setup__();
-//     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-//         contract_address: autoSwappr_contract_address
-//     };
 
-//     let owner_address: ContractAddress = OWNER.try_into().unwrap();
-//     let autoswappr_address: ContractAddress = get_caller_address();
-//     assert_eq!(autoswappr_address == owner_address, "Only owner is authorize to upgrade
-//     contract");
-//     let new_class_hash: ClassHash = ClassHash
 
-//     start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), owner_address);
-//     autoSwappr_dispatcher.upgrade(new_class_hash);
-// }
+#[test]
+#[should_panic(expected: 'Caller is not the owner')]
+fn test_not_owner_upgrade() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let upgradeable_dispatcher = IUpgradeableDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
 
+    let autoSwappr_contract_class = declare("AutoSwappr").unwrap().contract_class();
+    let autoSwappr_class_hash = autoSwappr_contract_class.class_hash;
+
+    start_cheat_caller_address(
+        autoSwappr_contract_address.try_into().unwrap(), USER.try_into().unwrap()
+    );
+
+    upgradeable_dispatcher.upgrade(*autoSwappr_class_hash);
+}
+
+#[test]
+fn test_upgrade() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let upgradeable_dispatcher = IUpgradeableDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    let autoSwappr_contract_class = declare("AutoSwappr").unwrap().contract_class();
+    let autoSwappr_class_hash = autoSwappr_contract_class.class_hash;
+
+    start_cheat_caller_address(
+        autoSwappr_contract_address.try_into().unwrap(), OWNER.try_into().unwrap()
+    );
+
+    let mut spy = spy_events();
+
+    upgradeable_dispatcher.upgrade(*autoSwappr_class_hash);
+
+    let events = spy.get_events();
+
+    assert(events.events.len() == 1, 'There should be one event');
+
+    let (from, event) = events.events.at(0);
+    assert(from == @autoSwappr_contract_address, 'Emitted from wrong address');
+    assert(event.keys.len() == 1, 'There should be one key');
+    assert(event.keys.at(0) == @selector!("Upgraded"), 'Wrong event name');
+    assert(event.data.len() == 1, 'There should be one data');
+}
 
