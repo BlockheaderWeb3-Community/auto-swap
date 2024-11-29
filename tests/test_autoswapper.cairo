@@ -19,6 +19,7 @@ const USER_ONE: felt252 = 'JOE';
 const USER_TWO: felt252 = 'DOE';
 const OWNER: felt252 = 'OWNER';
 const ONE_E18: u256 = 1000000000000000000_u256;
+const ONE_E6: u256 = 1000000_u256;
 
 const FEE_COLLECTOR: felt252 = 0x02933d37493cc505b9b5fc635e1b3a111115d4e06391e2a5ada195e87ed57dbd;
 const AVNU_EXCHANGE_ADDRESS: felt252 =
@@ -27,6 +28,7 @@ const STRK_TOKEN_ADDRESS: felt252 =
     0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d;
 const ETH_TOKEN_ADDRESS: felt252 =
     0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7;
+const USDC_TOKEN_ADDRESS: felt252 = 0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8;
 
 const STK_MINTER_ADDRESS: felt252 =
     0x0594c1582459ea03f77deaf9eb7e3917d6994a03c13405ba42867f83d85f085d;
@@ -94,10 +96,10 @@ fn test_swap() {
     // Prank caller to and call swap() function in auto_swapper
     start_cheat_caller_address(autoswappr_contract_address, caller);
     let token_from_address = strk_token_address.clone();
-    let token_from_amount: u256 = 400;
-    let token_to_address = contract_address_const::<ETH_TOKEN_ADDRESS>();
-    let token_to_amount: u256 = 1;
-    let token_to_min_amount: u256 = 1;
+    let token_from_amount: u256 = 5 * ONE_E18;
+    let token_to_address = contract_address_const::<USDC_TOKEN_ADDRESS>();
+    let token_to_amount: u256 = 1 * ONE_E6;
+    let token_to_min_amount: u256 = 1 * ONE_E6;
     let beneficiary = caller.clone();
     let mut routes = ArrayTrait::new();
 
