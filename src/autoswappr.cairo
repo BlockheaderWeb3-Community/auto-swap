@@ -133,9 +133,8 @@ mod AutoSwappr {
             let transfer = token.transfer_from(caller, this_contract, token_from_amount);
             assert(transfer, Errors::TRANSFER_FAILED);
 
-            // assert(
-            //     self.is_approved(this_contract, token_from_address), Errors::SPENDER_NOT_APPROVED
-            // );
+            let approve = token.approve(self.avnu_exchange_address.read(), token_from_amount);
+            assert(approve, Errors::APPROVAL_FAILED);
 
             let swap = self
                 ._swap(

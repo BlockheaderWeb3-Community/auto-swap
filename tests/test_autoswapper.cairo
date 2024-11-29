@@ -99,9 +99,9 @@ fn test_swap() {
     let token_from_address = strk_token_address.clone();
     let token_from_amount: u256 = 5 * ONE_E18;
     let token_to_address = contract_address_const::<USDC_TOKEN_ADDRESS>();
-    let token_to_amount: u256 = 1 * ONE_E6;
-    let token_to_min_amount: u256 = 1 * ONE_E6;
-    let beneficiary = caller.clone();
+    let token_to_amount: u256 = 5 * ONE_E6;
+    let token_to_min_amount: u256 = 5 * ONE_E6;
+    let beneficiary = autoswappr_contract_address;
     let mut routes = ArrayTrait::new();
 
     routes

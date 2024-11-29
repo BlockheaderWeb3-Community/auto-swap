@@ -10,4 +10,5 @@ pub mod Errors {
     pub const INSUFFICIENT_BALANCE: felt252 = 'Insufficient Balance';
     pub const TRANSFER_FAILED: felt252 = 'Transfer Failed';
     pub const SPENDER_NOT_APPROVED: felt252 = 'Spender not approved';
+    pub const APPROVAL_FAILED: felt252 = 'Approval Failed';
 }
