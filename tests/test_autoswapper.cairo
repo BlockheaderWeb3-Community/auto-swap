@@ -1,16 +1,12 @@
 // *************************************************************************
 //                              Events TEST
 // *************************************************************************
-use core::option::OptionTrait;
-use core::starknet::SyscallResultTrait;
 use core::result::ResultTrait;
-use core::traits::{TryInto, Into};
 use starknet::{ContractAddress, contract_address_const};
 use starknet::syscalls::call_contract_syscall;
 
 use snforge_std::{
-    declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
-    DeclareResultTrait, spy_events, EventSpyAssertionsTrait,
+    declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait, DeclareResultTrait
 };
 
 use auto_swappr::interfaces::autoswappr::{IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait};

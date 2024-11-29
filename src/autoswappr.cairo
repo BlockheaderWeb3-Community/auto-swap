@@ -125,7 +125,13 @@ mod AutoSwappr {
             integrator_fee_recipient: ContractAddress,
             routes: Array<Route>,
         ) {
+            let caller = get_caller_address();
             let this_contract = get_contract_address();
+
+            let token = IERC20Dispatcher { contract_address: token_from_address };
+
+            let transfer = token.transfer_from(caller, this_contract, token_from_amount);
+            assert(transfer, Errors::TRANSFER_FAILED);
 
             // assert(
             //     self.is_approved(this_contract, token_from_address), Errors::SPENDER_NOT_APPROVED
@@ -180,6 +186,8 @@ mod AutoSwappr {
             routes: Array<Route>,
         ) -> bool {
             let avnu = IExchangeDispatcher { contract_address: self.avnu_exchange_address.read() };
+
+
 
             avnu
                 .multi_route_swap(
