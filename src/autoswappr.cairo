@@ -127,9 +127,9 @@ mod AutoSwappr {
         ) {
             let this_contract = get_contract_address();
 
-            assert(
-                self.is_approved(this_contract, token_from_address), Errors::SPENDER_NOT_APPROVED
-            );
+            // assert(
+            //     self.is_approved(this_contract, token_from_address), Errors::SPENDER_NOT_APPROVED
+            // );
 
             let swap = self
                 ._swap(

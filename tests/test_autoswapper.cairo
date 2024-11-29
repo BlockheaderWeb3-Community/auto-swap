@@ -31,6 +31,10 @@ const ETH_TOKEN_ADDRESS: felt252 = 0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7
 const STK_MINTER_ADDRESS: felt252 = 0x0594c1582459ea03f77deaf9eb7e3917d6994a03c13405ba42867f83d85f085d;
 const SWAP_CALLER_ADDRESS: felt252 = 0x058699dE9b95e692E974c043598C3827d921Af008854e887F476E52880A708d6;
 
+const EKUBO_EXCHANGE_ADDRESS: felt252 = 0x00000005dd3D2F4429AF886cD1a3b08289DBcEa99A294197E9eB43b0e0325b4b;
+
+const ROUTE_PERCENT_FACTOR: u128 = 10000000000;
+
 
 // *************************************************************************
 //                              SETUP
@@ -69,13 +73,52 @@ fn test_swap() {
     let strk_token = IERC20Dispatcher { contract_address: strk_token_address };
     let mint_amount: u256 = 500 * ONE_E18;
 
+    // Mint STRK to caller
     start_cheat_caller_address(strk_token_address, minter_address);
     let mut calldata: Array<felt252> = ArrayTrait::new();
     caller.serialize(ref calldata);
     mint_amount.serialize(ref calldata);
-
     call_contract_syscall(strk_token_address, selector!("permissioned_mint"), calldata.span()).unwrap();
     stop_cheat_caller_address(strk_token_address);
-
     assert(strk_token.balance_of(caller) == mint_amount, 'invalid balance');
+
+    // Prank caller to approve auto_swapper
+    start_cheat_caller_address(strk_token_address, caller);
+    strk_token.approve(autoswappr_contract_address, mint_amount);
+    stop_cheat_caller_address(strk_token_address);
+    assert(strk_token.allowance(caller, autoswappr_contract_address) == mint_amount, 'invalid allowance');
+
+    // Prank caller to and call swap() function in auto_swapper
+    start_cheat_caller_address(autoswappr_contract_address, caller);
+    let token_from_address = strk_token_address.clone();
+    let token_from_amount: u256 = 400 * ONE_E18;
+    let token_to_address = contract_address_const::<ETH_TOKEN_ADDRESS>();
+    let token_to_amount: u256 = 1 * ONE_E18;
+    let token_to_min_amount: u256 = 1 * ONE_E18;
+    let beneficiary = caller.clone();
+    let mut routes = ArrayTrait::new();
+
+    routes.append(
+        Route {
+            token_from: token_from_address,
+            token_to: token_to_address,
+            exchange_address: contract_address_const::<EKUBO_EXCHANGE_ADDRESS>(),
+            percent: 100 * ROUTE_PERCENT_FACTOR,
+            additional_swap_params: ArrayTrait::new()
+        }
+    );
+
+
+    autoswappr_contract.swap(
+        token_from_address,
+        token_from_amount,
+        token_to_address,
+        token_to_amount,
+        token_to_min_amount,
+        beneficiary,
+        0,
+        contract_address_const::<0x0>(),
+        routes
+    );
+    stop_cheat_caller_address(autoswappr_contract_address);
 }
