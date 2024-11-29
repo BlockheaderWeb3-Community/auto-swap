@@ -110,7 +110,7 @@ fn test_swap() {
                 token_from: token_from_address,
                 token_to: token_to_address,
                 exchange_address: contract_address_const::<EKUBO_EXCHANGE_ADDRESS>(),
-                percent: 100 * ROUTE_PERCENT_FACTOR,
+                percent: 100,
                 additional_swap_params: ArrayTrait::new()
             }
         );
