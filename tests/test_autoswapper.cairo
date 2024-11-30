@@ -21,7 +21,7 @@ const OWNER: felt252 = 'OWNER';
 const ONE_E18: u256 = 1000000000000000000_u256;
 const ONE_E6: u256 = 1000000_u256;
 
-const FEE_COLLECTOR: felt252 = 0x02933d37493cc505b9b5fc635e1b3a111115d4e06391e2a5ada195e87ed57dbd;
+const FEE_COLLECTOR: felt252 = 0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
 const AVNU_EXCHANGE_ADDRESS: felt252 =
     0x04270219d365d6b017231b52e92b3fb5d7c8378b05e9abc97724537a80e93b0f;
 const STRK_TOKEN_ADDRESS: felt252 =
@@ -34,12 +34,13 @@ const USDC_TOKEN_ADDRESS: felt252 =
 const STK_MINTER_ADDRESS: felt252 =
     0x0594c1582459ea03f77deaf9eb7e3917d6994a03c13405ba42867f83d85f085d;
 const SWAP_CALLER_ADDRESS: felt252 =
-    0x058699dE9b95e692E974c043598C3827d921Af000004e887F476E52880A708d6;
+    0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
 
 const EKUBO_EXCHANGE_ADDRESS: felt252 =
     0x00000005dd3D2F4429AF886cD1a3b08289DBcEa99A294197E9eB43b0e0325b4b;
 
-const JEDISWAP_ROUTER_ADDRESS: felt252 = 0x041fd22b238fa21cfcf5dd45a8548974d8263b3a531a60388411c5e230f97023;
+const JEDISWAP_ROUTER_ADDRESS: felt252 =
+    0x041fd22b238fa21cfcf5dd45a8548974d8263b3a531a60388411c5e230f97023;
 
 const ROUTE_PERCENT_FACTOR: u128 = 10000000000;
 
@@ -101,8 +102,8 @@ fn test_swap() {
     let token_from_address = strk_token_address.clone();
     let token_from_amount: u256 = 5 * ONE_E18;
     let token_to_address = contract_address_const::<USDC_TOKEN_ADDRESS>();
-    let token_to_amount: u256 = 5 * ONE_E6;
-    let token_to_min_amount: u256 = 5 * ONE_E6;
+    let token_to_amount: u256 = 2 * ONE_E6;
+    let token_to_min_amount: u256 = 2 * ONE_E6;
     let beneficiary = autoswappr_contract_address;
     let mut routes = ArrayTrait::new();
 
@@ -126,7 +127,7 @@ fn test_swap() {
             token_to_min_amount,
             beneficiary,
             0,
-            contract_address_const::<0x0>(),
+            contract_address_const::<SWAP_CALLER_ADDRESS>(),
             routes
         );
     stop_cheat_caller_address(autoswappr_contract_address);
