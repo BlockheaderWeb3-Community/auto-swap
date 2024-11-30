@@ -39,6 +39,8 @@ const SWAP_CALLER_ADDRESS: felt252 =
 const EKUBO_EXCHANGE_ADDRESS: felt252 =
     0x00000005dd3D2F4429AF886cD1a3b08289DBcEa99A294197E9eB43b0e0325b4b;
 
+const JEDISWAP_ROUTER_ADDRESS: felt252 = 0x041fd22b238fa21cfcf5dd45a8548974d8263b3a531a60388411c5e230f97023;
+
 const ROUTE_PERCENT_FACTOR: u128 = 10000000000;
 
 
@@ -109,7 +111,7 @@ fn test_swap() {
             Route {
                 token_from: token_from_address,
                 token_to: token_to_address,
-                exchange_address: contract_address_const::<EKUBO_EXCHANGE_ADDRESS>(),
+                exchange_address: contract_address_const::<JEDISWAP_ROUTER_ADDRESS>(),
                 percent: 100,
                 additional_swap_params: ArrayTrait::new()
             }
