@@ -3,6 +3,7 @@ use crate::base::types::Route;
 
 #[starknet::interface]
 pub trait IExchange<TContractState> {
+    /// Performs a multi-route swap operation.
     fn multi_route_swap(
         ref self: TContractState,
         token_from_address: ContractAddress,
