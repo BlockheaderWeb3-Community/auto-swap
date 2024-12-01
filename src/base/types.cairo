@@ -9,7 +9,7 @@ pub struct Route {
     additional_swap_params: Array<felt252>,
 }
 
-#[derive(Drop, Serde, Clone)]
+#[derive(Drop, Serde, Clone, Debug)]
 pub struct Assets {
     pub strk: bool,
     pub eth: bool

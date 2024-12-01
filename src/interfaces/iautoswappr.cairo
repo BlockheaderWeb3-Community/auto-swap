@@ -1,10 +1,17 @@
 use core::starknet::ContractAddress;
 use crate::base::types::{Route, Assets};
 
+#[derive(Copy, Debug, Drop, PartialEq, Serde)]
+pub struct ContractInfo {
+    pub fees_collector: ContractAddress,
+    pub avnu_exchange_address: ContractAddress,
+    pub strk_token: ContractAddress,
+    pub eth_token: ContractAddress,
+    pub owner: ContractAddress
+}
+
 #[starknet::interface]
 pub trait IAutoSwappr<TContractState> {
-    fn subscribe(ref self: TContractState, assets: Assets);
-
     fn swap(
         ref self: TContractState,
         token_from_address: ContractAddress,
@@ -17,4 +24,7 @@ pub trait IAutoSwappr<TContractState> {
         integrator_fee_recipient: ContractAddress,
         routes: Array<Route>,
     );
+
+    fn contract_parameters(self: @TContractState) -> ContractInfo;
 }
+
