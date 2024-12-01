@@ -5,8 +5,7 @@ pub mod AutoSwappr {
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
     use core::starknet::storage::{
-        StoragePointerReadAccess, StoragePointerWriteAccess, 
-        Map, StoragePathEntry
+        StoragePointerReadAccess, StoragePointerWriteAccess, Map, StoragePathEntry
     };
     use crate::base::errors::Errors;
 
@@ -121,13 +120,20 @@ pub mod AutoSwappr {
             let this_contract = get_contract_address();
             let caller_address = get_caller_address();
 
-            assert(self.supported_assets.entry(token_from_address).read(), Errors::UNSUPPORTED_TOKEN);
+            assert(
+                self.supported_assets.entry(token_from_address).read(), Errors::UNSUPPORTED_TOKEN
+            );
             assert(!token_from_amount.is_zero(), Errors::ZERO_AMOUNT);
 
             let token = IERC20Dispatcher { contract_address: token_from_address };
 
-            assert(token.balance_of(caller_address) >= token_from_amount, Errors::INSUFFICIENT_BALANCE);
-            assert(token.allowance(caller_address, this_contract) >= token_from_amount, Errors::INSUFFICIENT_ALLOWANCE);
+            assert(
+                token.balance_of(caller_address) >= token_from_amount, Errors::INSUFFICIENT_BALANCE
+            );
+            assert(
+                token.allowance(caller_address, this_contract) >= token_from_amount,
+                Errors::INSUFFICIENT_ALLOWANCE
+            );
 
             let transfer = token.transfer_from(caller_address, this_contract, token_from_amount);
             assert(transfer, Errors::TRANSFER_FAILED);

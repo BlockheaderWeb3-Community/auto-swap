@@ -6,8 +6,7 @@ use starknet::{ContractAddress, contract_address_const};
 
 
 use snforge_std::{
-    declare, ContractClassTrait,
-    DeclareResultTrait, start_cheat_caller_address_global,
+    declare, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address_global,
     stop_cheat_caller_address_global
 };
 
@@ -37,7 +36,7 @@ pub fn OWNER() -> ContractAddress {
 // *************************************************************************
 fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     let strk_token_name: ByteArray = "STARKNET_TOKEN";
-    
+
     let strk_token_symbol: ByteArray = "STRK";
     let supply: u256 = 1_000_000_000_000_000_000;
 
@@ -60,7 +59,7 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     supply.serialize(ref eth_constructor_calldata);
     USER().serialize(ref eth_constructor_calldata);
     OWNER().serialize(ref eth_constructor_calldata);
-    
+
     let (eth_contract_address, _) = erc20_class_hash.deploy(@eth_constructor_calldata).unwrap();
 
     let strk_dispatcher = IERC20Dispatcher { contract_address: strk_contract_address };
