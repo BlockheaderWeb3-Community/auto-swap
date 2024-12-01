@@ -117,15 +117,15 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
     start_cheat_caller_address_global(USER());
     autoSwappr_dispatcher
         .swap(
-            :token_from_address,
-            :token_from_amount,
-            :token_to_address,
-            :token_to_amount,
-            :token_to_min_amount,
-            :beneficiary,
-            :integrator_fee_amount_bps,
-            :integrator_fee_recipient,
-            :routes
+            token_from_address,
+            token_from_amount,
+            token_to_address,
+            token_to_amount,
+            token_to_min_amount,
+            beneficiary,
+            integrator_fee_amount_bps,
+            integrator_fee_recipient,
+            routes
         );
     stop_cheat_caller_address_global();
 }
@@ -149,15 +149,15 @@ fn test_swap_reverts_if_token_is_not_supported() {
     start_cheat_caller_address_global(USER());
     autoSwappr_dispatcher
         .swap(
-            :token_from_address,
-            :token_from_amount,
-            :token_to_address,
-            :token_to_amount,
-            :token_to_min_amount,
-            :beneficiary,
-            :integrator_fee_amount_bps,
-            :integrator_fee_recipient,
-            :routes
+            token_from_address,
+            token_from_amount,
+            token_to_address,
+            token_to_amount,
+            token_to_min_amount,
+            beneficiary,
+            integrator_fee_amount_bps,
+            integrator_fee_recipient,
+            routes
         );
     stop_cheat_caller_address_global();
 }
@@ -182,15 +182,15 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
     start_cheat_caller_address_global(USER());
     autoSwappr_dispatcher
         .swap(
-            :token_from_address,
-            :token_from_amount,
-            :token_to_address,
-            :token_to_amount,
-            :token_to_min_amount,
-            :beneficiary,
-            :integrator_fee_amount_bps,
-            :integrator_fee_recipient,
-            :routes
+            token_from_address,
+            token_from_amount,
+            token_to_address,
+            token_to_amount,
+            token_to_min_amount,
+            beneficiary,
+            integrator_fee_amount_bps,
+            integrator_fee_recipient,
+            routes
         );
     stop_cheat_caller_address_global();
 }
@@ -216,15 +216,15 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
     start_cheat_caller_address_global(USER());
     autoSwappr_dispatcher
         .swap(
-            :token_from_address,
-            :token_from_amount,
-            :token_to_address,
-            :token_to_amount,
-            :token_to_min_amount,
-            :beneficiary,
-            :integrator_fee_amount_bps,
-            :integrator_fee_recipient,
-            :routes
+            token_from_address,
+            token_from_amount,
+            token_to_address,
+            token_to_amount,
+            token_to_min_amount,
+            beneficiary,
+            integrator_fee_amount_bps,
+            integrator_fee_recipient,
+            routes
         );
     stop_cheat_caller_address_global();
 }

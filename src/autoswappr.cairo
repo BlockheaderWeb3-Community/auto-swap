@@ -4,7 +4,10 @@ pub mod AutoSwappr {
     use crate::base::types::{Route, Assets};
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
-    use starknet::storage::Map;
+    use core::starknet::storage::{
+        StoragePointerReadAccess, StoragePointerWriteAccess, 
+        Map, StoragePathEntry
+    };
     use crate::base::errors::Errors;
 
     use core::starknet::{
@@ -123,10 +126,10 @@ pub mod AutoSwappr {
 
             let token = IERC20Dispatcher { contract_address: token_from_address };
 
-            assert(token_from_amount <= token.balance_of(caller_address), Errors::INSUFFICIENT_BALANCE);
-            assert(token_from_amount <= token.allowance(caller_address, this_contract), Errors::INSUFFICIENT_ALLOWANCE);
+            assert(token.balance_of(caller_address) >= token_from_amount, Errors::INSUFFICIENT_BALANCE);
+            assert(token.allowance(caller_address, this_contract) >= token_from_amount, Errors::INSUFFICIENT_ALLOWANCE);
 
-            let transfer = token.transfer_from(caller_address, this_contract, token_amount);
+            let transfer = token.transfer_from(caller_address, this_contract, token_from_amount);
             assert(transfer, Errors::TRANSFER_FAILED);
 
             let approval = token.approve(self.avnu_exchange_address.read(), token_from_amount);
