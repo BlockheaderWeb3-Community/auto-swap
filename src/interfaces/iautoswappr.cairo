@@ -1,5 +1,5 @@
 use core::starknet::ContractAddress;
-use crate::base::types::{Route, Assets};
+use crate::base::types::Route;
 
 #[derive(Copy, Debug, Drop, PartialEq, Serde)]
 pub struct ContractInfo {

@@ -8,8 +8,7 @@ pub mod AutoSwappr {
     use crate::base::errors::Errors;
 
     use core::starknet::{
-        ContractAddress, get_caller_address, contract_address_const, get_contract_address,
-        get_block_timestamp, ClassHash
+        ContractAddress, get_caller_address, contract_address_const, get_contract_address, ClassHash
     };
 
     use openzeppelin::access::ownable::OwnableComponent;

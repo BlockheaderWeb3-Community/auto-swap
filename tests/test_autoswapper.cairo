@@ -1,25 +1,20 @@
 // *************************************************************************
 //                              Events TEST
 // *************************************************************************
-use core::option::OptionTrait;
 use core::result::ResultTrait;
-use core::traits::{TryInto, Into};
-use starknet::{ContractAddress, get_block_timestamp, get_caller_address, contract_address_const};
+use starknet::{ContractAddress, contract_address_const};
 
 
 use snforge_std::{
-    declare, start_cheat_caller_address, start_cheat_block_timestamp, ContractClassTrait,
-    DeclareResultTrait, spy_events, EventSpyAssertionsTrait, start_cheat_caller_address_global,
+    declare, ContractClassTrait,
+    DeclareResultTrait, start_cheat_caller_address_global,
     stop_cheat_caller_address_global
 };
 
 use auto_swappr::interfaces::iautoswappr::{
     IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait, ContractInfo
 };
-use auto_swappr::base::types::{Route, Assets};
-use auto_swappr::autoswappr::AutoSwappr;
-use auto_swappr::presets::ERC20::ERC20Upgradeable;
-use auto_swappr::base::errors::Errors;
+use auto_swappr::base::types::Route;
 
 // use openzeppelin_presets::ERC20Upgradeable;
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
@@ -41,10 +36,6 @@ pub fn OWNER() -> ContractAddress {
 //                              SETUP
 // *************************************************************************
 fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
-    let STRK: ContractAddress = 0xaaa.try_into().unwrap();
-    let ETH: ContractAddress = 0xeee.try_into().unwrap();
-
-    
     let strk_token_name: ByteArray = "STARKNET_TOKEN";
     
     let strk_token_symbol: ByteArray = "STRK";
