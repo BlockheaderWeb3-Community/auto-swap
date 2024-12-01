@@ -172,35 +172,6 @@ pub mod AutoSwappr {
 
     #[generate_trait]
     impl InternalImpl of InternalTrait {
-        // fn is_approved(
-        //     self: @ContractState, token_amount: u256, token_contract: IERC20Dispatcher,
-        //     this_contract: ContractAddress, caller_address: ContractAddress
-        // ) -> bool {
-        //     token_contract.allowance(caller_address, this_contract) >= token_amount
-        // }
-
-        fn checked_transfer_from(
-            self: @ContractState,
-            token_amount: u256,
-            token_contract: IERC20Dispatcher,
-            this_contract: ContractAddress,
-            caller_address: ContractAddress
-        ) {
-            assert(
-                token_amount <= token_contract.balance_of(caller_address),
-                Errors::INSUFFICIENT_BALANCE
-            );
-            assert(
-                token_amount <= token_contract.allowance(caller_address, this_contract),
-                Errors::INSUFFICIENT_ALLOWANCE
-            );
-            token_contract.transfer_from(caller_address, this_contract, token_amount);
-        }
-
-        fn check_if_token_from_is_supported(self: @ContractState, token_from: ContractAddress) -> bool {
-            self.supported_assets.read(token_from)
-        }
-
         fn _swap(
             ref self: ContractState,
             token_from_address: ContractAddress,
