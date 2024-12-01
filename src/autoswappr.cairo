@@ -115,20 +115,21 @@ pub mod AutoSwappr {
             integrator_fee_recipient: ContractAddress,
             routes: Array<Route>,
         ) {
+            let this_contract = get_contract_address();
+            let caller_address = get_caller_address();
+
             assert(self.supported_assets.entry(token_from_address).read(), Errors::UNSUPPORTED_TOKEN);
             assert(!token_from_amount.is_zero(), Errors::ZERO_AMOUNT);
 
-            let this_contract = get_contract_address();
-            let caller_address = get_caller_address();
-            let token_contract = IERC20Dispatcher { contract_address: token_from_address };
+            let token = IERC20Dispatcher { contract_address: token_from_address };
 
-            assert(token_from_amount <= token_contract.balance_of(caller_address), Errors::INSUFFICIENT_BALANCE);
-            assert(token_from_amount <= token_contract.allowance(caller_address, this_contract), Errors::INSUFFICIENT_ALLOWANCE);
+            assert(token_from_amount <= token.balance_of(caller_address), Errors::INSUFFICIENT_BALANCE);
+            assert(token_from_amount <= token.allowance(caller_address, this_contract), Errors::INSUFFICIENT_ALLOWANCE);
 
-            let transfer = token_contract.transfer_from(caller_address, this_contract, token_amount);
+            let transfer = token.transfer_from(caller_address, this_contract, token_amount);
             assert(transfer, Errors::TRANSFER_FAILED);
 
-            let approval = token_contract.approve(self.avnu_exchange_address.read(), token_from_amount);
+            let approval = token.approve(self.avnu_exchange_address.read(), token_from_amount);
             assert(approval, Errors::APPROVAL_FAILED);
 
             let swap = self
