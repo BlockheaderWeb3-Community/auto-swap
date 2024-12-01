@@ -206,8 +206,4 @@ pub mod AutoSwappr {
             contract_address_const::<0>()
         }
     }
-
-    fn is_non_zero(address: ContractAddress) -> bool {
-        address.into() != 0
-    }
 }
