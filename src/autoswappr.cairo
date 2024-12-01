@@ -4,12 +4,13 @@ pub mod AutoSwappr {
     use crate::base::types::{Route, Assets};
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
-    use starknet::storage::Map;
+    use core::starknet::storage::{
+        StoragePointerReadAccess, StoragePointerWriteAccess, Map, StoragePathEntry
+    };
     use crate::base::errors::Errors;
 
     use core::starknet::{
-        ContractAddress, get_caller_address, contract_address_const, get_contract_address,
-        get_block_timestamp, ClassHash
+        ContractAddress, get_caller_address, contract_address_const, get_contract_address, ClassHash
     };
 
     use openzeppelin::access::ownable::OwnableComponent;
@@ -116,27 +117,41 @@ pub mod AutoSwappr {
             integrator_fee_recipient: ContractAddress,
             routes: Array<Route>,
         ) {
-            assert(!token_from_amount.is_zero(), Errors::ZERO_AMOUNT);
-            assert(self.check_if_token_from_is_supported(token_from_address), Errors::UNSUPPORTED_TOKEN);
             let this_contract = get_contract_address();
             let caller_address = get_caller_address();
-            let token_contract = IERC20Dispatcher { contract_address: token_from_address };
-            self
-                .checked_transfer_from(
-                    token_from_amount, token_contract, this_contract, caller_address
-                );
+
+            assert(
+                self.supported_assets.entry(token_from_address).read(), Errors::UNSUPPORTED_TOKEN
+            );
+            assert(!token_from_amount.is_zero(), Errors::ZERO_AMOUNT);
+
+            let token = IERC20Dispatcher { contract_address: token_from_address };
+
+            assert(
+                token.balance_of(caller_address) >= token_from_amount, Errors::INSUFFICIENT_BALANCE
+            );
+            assert(
+                token.allowance(caller_address, this_contract) >= token_from_amount,
+                Errors::INSUFFICIENT_ALLOWANCE
+            );
+
+            let transfer = token.transfer_from(caller_address, this_contract, token_from_amount);
+            assert(transfer, Errors::TRANSFER_FAILED);
+
+            let approval = token.approve(self.avnu_exchange_address.read(), token_from_amount);
+            assert(approval, Errors::APPROVAL_FAILED);
 
             let swap = self
                 ._swap(
-                    :token_from_address,
-                    :token_from_amount,
-                    :token_to_address,
-                    :token_to_amount,
-                    :token_to_min_amount,
-                    :beneficiary,
-                    :integrator_fee_amount_bps,
-                    :integrator_fee_recipient,
-                    :routes
+                    token_from_address,
+                    token_from_amount,
+                    token_to_address,
+                    token_to_amount,
+                    token_to_min_amount,
+                    beneficiary,
+                    integrator_fee_amount_bps,
+                    integrator_fee_recipient,
+                    routes
                 );
 
             assert(swap, Errors::SWAP_FAILED);
@@ -167,35 +182,6 @@ pub mod AutoSwappr {
 
     #[generate_trait]
     impl InternalImpl of InternalTrait {
-        // fn is_approved(
-        //     self: @ContractState, token_amount: u256, token_contract: IERC20Dispatcher,
-        //     this_contract: ContractAddress, caller_address: ContractAddress
-        // ) -> bool {
-        //     token_contract.allowance(caller_address, this_contract) >= token_amount
-        // }
-
-        fn checked_transfer_from(
-            self: @ContractState,
-            token_amount: u256,
-            token_contract: IERC20Dispatcher,
-            this_contract: ContractAddress,
-            caller_address: ContractAddress
-        ) {
-            assert(
-                token_amount <= token_contract.balance_of(caller_address),
-                Errors::INSUFFICIENT_BALANCE
-            );
-            assert(
-                token_amount <= token_contract.allowance(caller_address, this_contract),
-                Errors::INSUFFICIENT_ALLOWANCE
-            );
-            token_contract.transfer_from(caller_address, this_contract, token_amount);
-        }
-
-        fn check_if_token_from_is_supported(self: @ContractState, token_from: ContractAddress) -> bool {
-            self.supported_assets.read(token_from)
-        }
-
         fn _swap(
             ref self: ContractState,
             token_from_address: ContractAddress,
@@ -229,9 +215,5 @@ pub mod AutoSwappr {
         fn zero_address(self: @ContractState) -> ContractAddress {
             contract_address_const::<0>()
         }
-    }
-
-    fn is_non_zero(address: ContractAddress) -> bool {
-        address.into() != 0
     }
 }

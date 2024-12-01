@@ -1,25 +1,19 @@
 // *************************************************************************
 //                              Events TEST
 // *************************************************************************
-use core::option::OptionTrait;
 use core::result::ResultTrait;
-use core::traits::{TryInto, Into};
-use starknet::{ContractAddress, get_block_timestamp, get_caller_address, contract_address_const};
+use starknet::{ContractAddress, contract_address_const};
 
 
 use snforge_std::{
-    declare, start_cheat_caller_address, start_cheat_block_timestamp, ContractClassTrait,
-    DeclareResultTrait, spy_events, EventSpyAssertionsTrait, start_cheat_caller_address_global,
+    declare, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address_global,
     stop_cheat_caller_address_global
 };
 
 use auto_swappr::interfaces::iautoswappr::{
     IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait, ContractInfo
 };
-use auto_swappr::base::types::{Route, Assets};
-use auto_swappr::autoswappr::AutoSwappr;
-use auto_swappr::presets::ERC20::ERC20Upgradeable;
-use auto_swappr::base::errors::Errors;
+use auto_swappr::base::types::Route;
 
 // use openzeppelin_presets::ERC20Upgradeable;
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
@@ -41,12 +35,8 @@ pub fn OWNER() -> ContractAddress {
 //                              SETUP
 // *************************************************************************
 fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
-    let STRK: ContractAddress = 0xaaa.try_into().unwrap();
-    let ETH: ContractAddress = 0xeee.try_into().unwrap();
-
-    
     let strk_token_name: ByteArray = "STARKNET_TOKEN";
-    
+
     let strk_token_symbol: ByteArray = "STRK";
     let supply: u256 = 1_000_000_000_000_000_000;
 
@@ -69,7 +59,7 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     supply.serialize(ref eth_constructor_calldata);
     USER().serialize(ref eth_constructor_calldata);
     OWNER().serialize(ref eth_constructor_calldata);
-    
+
     let (eth_contract_address, _) = erc20_class_hash.deploy(@eth_constructor_calldata).unwrap();
 
     let strk_dispatcher = IERC20Dispatcher { contract_address: strk_contract_address };
@@ -107,133 +97,133 @@ fn test_constructor_initializes_correctly() {
     assert_eq!(expected_contract_parameters, actual_contract_parameters);
 }
 
-// #[test]
-// #[should_panic(expected: 'Amount is zero')]
-// fn test_swap_reverts_if_token_from_amount_is_zero() {
-//     let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
-//     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-//         contract_address: autoSwappr_contract_address.clone()
-//     };
-//     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
-//     let token_from_amount: u256 = 0;
-//     let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
-//     let token_to_amount: u256 = 5_000_000_000;
-//     let token_to_min_amount: u256 = 5_000_000_000;
-//     let beneficiary: ContractAddress = USER();
-//     let integrator_fee_amount_bps = 0;
-//     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
-//     let mut routes: Array<Route> = ArrayTrait::new();
-//     start_cheat_caller_address_global(USER());
-//     autoSwappr_dispatcher
-//         .swap(
-//             :token_from_address,
-//             :token_from_amount,
-//             :token_to_address,
-//             :token_to_amount,
-//             :token_to_min_amount,
-//             :beneficiary,
-//             :integrator_fee_amount_bps,
-//             :integrator_fee_recipient,
-//             :routes
-//         );
-//     stop_cheat_caller_address_global();
-// }
+#[test]
+#[should_panic(expected: 'Amount is zero')]
+fn test_swap_reverts_if_token_from_amount_is_zero() {
+    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address.clone()
+    };
+    let token_from_address: ContractAddress = strk_dispatcher.contract_address;
+    let token_from_amount: u256 = 0;
+    let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
+    let token_to_amount: u256 = 5_000_000_000;
+    let token_to_min_amount: u256 = 5_000_000_000;
+    let beneficiary: ContractAddress = USER();
+    let integrator_fee_amount_bps = 0;
+    let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
+    let mut routes: Array<Route> = ArrayTrait::new();
+    start_cheat_caller_address_global(USER());
+    autoSwappr_dispatcher
+        .swap(
+            token_from_address,
+            token_from_amount,
+            token_to_address,
+            token_to_amount,
+            token_to_min_amount,
+            beneficiary,
+            integrator_fee_amount_bps,
+            integrator_fee_recipient,
+            routes
+        );
+    stop_cheat_caller_address_global();
+}
 
-// #[test]
-// #[should_panic(expected: 'Token not supported')]
-// fn test_swap_reverts_if_token_is_not_supported() {
-//     let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
-//     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-//         contract_address: autoSwappr_contract_address.clone()
-//     };
-//     let token_from_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
-//     let token_from_amount: u256 = strk_dispatcher.balance_of(USER());
-//     let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
-//     let token_to_amount: u256 = 5_000_000_000;
-//     let token_to_min_amount: u256 = 5_000_000_000;
-//     let beneficiary: ContractAddress = USER();
-//     let integrator_fee_amount_bps = 0;
-//     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
-//     let mut routes: Array<Route> = ArrayTrait::new();
-//     start_cheat_caller_address_global(USER());
-//     autoSwappr_dispatcher
-//         .swap(
-//             :token_from_address,
-//             :token_from_amount,
-//             :token_to_address,
-//             :token_to_amount,
-//             :token_to_min_amount,
-//             :beneficiary,
-//             :integrator_fee_amount_bps,
-//             :integrator_fee_recipient,
-//             :routes
-//         );
-//     stop_cheat_caller_address_global();
-// }
+#[test]
+#[should_panic(expected: 'Token not supported')]
+fn test_swap_reverts_if_token_is_not_supported() {
+    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address.clone()
+    };
+    let token_from_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
+    let token_from_amount: u256 = strk_dispatcher.balance_of(USER());
+    let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
+    let token_to_amount: u256 = 5_000_000_000;
+    let token_to_min_amount: u256 = 5_000_000_000;
+    let beneficiary: ContractAddress = USER();
+    let integrator_fee_amount_bps = 0;
+    let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
+    let mut routes: Array<Route> = ArrayTrait::new();
+    start_cheat_caller_address_global(USER());
+    autoSwappr_dispatcher
+        .swap(
+            token_from_address,
+            token_from_amount,
+            token_to_address,
+            token_to_amount,
+            token_to_min_amount,
+            beneficiary,
+            integrator_fee_amount_bps,
+            integrator_fee_recipient,
+            routes
+        );
+    stop_cheat_caller_address_global();
+}
 
-// #[test]
-// #[should_panic(expected: 'Insufficient Balance')]
-// fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
-//     let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
-//     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-//         contract_address: autoSwappr_contract_address.clone()
-//     };
-//     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
-//     let token_from_amount: u256 = strk_dispatcher.balance_of(USER())
-//         * 2; // swap amount is greater than user's balance
-//     let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
-//     let token_to_amount: u256 = 5_000_000_000;
-//     let token_to_min_amount: u256 = 5_000_000_000;
-//     let beneficiary: ContractAddress = USER();
-//     let integrator_fee_amount_bps = 0;
-//     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
-//     let mut routes: Array<Route> = ArrayTrait::new();
-//     start_cheat_caller_address_global(USER());
-//     autoSwappr_dispatcher
-//         .swap(
-//             :token_from_address,
-//             :token_from_amount,
-//             :token_to_address,
-//             :token_to_amount,
-//             :token_to_min_amount,
-//             :beneficiary,
-//             :integrator_fee_amount_bps,
-//             :integrator_fee_recipient,
-//             :routes
-//         );
-//     stop_cheat_caller_address_global();
-// }
+#[test]
+#[should_panic(expected: 'Insufficient Balance')]
+fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
+    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address.clone()
+    };
+    let token_from_address: ContractAddress = strk_dispatcher.contract_address;
+    let token_from_amount: u256 = strk_dispatcher.balance_of(USER())
+        * 2; // swap amount is greater than user's balance
+    let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
+    let token_to_amount: u256 = 5_000_000_000;
+    let token_to_min_amount: u256 = 5_000_000_000;
+    let beneficiary: ContractAddress = USER();
+    let integrator_fee_amount_bps = 0;
+    let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
+    let mut routes: Array<Route> = ArrayTrait::new();
+    start_cheat_caller_address_global(USER());
+    autoSwappr_dispatcher
+        .swap(
+            token_from_address,
+            token_from_amount,
+            token_to_address,
+            token_to_amount,
+            token_to_min_amount,
+            beneficiary,
+            integrator_fee_amount_bps,
+            integrator_fee_recipient,
+            routes
+        );
+    stop_cheat_caller_address_global();
+}
 
-// #[test]
-// #[should_panic(expected: 'Insufficient Allowance')]
-// fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() {
-//     let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
-//     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-//         contract_address: autoSwappr_contract_address.clone()
-//     };
-//     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
-//     let token_from_amount: u256 = strk_dispatcher
-//         .balance_of(USER()); // swap amount is greater than user's balance
-//     let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
-//     let token_to_amount: u256 = 5_000_000_000;
-//     let token_to_min_amount: u256 = 5_000_000_000;
-//     let beneficiary: ContractAddress = USER();
-//     let integrator_fee_amount_bps = 0;
-//     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
-//     let mut routes: Array<Route> = ArrayTrait::new();
-//     //no approval to the autoSwappr contract
-//     start_cheat_caller_address_global(USER());
-//     autoSwappr_dispatcher
-//         .swap(
-//             :token_from_address,
-//             :token_from_amount,
-//             :token_to_address,
-//             :token_to_amount,
-//             :token_to_min_amount,
-//             :beneficiary,
-//             :integrator_fee_amount_bps,
-//             :integrator_fee_recipient,
-//             :routes
-//         );
-//     stop_cheat_caller_address_global();
-// }
+#[test]
+#[should_panic(expected: 'Insufficient Allowance')]
+fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() {
+    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address.clone()
+    };
+    let token_from_address: ContractAddress = strk_dispatcher.contract_address;
+    let token_from_amount: u256 = strk_dispatcher
+        .balance_of(USER()); // swap amount is greater than user's balance
+    let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
+    let token_to_amount: u256 = 5_000_000_000;
+    let token_to_min_amount: u256 = 5_000_000_000;
+    let beneficiary: ContractAddress = USER();
+    let integrator_fee_amount_bps = 0;
+    let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
+    let mut routes: Array<Route> = ArrayTrait::new();
+    //no approval to the autoSwappr contract
+    start_cheat_caller_address_global(USER());
+    autoSwappr_dispatcher
+        .swap(
+            token_from_address,
+            token_from_amount,
+            token_to_address,
+            token_to_amount,
+            token_to_min_amount,
+            beneficiary,
+            integrator_fee_amount_bps,
+            integrator_fee_recipient,
+            routes
+        );
+    stop_cheat_caller_address_global();
+}
