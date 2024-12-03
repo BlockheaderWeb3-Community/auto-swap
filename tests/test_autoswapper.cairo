@@ -8,11 +8,11 @@ use core::traits::{TryInto};
 
 use snforge_std::{
     declare, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address,
-    start_cheat_caller_address_global, stop_cheat_caller_address_global, EventSpyTrait, spy_events
+    start_cheat_caller_address_global, stop_cheat_caller_address_global, EventSpyTrait, spy_events,
 };
 
 use auto_swappr::interfaces::iautoswappr::{
-    IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait, ContractInfo
+    IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait, ContractInfo,
 };
 use auto_swappr::base::types::Route;
 
@@ -89,7 +89,7 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
 fn test_zero_addr_upgrade() {
     let (autoSwappr_contract_address, _, _) = __setup__();
     let upgradeable_dispatcher = IUpgradeableDispatcher {
-        contract_address: autoSwappr_contract_address
+        contract_address: autoSwappr_contract_address,
     };
 
     start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), ZERO());
@@ -106,7 +106,7 @@ fn test_zero_addr_upgrade() {
 fn test_not_owner_upgrade() {
     let (autoSwappr_contract_address, _, _) = __setup__();
     let upgradeable_dispatcher = IUpgradeableDispatcher {
-        contract_address: autoSwappr_contract_address
+        contract_address: autoSwappr_contract_address,
     };
 
     let autoSwappr_contract_class = declare("AutoSwappr").unwrap().contract_class();
@@ -121,7 +121,7 @@ fn test_not_owner_upgrade() {
 fn test_upgrade() {
     let (autoSwappr_contract_address, _, _) = __setup__();
     let upgradeable_dispatcher = IUpgradeableDispatcher {
-        contract_address: autoSwappr_contract_address
+        contract_address: autoSwappr_contract_address,
     };
 
     let autoSwappr_contract_class = declare("AutoSwappr").unwrap().contract_class();
@@ -147,14 +147,14 @@ fn test_upgrade() {
 fn test_constructor_initializes_correctly() {
     let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address
+        contract_address: autoSwappr_contract_address,
     };
     let expected_contract_parameters = ContractInfo {
         fees_collector: FEE_COLLECTOR_ADDR(),
         avnu_exchange_address: AVNU_ADDR(),
         strk_token: strk_dispatcher.contract_address,
         eth_token: eth_dispatcher.contract_address,
-        owner: OWNER()
+        owner: OWNER(),
     };
     let actual_contract_parameters = autoSwappr_dispatcher.contract_parameters();
     assert_eq!(expected_contract_parameters, actual_contract_parameters);
@@ -165,7 +165,7 @@ fn test_constructor_initializes_correctly() {
 fn test_swap_reverts_if_token_from_amount_is_zero() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone()
+        contract_address: autoSwappr_contract_address.clone(),
     };
     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
     let token_from_amount: u256 = 0;
@@ -187,7 +187,7 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
             beneficiary,
             integrator_fee_amount_bps,
             integrator_fee_recipient,
-            routes
+            routes,
         );
     stop_cheat_caller_address_global();
 }
@@ -197,7 +197,7 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
 fn test_swap_reverts_if_token_is_not_supported() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone()
+        contract_address: autoSwappr_contract_address.clone(),
     };
     let token_from_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
     let token_from_amount: u256 = strk_dispatcher.balance_of(USER());
@@ -219,7 +219,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
             beneficiary,
             integrator_fee_amount_bps,
             integrator_fee_recipient,
-            routes
+            routes,
         );
     stop_cheat_caller_address_global();
 }
@@ -229,7 +229,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
 fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone()
+        contract_address: autoSwappr_contract_address.clone(),
     };
     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
     let token_from_amount: u256 = strk_dispatcher.balance_of(USER())
@@ -252,7 +252,7 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
             beneficiary,
             integrator_fee_amount_bps,
             integrator_fee_recipient,
-            routes
+            routes,
         );
     stop_cheat_caller_address_global();
 }
