@@ -262,7 +262,7 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
 fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone()
+        contract_address: autoSwappr_contract_address.clone(),
     };
     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
     let token_from_amount: u256 = strk_dispatcher
@@ -286,7 +286,7 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
             beneficiary,
             integrator_fee_amount_bps,
             integrator_fee_recipient,
-            routes
+            routes,
         );
     stop_cheat_caller_address_global();
 }
