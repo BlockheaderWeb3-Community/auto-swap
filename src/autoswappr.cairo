@@ -133,7 +133,7 @@ pub mod AutoSwappr {
             );
             assert(
                 token.allowance(caller_address, this_contract) >= token_from_amount,
-                Errors::INSUFFICIENT_ALLOWANCE
+                Errors::INSUFFICIENT_ALLOWANCE,
             );
 
             let transfer = token.transfer_from(caller_address, this_contract, token_from_amount);
@@ -165,7 +165,7 @@ pub mod AutoSwappr {
                         token_to_address,
                         token_to_amount,
                         beneficiary,
-                    }
+                    },
                 );
         }
 

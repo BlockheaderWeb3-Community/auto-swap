@@ -94,7 +94,7 @@ fn test_swap() {
     stop_cheat_caller_address(strk_token_address);
     assert(
         strk_token.allowance(caller, autoswappr_contract_address) == mint_amount,
-        'invalid allowance'
+        'invalid allowance',
     );
 
     // Prank caller to and call swap() function in auto_swapper
@@ -115,7 +115,7 @@ fn test_swap() {
                 exchange_address: contract_address_const::<JEDISWAP_ROUTER_ADDRESS>(),
                 percent: 100,
                 additional_swap_params: ArrayTrait::new(),
-            }
+            },
         );
 
     autoswappr_contract
