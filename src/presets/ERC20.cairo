@@ -41,7 +41,7 @@ pub mod ERC20Upgradeable {
         #[substorage(v0)]
         pub erc20: ERC20Component::Storage,
         #[substorage(v0)]
-        pub upgradeable: UpgradeableComponent::Storage
+        pub upgradeable: UpgradeableComponent::Storage,
     }
 
     #[event]
@@ -52,7 +52,7 @@ pub mod ERC20Upgradeable {
         #[flat]
         ERC20Event: ERC20Component::Event,
         #[flat]
-        UpgradeableEvent: UpgradeableComponent::Event
+        UpgradeableEvent: UpgradeableComponent::Event,
     }
 
     /// Assigns `owner` as the contract owner.
@@ -65,7 +65,7 @@ pub mod ERC20Upgradeable {
         symbol: ByteArray,
         fixed_supply: u256,
         recipient: ContractAddress,
-        owner: ContractAddress
+        owner: ContractAddress,
     ) {
         self.ownable.initializer(owner);
         self.erc20.initializer(name, symbol);
