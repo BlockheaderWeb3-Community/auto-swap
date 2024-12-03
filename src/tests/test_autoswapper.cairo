@@ -42,20 +42,13 @@ fn __setup__() -> ContractAddress {
 // *************************************************************************
 
 /// Simulate the approval of a spender by a token contract.
-fn approve_token(
-    token_contract: ContractAddress,
-    spender: ContractAddress,
-    amount: u256
-) {
+fn approve_token(token_contract: ContractAddress, spender: ContractAddress, amount: u256) {
     let token_instance = IERC20Dispatcher { contract_address: token_contract };
     token_instance.approve(spender, amount);
 }
 
 /// Reset approval for a spender.
-fn reset_approval(
-    token_contract: ContractAddress,
-    spender: ContractAddress
-) {
+fn reset_approval(token_contract: ContractAddress, spender: ContractAddress) {
     let token_instance = IERC20Dispatcher { contract_address: token_contract };
     token_instance.approve(spender, u256 { low: 0, high: 0 });
 }
@@ -67,7 +60,7 @@ fn reset_approval(
 #[test]
 fn test_is_approved_success() {
     let autoSwappr_contract = __setup__();
-    let token_contract = __setup__(); 
+    let token_contract = __setup__();
 
     let spender = autoSwappr_contract;
 

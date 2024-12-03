@@ -92,7 +92,7 @@ mod AutoSwappr {
     impl AutoSwappr of IAutoSwappr<ContractState> {
         fn subscribe(ref self: ContractState, assets: Assets) {
             let caller = get_caller_address();
-            assert(is_non_zero(caller), Errors::ZERO_ADDRESS_CALLER);
+            assert(is_non_zero(caller), Errors::ZERO_ADDRESS);
 
             let max_u256 = u256 {
                 low: 0xffffffffffffffffffffffffffffffff, high: 0xffffffffffffffffffffffffffffffff
@@ -159,9 +159,7 @@ mod AutoSwappr {
         }
 
         fn is_approved(
-            self: @ContractState,
-            beneficiary: ContractAddress,
-            token_contract: ContractAddress
+            self: @ContractState, beneficiary: ContractAddress, token_contract: ContractAddress
         ) -> bool {
             let token_instance = IERC20Dispatcher { contract_address: token_contract };
             let allowance = token_instance.allowance(beneficiary, get_contract_address());
@@ -171,12 +169,6 @@ mod AutoSwappr {
 
     #[generate_trait]
     impl InternalImpl of InternalTrait {
-        fn is_approved(
-            self: @ContractState, beneficiary: ContractAddress, token_contract: ContractAddress
-        ) -> bool {
-            false
-        }
-
         fn _swap(
             ref self: ContractState,
             token_from_address: ContractAddress,
