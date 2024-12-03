@@ -4,11 +4,11 @@
 use core::result::ResultTrait;
 use core::option::OptionTrait;
 use starknet::{ContractAddress, contract_address_const};
-use core::traits::{TryInto, Into};
+use core::traits::{TryInto};
 
 use snforge_std::{
-    declare, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address_global,
-    stop_cheat_caller_address_global, EventSpyTrait, spy_events
+    declare, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address,
+    start_cheat_caller_address_global, stop_cheat_caller_address_global, EventSpyTrait, spy_events
 };
 
 use auto_swappr::interfaces::iautoswappr::{
@@ -19,6 +19,9 @@ use auto_swappr::base::types::Route;
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 use openzeppelin::upgrades::interface::{IUpgradeableDispatcher, IUpgradeableDispatcherTrait};
 
+pub fn ZERO() -> ContractAddress {
+    contract_address_const::<0>()
+}
 pub fn USER() -> ContractAddress {
     contract_address_const::<'USER'>()
 }
@@ -65,7 +68,7 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
 
     let strk_dispatcher = IERC20Dispatcher { contract_address: strk_contract_address };
     let eth_dispatcher = IERC20Dispatcher { contract_address: eth_contract_address };
-    
+
     let autoSwappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
     let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
     FEE_COLLECTOR_ADDR().serialize(ref autoSwappr_constructor_calldata);
@@ -89,12 +92,7 @@ fn test_zero_addr_upgrade() {
         contract_address: autoSwappr_contract_address
     };
 
-    let zero_addr: ContractAddress =
-        0x0000000000000000000000000000000000000000000000000000000000000000
-        .try_into()
-        .unwrap();
-
-    start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), zero_addr);
+    start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), ZERO());
 
     let autoSwappr_contract_class = declare("AutoSwappr").unwrap().contract_class();
     let autoSwappr_class_hash = autoSwappr_contract_class.class_hash;
@@ -114,9 +112,7 @@ fn test_not_owner_upgrade() {
     let autoSwappr_contract_class = declare("AutoSwappr").unwrap().contract_class();
     let autoSwappr_class_hash = autoSwappr_contract_class.class_hash;
 
-    start_cheat_caller_address(
-        autoSwappr_contract_address.try_into().unwrap(), USER.try_into().unwrap()
-    );
+    start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), USER());
 
     upgradeable_dispatcher.upgrade(*autoSwappr_class_hash);
 }
@@ -131,9 +127,7 @@ fn test_upgrade() {
     let autoSwappr_contract_class = declare("AutoSwappr").unwrap().contract_class();
     let autoSwappr_class_hash = autoSwappr_contract_class.class_hash;
 
-    start_cheat_caller_address(
-        autoSwappr_contract_address.try_into().unwrap(), OWNER.try_into().unwrap()
-    );
+    start_cheat_caller_address(autoSwappr_contract_address.try_into().unwrap(), OWNER());
 
     let mut spy = spy_events();
 
@@ -169,7 +163,7 @@ fn test_constructor_initializes_correctly() {
 #[test]
 #[should_panic(expected: 'Amount is zero')]
 fn test_swap_reverts_if_token_from_amount_is_zero() {
-    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
@@ -201,7 +195,7 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
 #[test]
 #[should_panic(expected: 'Token not supported')]
 fn test_swap_reverts_if_token_is_not_supported() {
-    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
@@ -233,7 +227,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
 #[test]
 #[should_panic(expected: 'Insufficient Balance')]
 fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
-    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
@@ -266,7 +260,7 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
 #[test]
 #[should_panic(expected: 'Insufficient Allowance')]
 fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() {
-    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };

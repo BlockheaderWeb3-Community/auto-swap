@@ -16,6 +16,7 @@ assert_macros = "2.8.5"
 
 [[target.starknet-contract]]
 sierra = true
+build-external-contracts = ["openzeppelin_presets::erc20::ERC20Upgradeable"]
 
 [scripts]
 test = "snforge test"

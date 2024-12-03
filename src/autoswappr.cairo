@@ -80,7 +80,6 @@ pub mod AutoSwappr {
     #[constructor]
     fn constructor(
         ref self: ContractState,
-        owner: ContractAddress,
         fees_collector: ContractAddress,
         avnu_exchange_address: ContractAddress,
         _strk_token: ContractAddress,
