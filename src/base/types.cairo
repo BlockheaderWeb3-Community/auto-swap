@@ -12,5 +12,5 @@ pub struct Route {
 #[derive(Drop, Serde, Clone, Debug)]
 pub struct Assets {
     pub strk: bool,
-    pub eth: bool
+    pub eth: bool,
 }

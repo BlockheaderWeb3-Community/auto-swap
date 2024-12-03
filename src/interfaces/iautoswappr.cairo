@@ -10,7 +10,7 @@ pub struct ContractInfo {
     pub avnu_exchange_address: ContractAddress,
     pub strk_token: ContractAddress,
     pub eth_token: ContractAddress,
-    pub owner: ContractAddress
+    pub owner: ContractAddress,
 }
 
 // @title IAutoSwappr Interface
