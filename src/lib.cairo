@@ -4,8 +4,12 @@ pub mod base {
 }
 
 pub mod interfaces {
-    pub mod autoswappr;
+    pub mod iautoswappr;
     pub mod iavnu_exchange;
+}
+
+pub mod presets {
+    pub mod ERC20;
 }
 
 pub mod autoswappr;
