@@ -7,7 +7,7 @@ use starknet::syscalls::call_contract_syscall;
 
 use snforge_std::{
     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
-    DeclareResultTrait
+    DeclareResultTrait,
 };
 
 use auto_swappr::interfaces::iautoswappr::{IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait};
@@ -53,7 +53,7 @@ fn __setup__() -> ContractAddress {
     let auto_swappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
 
     let mut auto_swappr_constructor_calldata: Array<felt252> = array![
-        FEE_COLLECTOR, AVNU_EXCHANGE_ADDRESS, STRK_TOKEN_ADDRESS, ETH_TOKEN_ADDRESS, OWNER
+        FEE_COLLECTOR, AVNU_EXCHANGE_ADDRESS, STRK_TOKEN_ADDRESS, ETH_TOKEN_ADDRESS, OWNER,
     ];
 
     let (auto_swappr_contract_address, _) = auto_swappr_class_hash
@@ -68,7 +68,7 @@ fn __setup__() -> ContractAddress {
 fn test_swap() {
     let autoswappr_contract_address = __setup__();
     let autoswappr_contract = IAutoSwapprDispatcher {
-        contract_address: autoswappr_contract_address
+        contract_address: autoswappr_contract_address,
     };
 
     let strk_token_address = contract_address_const::<STRK_TOKEN_ADDRESS>();
@@ -94,7 +94,7 @@ fn test_swap() {
     stop_cheat_caller_address(strk_token_address);
     assert(
         strk_token.allowance(caller, autoswappr_contract_address) == mint_amount,
-        'invalid allowance'
+        'invalid allowance',
     );
 
     // Prank caller to and call swap() function in auto_swapper
@@ -114,8 +114,8 @@ fn test_swap() {
                 token_to: token_to_address,
                 exchange_address: contract_address_const::<JEDISWAP_ROUTER_ADDRESS>(),
                 percent: 100,
-                additional_swap_params: ArrayTrait::new()
-            }
+                additional_swap_params: ArrayTrait::new(),
+            },
         );
 
     autoswappr_contract
@@ -128,7 +128,7 @@ fn test_swap() {
             beneficiary,
             0,
             contract_address_const::<SWAP_CALLER_ADDRESS>(),
-            routes
+            routes,
         );
     stop_cheat_caller_address(autoswappr_contract_address);
 }

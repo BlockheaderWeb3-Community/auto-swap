@@ -5,12 +5,13 @@ pub mod AutoSwappr {
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
     use core::starknet::storage::{
-        StoragePointerReadAccess, StoragePointerWriteAccess, Map, StoragePathEntry
+        StoragePointerReadAccess, StoragePointerWriteAccess, Map, StoragePathEntry,
     };
     use crate::base::errors::Errors;
 
     use core::starknet::{
-        ContractAddress, get_caller_address, contract_address_const, get_contract_address, ClassHash
+        ContractAddress, get_caller_address, contract_address_const, get_contract_address,
+        ClassHash,
     };
 
     use openzeppelin::access::ownable::OwnableComponent;
@@ -52,7 +53,7 @@ pub mod AutoSwappr {
         UpgradeableEvent: UpgradeableComponent::Event,
         SwapSuccessful: SwapSuccessful,
         Subscribed: Subscribed,
-        Unsubscribed: Unsubscribed
+        Unsubscribed: Unsubscribed,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -61,7 +62,7 @@ pub mod AutoSwappr {
         token_from_amount: u256,
         token_to_address: ContractAddress,
         token_to_amount: u256,
-        beneficiary: ContractAddress
+        beneficiary: ContractAddress,
     }
 
     #[derive(starknet::Event, Drop)]
@@ -74,7 +75,7 @@ pub mod AutoSwappr {
     pub struct Unsubscribed {
         pub user: ContractAddress,
         pub assets: Assets,
-        pub block_timestamp: u64
+        pub block_timestamp: u64,
     }
 
     #[constructor]
@@ -84,7 +85,7 @@ pub mod AutoSwappr {
         avnu_exchange_address: ContractAddress,
         _strk_token: ContractAddress,
         _eth_token: ContractAddress,
-        owner: ContractAddress
+        owner: ContractAddress,
     ) {
         self.fees_collector.write(fees_collector);
         self.strk_token.write(_strk_token);
@@ -121,18 +122,18 @@ pub mod AutoSwappr {
             let caller_address = get_caller_address();
 
             assert(
-                self.supported_assets.entry(token_from_address).read(), Errors::UNSUPPORTED_TOKEN
+                self.supported_assets.entry(token_from_address).read(), Errors::UNSUPPORTED_TOKEN,
             );
             assert(!token_from_amount.is_zero(), Errors::ZERO_AMOUNT);
 
             let token = IERC20Dispatcher { contract_address: token_from_address };
 
             assert(
-                token.balance_of(caller_address) >= token_from_amount, Errors::INSUFFICIENT_BALANCE
+                token.balance_of(caller_address) >= token_from_amount, Errors::INSUFFICIENT_BALANCE,
             );
             assert(
                 token.allowance(caller_address, this_contract) >= token_from_amount,
-                Errors::INSUFFICIENT_ALLOWANCE
+                Errors::INSUFFICIENT_ALLOWANCE,
             );
 
             let transfer = token.transfer_from(caller_address, this_contract, token_from_amount);
@@ -151,7 +152,7 @@ pub mod AutoSwappr {
                     beneficiary,
                     integrator_fee_amount_bps,
                     integrator_fee_recipient,
-                    routes
+                    routes,
                 );
 
             assert(swap, Errors::SWAP_FAILED);
@@ -163,8 +164,8 @@ pub mod AutoSwappr {
                         token_from_amount,
                         token_to_address,
                         token_to_amount,
-                        beneficiary
-                    }
+                        beneficiary,
+                    },
                 );
         }
 
@@ -175,7 +176,7 @@ pub mod AutoSwappr {
                 avnu_exchange_address: self.avnu_exchange_address.read(),
                 strk_token: self.strk_token.read(),
                 eth_token: self.eth_token.read(),
-                owner: self.ownable.owner()
+                owner: self.ownable.owner(),
             }
         }
     }
@@ -206,7 +207,7 @@ pub mod AutoSwappr {
                     beneficiary,
                     integrator_fee_amount_bps,
                     integrator_fee_recipient,
-                    routes
+                    routes,
                 )
         }
 
