@@ -9,26 +9,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    name: build
     steps:
       - uses: actions/checkout@v3
 
-      - name: Cache Scarb dependencies
-        uses: actions/cache@v3
+      - name: Set up Scarb
+        uses: software-mansion/setup-scarb@v1
         with:
-          path: ~/.scarb
-          key: ${{ runner.os }}-scarb-${{ hashFiles('**/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-scarb-
+          scarb-version: "2.8.5"
 
-      - name: Install Scarb
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh
-
-      - name: Run Scarb commands
-        run: |
-          scarb fmt --check
-          scarb build
+      - name: Run build
+        run: scarb build
 
   test:
     runs-on: ubuntu-latest

@@ -4,8 +4,8 @@ pub mod base {
 }
 
 pub mod interfaces {
-    pub mod autoswappr;
+    pub mod iautoswappr;
     pub mod iavnu_exchange;
 }
 
-mod autoswappr;
+pub mod autoswappr;

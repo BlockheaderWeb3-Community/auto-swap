@@ -16,9 +16,15 @@ assert_macros = "2.8.5"
 
 [[target.starknet-contract]]
 sierra = true
+build-external-contracts = ["openzeppelin_presets::erc20::ERC20Upgradeable"]
 
 [scripts]
 test = "snforge test"
+
+[[tool.snforge.fork]]
+name = "Mainnet"
+url = "https://starknet-mainnet.public.blastapi.io/rpc/v0_7"
+block_id.number = "519354"
 
 # Visit https://foundry-rs.github.io/starknet-foundry/appendix/scarb-toml.html for more information
 
