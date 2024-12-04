@@ -26,6 +26,8 @@ pub trait IAutoSwappr<TContractState> {
     );
 
     fn contract_parameters(self: @TContractState) -> ContractInfo;
-    fn is_approved(self: @TContractState, beneficiary: ContractAddress, token_contract: ContractAddress) -> bool;
+    fn is_approved(
+        self: @TContractState, beneficiary: ContractAddress, token_contract: ContractAddress
+    ) -> bool;
 }
 
