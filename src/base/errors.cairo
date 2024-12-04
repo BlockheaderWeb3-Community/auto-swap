@@ -22,6 +22,5 @@ pub mod Errors {
     pub const INVALID_TOKEN_CONTRACT: felt252 = 'Invalid token contract address';
     pub const ZERO_ALLOWANCE: felt252 = 'Allowance is zero';
     pub const EXTERNAL_CONTRACT_CALL_FAILED: felt252 = 'External interaction failed';
-    pub const UNSUPPORTED_TOKEN: felt252 = 'Token type not supported';
     pub const APPROVAL_EXCEEDED: felt252 = 'Amount exceeds allowed limit';
 }

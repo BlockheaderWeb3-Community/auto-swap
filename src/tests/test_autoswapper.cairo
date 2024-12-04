@@ -98,7 +98,7 @@ fn test_is_approved_partial_allowance() {
 
     let spender = autoSwappr_contract;
 
-    // Approve a partial amount 
+    // Approve a partial amount
     approve_token(token_contract, spender, u256 { low: 0, high: 1 });
 
     // Check if approval is recognized
