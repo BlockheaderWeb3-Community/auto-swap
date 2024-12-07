@@ -1,4 +1,7 @@
 #[starknet::contract]
+// @title AutoSwappr Contract
+// @notice Facilitates automated token swaps through AVNU Exchange integration
+// @dev Implements upgradeable pattern and ownership control
 pub mod AutoSwappr {
     use crate::interfaces::iautoswappr::{IAutoSwappr, ContractInfo};
     use crate::base::types::{Route, Assets};
@@ -31,6 +34,8 @@ pub mod AutoSwappr {
 
     impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
 
+    // @notice Storage struct containing all contract state variables
+    // @dev Includes mappings for supported assets and critical contract addresses
     #[storage]
     struct Storage {
         strk_token: ContractAddress,
@@ -44,6 +49,7 @@ pub mod AutoSwappr {
         avnu_exchange_address: ContractAddress,
     }
 
+    // @notice Events emitted by the contract
     #[event]
     #[derive(starknet::Event, Drop)]
     pub enum Event {
@@ -56,6 +62,12 @@ pub mod AutoSwappr {
         Unsubscribed: Unsubscribed,
     }
 
+    // @notice Event emitted when a swap is successfully executed
+    // @param token_from_address Address of the token being sold
+    // @param token_from_amount Amount of tokens being sold
+    // @param token_to_address Address of the token being bought
+    // @param token_to_amount Amount of tokens being bought
+    // @param beneficiary Address receiving the bought tokens
     #[derive(Drop, starknet::Event)]
     struct SwapSuccessful {
         token_from_address: ContractAddress,
@@ -78,6 +90,12 @@ pub mod AutoSwappr {
         pub block_timestamp: u64,
     }
 
+    // @notice Constructor to initialize the contract
+    // @param fees_collector Address where fees will be collected
+    // @param avnu_exchange_address Address of the AVNU exchange
+    // @param _strk_token Address of the STRK token
+    // @param _eth_token Address of the ETH token
+    // @param owner Address of the contract owner
     #[constructor]
     fn constructor(
         ref self: ContractState,
@@ -96,6 +114,9 @@ pub mod AutoSwappr {
         self.supported_assets.write(_eth_token, true);
     }
 
+    // @notice Upgrades the contract implementation
+    // @dev Only callable by contract owner
+    // @param new_class_hash The new implementation hash to upgrade to
     #[abi(embed_v0)]
     impl UpgradeableImpl of IUpgradeable<ContractState> {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
@@ -106,6 +127,17 @@ pub mod AutoSwappr {
 
     #[abi(embed_v0)]
     impl AutoSwappr of IAutoSwappr<ContractState> {
+        // @notice Executes a token swap through AVNU exchange
+        // @dev Requires approval for token_from_address
+        // @param token_from_address Address of token to sell
+        // @param token_from_amount Amount of tokens to sell
+        // @param token_to_address Address of token to buy
+        // @param token_to_amount Expected amount of tokens to receive
+        // @param token_to_min_amount Minimum acceptable amount of tokens to receive
+        // @param beneficiary Address to receive the bought tokens
+        // @param integrator_fee_amount_bps Fee amount in basis points
+        // @param integrator_fee_recipient Address to receive the integration fee
+        // @param routes Array of routes for the swap
         fn swap(
             ref self: ContractState,
             token_from_address: ContractAddress,
@@ -170,6 +202,8 @@ pub mod AutoSwappr {
         }
 
 
+        // @notice Returns the contract's current parameters
+        // @return ContractInfo struct containing current contract parameters
         fn contract_parameters(self: @ContractState) -> ContractInfo {
             ContractInfo {
                 fees_collector: self.fees_collector.read(),
@@ -181,8 +215,11 @@ pub mod AutoSwappr {
         }
     }
 
+    // @dev Internal implementation trait
     #[generate_trait]
     impl InternalImpl of InternalTrait {
+        // @notice Internal function to execute the swap through AVNU exchange
+        // @dev Called by the public swap function after validations
         fn _swap(
             ref self: ContractState,
             token_from_address: ContractAddress,
@@ -213,6 +250,7 @@ pub mod AutoSwappr {
 
         fn collect_fees(ref self: ContractState) {}
 
+        // @notice Returns the zero address constant
         fn zero_address(self: @ContractState) -> ContractAddress {
             contract_address_const::<0>()
         }
