@@ -34,4 +34,7 @@ pub trait IAutoSwappr<TContractState> {
     // @notice Retrieves the current contract parameters
     // @return ContractInfo struct containing the contract's current configuration
     fn contract_parameters(self: @TContractState) -> ContractInfo;
+    fn is_approved(
+        self: @TContractState, beneficiary: ContractAddress, token_contract: ContractAddress
+    ) -> bool;
 }
