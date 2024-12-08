@@ -39,7 +39,7 @@ To set up and run the project locally, ensure you have the following installed:
 
 1. **Fork the Repository**
 
-2. **Clone the Repository**
+2. **Clone the Repository to your local machine**
 
 ```bash
    git clone https://github.com/BlockheaderWeb3-Community/auto-swap
