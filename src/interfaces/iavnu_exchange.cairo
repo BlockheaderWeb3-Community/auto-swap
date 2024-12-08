@@ -1,6 +1,9 @@
 use starknet::ContractAddress;
 use crate::base::types::Route;
 
+// @title AVNU Exchange Interface
+// @notice Interface for interacting with AVNU's multi-route swap functionality
+// @dev Implements core swap functionality with multiple route support and integrator fee system
 #[starknet::interface]
 pub trait IExchange<TContractState> {
     fn multi_route_swap(
