@@ -111,8 +111,7 @@ We welcom contributions! Please follow these steps:
 For support and queries:
 
 - Open an issue in the GitHub repository
-- Join our [Discord Community](https://discord.gg/vdpdbssf)
-- Join our [X Community](https://x.com/blockheaderweb3)
+- Join our [Telegram channel](https://t.me/+TXSDWeFXReAxMzk0)
 
 ---
 
