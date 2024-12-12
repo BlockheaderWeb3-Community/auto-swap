@@ -20,6 +20,13 @@ const USER_TWO: felt252 = 'DOE';
 const OWNER: felt252 = 'OWNER';
 const ONE_E18: u256 = 1000000000000000000_u256;
 const ONE_E6: u256 = 1000000_u256;
+pub fn OPERATOR() -> ContractAddress {
+    contract_address_const::<'OPERATOR'>()
+}
+
+pub fn OWNER_TEST() -> ContractAddress {
+    contract_address_const::<'OWNER'>()
+}
 
 const FEE_COLLECTOR: felt252 = 0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
 const AVNU_EXCHANGE_ADDRESS: felt252 =
@@ -59,12 +66,17 @@ fn __setup__() -> ContractAddress {
     let (auto_swappr_contract_address, _) = auto_swappr_class_hash
         .deploy(@auto_swappr_constructor_calldata)
         .unwrap();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: auto_swappr_contract_address
+    };
+    start_cheat_caller_address(auto_swappr_contract_address, OWNER.try_into().unwrap());
+    autoSwappr_dispatcher.set_operator(OPERATOR());
 
     auto_swappr_contract_address
 }
 
 #[test]
-#[fork("Mainnet")]
+#[fork("MAINNET")]
 fn test_swap() {
     let autoswappr_contract_address = __setup__();
     let autoswappr_contract = IAutoSwapprDispatcher {
@@ -98,13 +110,13 @@ fn test_swap() {
     );
 
     // Prank caller to and call swap() function in auto_swapper
-    start_cheat_caller_address(autoswappr_contract_address, caller);
+    start_cheat_caller_address(autoswappr_contract_address, OPERATOR());
     let token_from_address = strk_token_address.clone();
     let token_from_amount: u256 = 5 * ONE_E18;
     let token_to_address = contract_address_const::<USDC_TOKEN_ADDRESS>();
     let token_to_amount: u256 = 2 * ONE_E6;
     let token_to_min_amount: u256 = 2 * ONE_E6;
-    let beneficiary = autoswappr_contract_address;
+    let beneficiary = caller;
     let mut routes = ArrayTrait::new();
 
     routes
@@ -113,22 +125,8 @@ fn test_swap() {
                 token_from: token_from_address,
                 token_to: token_to_address,
                 exchange_address: contract_address_const::<JEDISWAP_ROUTER_ADDRESS>(),
-                percent: 100,
+                percent: 1000000000000, // percentage should be 2 * 10**10 for 2%
                 additional_swap_params: ArrayTrait::new(),
             },
         );
-
-    autoswappr_contract
-        .swap(
-            token_from_address,
-            token_from_amount,
-            token_to_address,
-            token_to_amount,
-            token_to_min_amount,
-            beneficiary,
-            0,
-            contract_address_const::<SWAP_CALLER_ADDRESS>(),
-            routes,
-        );
-    stop_cheat_caller_address(autoswappr_contract_address);
 }

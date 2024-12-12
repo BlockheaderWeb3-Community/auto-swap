@@ -7,8 +7,7 @@ edition = "2023_11"
 
 [dependencies]
 starknet = "2.8.5"
-avnu = { git = "https://github.com/avnu-labs/avnu-contracts-v2.git", branch = "main" }
-openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.15.0" }
+openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.19.0" }
 
 [dev-dependencies]
 snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry", tag = "v0.33.0" }
@@ -16,15 +15,11 @@ assert_macros = "2.8.5"
 
 [[target.starknet-contract]]
 sierra = true
-build-external-contracts = ["openzeppelin_presets::erc20::ERC20Upgradeable"]
+casm = false
+build-external-contracts = ["openzeppelin_presets::ERC20Upgradeable"]
 
 [scripts]
 test = "snforge test"
-
-[[tool.snforge.fork]]
-name = "Mainnet"
-url = "https://starknet-mainnet.public.blastapi.io/rpc/v0_7"
-block_id.number = "519354"
 
 # Visit https://foundry-rs.github.io/starknet-foundry/appendix/scarb-toml.html for more information
 
@@ -48,6 +43,11 @@ block_id.number = "519354"
 # url = "http://your.third.rpc.url"
 # block_id.hash = "0x123"                                    # Block to fork from (block hash)
 
+[[tool.snforge.fork]]
+name = "MAINNET"
+url = "https://starknet-mainnet.public.blastapi.io/rpc/v0_7"
+block_id.number = "519354"
+
 # [profile.dev.cairo]                                        # Configure Cairo compiler
 # unstable-add-statements-code-locations-debug-info = true   # Should be used if you want to use coverage
 # unstable-add-statements-functions-debug-info = true        # Should be used if you want to use coverage/profiler
@@ -55,3 +55,6 @@ block_id.number = "519354"
 
 # [features]                                                 # Used for conditional compilation
 # enable_for_tests = []                                      # Feature name and list of other features that should be enabled with it
+[profile.dev.cairo]
+unstable-add-statements-code-locations-debug-info = true
+unstable-add-statements-functions-debug-info = true
