@@ -1,6 +1,6 @@
 use core::starknet::ContractAddress;
 
-#[derive(Drop, Serde, Clone)]
+#[derive(Debug, Drop, PartialEq, Serde)]
 pub struct Route {
     pub token_from: ContractAddress,
     pub token_to: ContractAddress,
@@ -12,5 +12,5 @@ pub struct Route {
 #[derive(Drop, Serde, Clone, Debug)]
 pub struct Assets {
     pub strk: bool,
-    pub eth: bool,
+    pub eth: bool
 }

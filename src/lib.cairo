@@ -8,4 +8,8 @@ pub mod interfaces {
     pub mod iavnu_exchange;
 }
 
+pub mod presets {
+    pub mod ERC20;
+}
+
 pub mod autoswappr;
