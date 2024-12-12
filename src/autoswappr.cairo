@@ -205,6 +205,30 @@ pub mod AutoSwappr {
                 );
         }
 
+        fn fibrous_swap(
+            ref self: ContractState,
+            routeParams: RouteParams,
+            swapParams: Array<SwapParams>,
+        ){
+            // let routeParams = RouteParams {
+            //     token_in: contract_address_const::<123>(),
+            //     token_out: contract_address_const::<456>(),
+            //     amount_in: 20,
+            //     min_received: 10,
+            //     destination: contract_address_const::<789>(),
+            // };
+
+            // let extra_data = array![1,2,3,4];
+            // let swapParamsItem = SwapParams {
+            //     token_in: contract_address_const::<123>(),
+            //     token_out: contract_address_const::<456>(),
+            //     rate: 2,
+            //     protocol_id: 3,
+            //     extra_data,
+            // };
+            // let swapParams = array![swapParamsItem];
+        }
+
 
         // @notice Returns the contract's current parameters
         // @return ContractInfo struct containing current contract parameters

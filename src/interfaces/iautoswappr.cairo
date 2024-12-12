@@ -1,5 +1,6 @@
 use core::starknet::ContractAddress;
 use crate::base::types::Route;
+use crate::base::types::{RouteParams, SwapParams};
 
 // @title Contract Information Structure
 // @notice Holds the essential addresses and parameters for the AutoSwappr contract
@@ -29,6 +30,11 @@ pub trait IAutoSwappr<TContractState> {
         integrator_fee_amount_bps: u128,
         integrator_fee_recipient: ContractAddress,
         routes: Array<Route>,
+    );
+    fn fibrous_swap(
+        ref self: TContractState,
+        routeParams: RouteParams,
+        swapParams: Array<SwapParams>,
     );
 
     // @notice Retrieves the current contract parameters
