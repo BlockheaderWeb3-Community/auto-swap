@@ -210,23 +210,29 @@ pub mod AutoSwappr {
             routeParams: RouteParams,
             swapParams: Array<SwapParams>,
         ){
-            // let routeParams = RouteParams {
-            //     token_in: contract_address_const::<123>(),
-            //     token_out: contract_address_const::<456>(),
-            //     amount_in: 20,
-            //     min_received: 10,
-            //     destination: contract_address_const::<789>(),
-            // };
+            let this_contract = get_contract_address();
+            let caller_address = get_caller_address();
 
-            // let extra_data = array![1,2,3,4];
-            // let swapParamsItem = SwapParams {
-            //     token_in: contract_address_const::<123>(),
-            //     token_out: contract_address_const::<456>(),
-            //     rate: 2,
-            //     protocol_id: 3,
-            //     extra_data,
-            // };
-            // let swapParams = array![swapParamsItem];
+            assert(
+                self.supported_assets.entry(routeParams.token_in).read(), Errors::UNSUPPORTED_TOKEN,
+            );
+            assert(!routeParams.amount_in.is_zero(), Errors::ZERO_AMOUNT);
+
+            let token = IERC20Dispatcher { contract_address: routeParams.token_in };
+
+            assert(
+                token.balance_of(caller_address) >= routeParams.amount_in, Errors::INSUFFICIENT_BALANCE,
+            );
+            assert(
+                token.allowance(caller_address, this_contract) >= routeParams.amount_in,
+                Errors::INSUFFICIENT_ALLOWANCE,
+            );
+
+            self
+                ._fibrous_swap(
+                    routeParams,
+                    swapParams,
+                );
         }
 
 
