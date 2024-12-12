@@ -31,6 +31,9 @@ pub fn FEE_COLLECTOR_ADDR() -> ContractAddress {
 pub fn AVNU_ADDR() -> ContractAddress {
     contract_address_const::<'AVNU_ADDR'>()
 }
+pub fn FIBROUS_ADDR() -> ContractAddress {
+    contract_address_const::<0x00f6f4CF62E3C010E0aC2451cC7807b5eEc19a40b0FaaCd00CCA3914280FDf5a>()
+}
 pub fn OWNER() -> ContractAddress {
     contract_address_const::<'OWNER'>()
 }
@@ -73,6 +76,7 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
     FEE_COLLECTOR_ADDR().serialize(ref autoSwappr_constructor_calldata);
     AVNU_ADDR().serialize(ref autoSwappr_constructor_calldata);
+    FIBROUS_ADDR().serialize(ref autoSwappr_constructor_calldata);
     strk_contract_address.serialize(ref autoSwappr_constructor_calldata);
     eth_contract_address.serialize(ref autoSwappr_constructor_calldata);
     OWNER().serialize(ref autoSwappr_constructor_calldata);

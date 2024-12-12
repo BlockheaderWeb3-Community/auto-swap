@@ -4,7 +4,7 @@
 // @dev Implements upgradeable pattern and ownership control
 pub mod AutoSwappr {
     use crate::interfaces::iautoswappr::{IAutoSwappr, ContractInfo};
-    use crate::base::types::{Route, Assets};
+    use crate::base::types::{Route, Assets, RouteParams, SwapParams};
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
     use core::starknet::storage::{
@@ -48,6 +48,7 @@ pub mod AutoSwappr {
         #[substorage(v0)]
         upgradeable: UpgradeableComponent::Storage,
         avnu_exchange_address: ContractAddress,
+        fibrous_exchange_address: ContractAddress,
     }
 
     // @notice Events emitted by the contract
@@ -102,6 +103,7 @@ pub mod AutoSwappr {
         ref self: ContractState,
         fees_collector: ContractAddress,
         avnu_exchange_address: ContractAddress,
+        fibrous_exchange_address: ContractAddress,
         _strk_token: ContractAddress,
         _eth_token: ContractAddress,
         owner: ContractAddress,
@@ -110,6 +112,7 @@ pub mod AutoSwappr {
         self.strk_token.write(_strk_token);
         self.eth_token.write(_eth_token);
         self.avnu_exchange_address.write(avnu_exchange_address);
+        self.fibrous_exchange_address.write(fibrous_exchange_address);
         self.ownable.initializer(owner);
         self.supported_assets.write(_strk_token, true);
         self.supported_assets.write(_eth_token, true);
@@ -247,6 +250,20 @@ pub mod AutoSwappr {
                     integrator_fee_recipient,
                     routes,
                 )
+        }
+
+        fn _fibrous_swap(
+            ref self: ContractState,
+            routeParams: RouteParams,
+            swapParams: Array<SwapParams>,
+        ) {
+            let fibrous = IFibrousExchangeDispatcher { contract_address: self.fibrous_exchange_address.read() };
+
+            fibrous
+                .swap(
+                    routeParams, 
+                    swapParams
+                );
         }
 
         fn collect_fees(ref self: ContractState) {}
