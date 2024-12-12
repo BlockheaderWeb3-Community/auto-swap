@@ -6,6 +6,7 @@ pub mod base {
 pub mod interfaces {
     pub mod iautoswappr;
     pub mod iavnu_exchange;
+    pub mod fibrous_exchange;
 }
 
 pub mod autoswappr;

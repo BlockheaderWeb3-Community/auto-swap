@@ -19,6 +19,7 @@ pub mod AutoSwappr {
 
     use openzeppelin::access::ownable::OwnableComponent;
     use crate::interfaces::iavnu_exchange::{IExchangeDispatcher, IExchangeDispatcherTrait};
+    use crate::interfaces::fibrous_exchange::{IFibrousExchangeDispatcher, IFibrousExchangeDispatcherTrait};
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
     use core::integer::{u256, u128};
