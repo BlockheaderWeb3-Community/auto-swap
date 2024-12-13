@@ -24,8 +24,8 @@ pub fn USER() -> ContractAddress {
 pub fn FEE_COLLECTOR_ADDR() -> ContractAddress {
     contract_address_const::<'FEE_COLLECTOR_ADDR'>()
 }
-pub fn AVNU_ADDR() -> ContractAddress {
-    contract_address_const::<'AVNU_ADDR'>()
+pub fn FIBROUS_ADDR() -> ContractAddress {
+    contract_address_const::<'FIBROUS_ADDR'>()
 }
 pub fn OWNER() -> ContractAddress {
     contract_address_const::<'OWNER'>()
@@ -74,7 +74,7 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     let autoSwappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
     let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
     FEE_COLLECTOR_ADDR().serialize(ref autoSwappr_constructor_calldata);
-    AVNU_ADDR().serialize(ref autoSwappr_constructor_calldata);
+    FIBROUS_ADDR().serialize(ref autoSwappr_constructor_calldata);
     strk_contract_address.serialize(ref autoSwappr_constructor_calldata);
     eth_contract_address.serialize(ref autoSwappr_constructor_calldata);
     OWNER().serialize(ref autoSwappr_constructor_calldata);
@@ -97,7 +97,7 @@ fn test_constructor_initializes_correctly() {
     };
     let expected_contract_parameters = ContractInfo {
         fees_collector: FEE_COLLECTOR_ADDR(),
-        avnu_exchange_address: AVNU_ADDR(),
+        fibrous_exchange_address: FIBROUS_ADDR(),
         strk_token: strk_dispatcher.contract_address,
         eth_token: eth_dispatcher.contract_address,
         owner: OWNER()
