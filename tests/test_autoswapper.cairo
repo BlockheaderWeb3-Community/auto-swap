@@ -236,3 +236,118 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
         );
     stop_cheat_caller_address_global();
 }
+
+#[test]
+#[should_panic(expected: 'Caller Not Owner')]
+fn test_set_operator_reverts_if_caller_is_not_owner() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    
+    start_cheat_caller_address_global(USER());
+    autoSwappr_dispatcher.set_operator(contract_address_const::<'NEW_OPERATOR'>());
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'address already exist')]
+fn test_set_operator_reverts_if_operator_already_exists() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    
+    start_cheat_caller_address_global(OWNER());
+    autoSwappr_dispatcher.set_operator(OPERATOR());
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'Token not supported')]
+fn test_set_operator_succeeds_when_called_by_owner() {
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    
+    let new_operator = contract_address_const::<'NEW_OPERATOR'>();
+    
+    start_cheat_caller_address_global(OWNER());
+    autoSwappr_dispatcher.set_operator(new_operator);
+    stop_cheat_caller_address_global();
+    
+    start_cheat_caller_address_global(new_operator);
+
+    let token_from_address = contract_address_const::<'RANDOM_TOKEN'>();
+    let token_from_amount: u256 = 1000;
+    autoSwappr_dispatcher.swap(
+        token_from_address,
+        token_from_amount,
+        contract_address_const::<'USDC_TOKEN_ADDRESS'>(),
+        1000,
+        1000,
+        USER(),
+        0,
+        contract_address_const::<0>(),
+        ArrayTrait::new(),
+    );
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'Caller Not Owner')]
+fn test_remove_operator_reverts_if_caller_is_not_owner() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    
+    start_cheat_caller_address_global(USER());
+    autoSwappr_dispatcher.remove_operator(OPERATOR());
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'address does not exist')]
+fn test_remove_operator_reverts_if_operator_does_not_exist() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    
+    start_cheat_caller_address_global(OWNER());
+    autoSwappr_dispatcher.remove_operator(contract_address_const::<'NON_EXISTENT_OPERATOR'>());
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'sender can not call')]
+fn test_remove_operator_succeeds_when_called_by_owner() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    
+    // Remove the operator
+    start_cheat_caller_address_global(OWNER());
+    autoSwappr_dispatcher.remove_operator(OPERATOR());
+    stop_cheat_caller_address_global();
+    
+    // Verify the removed operator can no longer call restricted functions
+    start_cheat_caller_address_global(OPERATOR());
+    // This should now fail with 'sender can not call'
+    let mut routes: Array<Route> = ArrayTrait::new();
+    autoSwappr_dispatcher.swap(
+        contract_address_const::<0>(),
+        1,
+        contract_address_const::<0>(),
+        1,
+        1,
+        contract_address_const::<0>(),
+        0,
+        contract_address_const::<0>(),
+        routes,
+    );
+    stop_cheat_caller_address_global();
+}
