@@ -18,6 +18,7 @@ use auto_swappr::interfaces::iautoswappr::{
 use auto_swappr::base::types::{Route};
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
+// Contract Address Constants
 pub fn USER() -> ContractAddress {
     contract_address_const::<'USER'>()
 }
@@ -32,6 +33,18 @@ pub fn OWNER() -> ContractAddress {
 }
 pub fn OPERATOR() -> ContractAddress {
     contract_address_const::<'OPERATOR'>()
+}
+pub fn NEW_OPERATOR() -> ContractAddress {
+    contract_address_const::<'NEW_OPERATOR'>()
+}
+pub fn RANDOM_TOKEN() -> ContractAddress {
+    contract_address_const::<'RANDOM_TOKEN'>()
+}
+pub fn ZERO_ADDRESS() -> ContractAddress {
+    contract_address_const::<0>()
+}
+pub fn NON_EXISTENT_OPERATOR() -> ContractAddress {
+    contract_address_const::<'NON_EXISTENT_OPERATOR'>()
 }
 
 // *************************************************************************
@@ -244,7 +257,7 @@ fn test_set_operator_reverts_if_caller_is_not_owner() {
     };
 
     start_cheat_caller_address_global(USER());
-    autoSwappr_dispatcher.set_operator(contract_address_const::<'NEW_OPERATOR'>());
+    autoSwappr_dispatcher.set_operator(NEW_OPERATOR());
     stop_cheat_caller_address_global();
 }
 
@@ -269,26 +282,22 @@ fn test_set_operator_succeeds_when_called_by_owner() {
         contract_address: autoSwappr_contract_address
     };
 
-    let new_operator = contract_address_const::<'NEW_OPERATOR'>();
-
     start_cheat_caller_address_global(OWNER());
-    autoSwappr_dispatcher.set_operator(new_operator);
+    autoSwappr_dispatcher.set_operator(NEW_OPERATOR());
     stop_cheat_caller_address_global();
 
-    start_cheat_caller_address_global(new_operator);
-
-    let token_from_address = contract_address_const::<'RANDOM_TOKEN'>();
+    start_cheat_caller_address_global(NEW_OPERATOR());
     let token_from_amount: u256 = 1000;
     autoSwappr_dispatcher
         .swap(
-            token_from_address,
+            RANDOM_TOKEN(),
             token_from_amount,
             contract_address_const::<'USDC_TOKEN_ADDRESS'>(),
             1000,
             1000,
             USER(),
             0,
-            contract_address_const::<0>(),
+            ZERO_ADDRESS(),
             ArrayTrait::new(),
         );
     stop_cheat_caller_address_global();
@@ -316,7 +325,7 @@ fn test_remove_operator_reverts_if_operator_does_not_exist() {
     };
 
     start_cheat_caller_address_global(OWNER());
-    autoSwappr_dispatcher.remove_operator(contract_address_const::<'NON_EXISTENT_OPERATOR'>());
+    autoSwappr_dispatcher.remove_operator(NON_EXISTENT_OPERATOR());
     stop_cheat_caller_address_global();
 }
 
@@ -338,16 +347,6 @@ fn test_remove_operator_succeeds_when_called_by_owner() {
     // This should now fail with 'sender can not call'
     let mut routes: Array<Route> = ArrayTrait::new();
     autoSwappr_dispatcher
-        .swap(
-            contract_address_const::<0>(),
-            1,
-            contract_address_const::<0>(),
-            1,
-            1,
-            contract_address_const::<0>(),
-            0,
-            contract_address_const::<0>(),
-            routes,
-        );
+        .swap(ZERO_ADDRESS(), 1, ZERO_ADDRESS(), 1, 1, ZERO_ADDRESS(), 0, ZERO_ADDRESS(), routes,);
     stop_cheat_caller_address_global();
 }
