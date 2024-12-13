@@ -6,7 +6,9 @@ pub mod AutoSwappr {
     use crate::base::types::{Route, Assets};
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
-    use starknet::storage::Map;
+    use starknet::storage::{
+        Map, StoragePointerReadAccess, StoragePointerWriteAccess, StoragePathEntry
+    };
     use crate::base::errors::Errors;
 
     use core::starknet::{
@@ -34,14 +36,14 @@ pub mod AutoSwappr {
     struct Storage {
         strk_token: ContractAddress,
         eth_token: ContractAddress,
+        fees_collector: ContractAddress,
+        avnu_exchange_address: ContractAddress,
         supported_assets: Map<ContractAddress, bool>,
         autoswappr_addresses: Map<ContractAddress, bool>,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
-        fees_collector: ContractAddress,
         #[substorage(v0)]
         upgradeable: UpgradeableComponent::Storage,
-        avnu_exchange_address: ContractAddress,
     }
 
     // @notice Events emitted by the contract
@@ -100,8 +102,8 @@ pub mod AutoSwappr {
         self.eth_token.write(_eth_token);
         self.avnu_exchange_address.write(avnu_exchange_address);
         self.ownable.initializer(owner);
-        self.supported_assets.write(_strk_token, true);
-        self.supported_assets.write(_eth_token, true);
+        self.supported_assets.entry(_strk_token).write(true);
+        self.supported_assets.entry(_eth_token).write(true);
     }
 
     #[abi(embed_v0)]
@@ -128,7 +130,7 @@ pub mod AutoSwappr {
             routes: Array<Route>,
         ) {
             assert(
-                self.autoswappr_addresses.read(get_caller_address()) == true, Errors::INVALID_SENDER
+                self.autoswappr_addresses.entry(get_caller_address()).read() == true, Errors::INVALID_SENDER
             );
 
             assert(!token_from_amount.is_zero(), Errors::ZERO_AMOUNT);
@@ -180,14 +182,14 @@ pub mod AutoSwappr {
 
         fn set_operator(ref self: ContractState, address: ContractAddress) {
             assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
-            assert(self.autoswappr_addresses.read(address) == false, Errors::EXISTING_ADDRESS);
-            self.autoswappr_addresses.write(address, true);
+            assert(self.autoswappr_addresses.entry(address).read() == false, Errors::EXISTING_ADDRESS);
+            self.autoswappr_addresses.entry(address).write(true);
         }
 
         fn remove_operator(ref self: ContractState, address: ContractAddress) {
             assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
-            assert(self.autoswappr_addresses.read(address) == true, Errors::NON_EXISTING_ADDRESS);
-            self.autoswappr_addresses.write(address, false);
+            assert(self.autoswappr_addresses.entry(address).read() == true, Errors::NON_EXISTING_ADDRESS);
+            self.autoswappr_addresses.entry(address).write(false);
         }
 
 
@@ -225,7 +227,7 @@ pub mod AutoSwappr {
         fn check_if_token_from_is_supported(
             self: @ContractState, token_from: ContractAddress
         ) -> bool {
-            self.supported_assets.read(token_from)
+            self.supported_assets.entry(token_from).read()
         }
 
         fn _swap(
