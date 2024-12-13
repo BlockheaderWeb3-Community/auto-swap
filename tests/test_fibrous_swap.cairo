@@ -3,7 +3,6 @@
 // *************************************************************************
 use core::result::ResultTrait;
 use starknet::{ContractAddress, contract_address_const};
-use starknet::syscalls::call_contract_syscall;
 
 use snforge_std::{
     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
@@ -11,15 +10,10 @@ use snforge_std::{
 };
 
 use auto_swappr::interfaces::iautoswappr::{IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait};
-use auto_swappr::base::types::{Route, Assets, RouteParams, SwapParams};
+use auto_swappr::base::types::{RouteParams, SwapParams};
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
-
-const USER_ONE: felt252 = 'JOE';
-const USER_TWO: felt252 = 'DOE';
 const OWNER: felt252 = 'OWNER';
-const ONE_E18: u256 = 1000000000000000000_u256;
-const ONE_E6: u256 = 1000000_u256;
 
 const FEE_COLLECTOR: felt252 = 0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
 const AVNU_EXCHANGE_ADDRESS: felt252 =
@@ -38,13 +32,12 @@ const STK_MINTER_ADDRESS: felt252 =
 const SWAP_CALLER_ADDRESS: felt252 =
     0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
 
-const EKUBO_EXCHANGE_ADDRESS: felt252 =
-    0x00000005dd3D2F4429AF886cD1a3b08289DBcEa99A294197E9eB43b0e0325b4b;
 
 const JEDISWAP_ROUTER_ADDRESS: felt252 =
     0x041fd22b238fa21cfcf5dd45a8548974d8263b3a531a60388411c5e230f97023;
 
-const ROUTE_PERCENT_FACTOR: u128 = 10000000000;
+const ADDRESS_WITH_STRK_1:felt252 = 0x0298a9d0d82aabfd7e2463bb5ec3590c4e86d03b2ece868d06bbe43475f2d3e6;
+
 
 
 // *************************************************************************
@@ -66,37 +59,45 @@ fn __setup__() -> ContractAddress {
 }
 
 #[test]
-// #[fork("Mainnet")]
-// https://starknet-mainnet.public.blastapi.io/rpc/v0_7
-#[fork(url: "https://starknet-sepolia.public.blastapi.io/rpc/v0_7", block_tag: latest)]
-// Insufficient Allowance
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 979167)]
 fn test_fibrous_swap() {
     let autoSwappr_contract_address = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone(),
     };
-
         let routeParams = RouteParams {
-            token_in: contract_address_const::<STRK_TOKEN_ADDRESS>(),
-            token_out: contract_address_const::<ETH_TOKEN_ADDRESS>(),
-            amount_in: 10,
-            min_received: 4,
-            destination: contract_address_const::<789>(),
+            token_in: contract_address_const::<ETH_TOKEN_ADDRESS>(),
+            token_out: contract_address_const::<STRK_TOKEN_ADDRESS>(),
+            amount_in: 10000000000000000,
+            min_received:1000000,
+            destination: contract_address_const::<0x0092fB909857ba418627B9e40A7863F75768A0ea80D306Fb5757eEA7DdbBd4Fc>(), // any starknet wallet
         };
 
-        let extra_data = array![1,2,3,4];
         let swapParamsItem = SwapParams {
-            token_in: contract_address_const::<123>(),
-            token_out: contract_address_const::<456>(),
-            rate: 2,
-            protocol_id: 3,
-            extra_data,
+            token_in: contract_address_const::<ETH_TOKEN_ADDRESS>(),
+            token_out: contract_address_const::<STRK_TOKEN_ADDRESS>(),
+            pool_address: contract_address_const::<0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b>(), // Ekubo
+            rate: 1000000,
+            protocol_id: 5,
+            extra_data: array![],
         };
         let swapParams = array![swapParamsItem];
 
-        let address_with_funds = contract_address_const::<0x0416575467BBE3E3D1ABC92d175c71e06C7EA1FaB37120983A08b6a2B2D12794>();
+        // Prefund contract for gas
+        let eth_token = IERC20Dispatcher { contract_address: contract_address_const::<ETH_TOKEN_ADDRESS>() };
+        let address_with_funds = contract_address_const::<ADDRESS_WITH_STRK_1>();
+
+        start_cheat_caller_address(eth_token.contract_address, address_with_funds);
+        eth_token
+        .approve(
+            autoSwappr_dispatcher.contract_address,
+            20000000000000000
+        );
+        stop_cheat_caller_address(eth_token.contract_address);
+        //
 
         start_cheat_caller_address(autoSwappr_dispatcher.contract_address, address_with_funds);
+       
         autoSwappr_dispatcher
             .fibrous_swap(
                 routeParams,
@@ -104,9 +105,10 @@ fn test_fibrous_swap() {
             );
 }
 
+
 #[test]
 #[should_panic(expected: 'Insufficient Balance')]
-#[fork("Mainnet")]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 979167)]
 fn test_fibrous_swap_should_fail_for_inssuficient_balance() {
     let autoSwappr_contract_address = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
@@ -116,18 +118,18 @@ fn test_fibrous_swap_should_fail_for_inssuficient_balance() {
         let routeParams = RouteParams {
             token_in: contract_address_const::<STRK_TOKEN_ADDRESS>(),
             token_out: contract_address_const::<ETH_TOKEN_ADDRESS>(),
-            amount_in: 20,
-            min_received: 10,
-            destination: contract_address_const::<789>(),
+            amount_in: 10000,
+            min_received: 900,
+            destination: contract_address_const::<123>(),
         };
 
-        let extra_data = array![1,2,3,4];
         let swapParamsItem = SwapParams {
             token_in: contract_address_const::<123>(),
             token_out: contract_address_const::<456>(),
+            pool_address: contract_address_const::<456>(),
             rate: 2,
             protocol_id: 3,
-            extra_data,
+            extra_data: array![1],
         };
         let swapParams = array![swapParamsItem];
 
@@ -140,6 +142,7 @@ fn test_fibrous_swap_should_fail_for_inssuficient_balance() {
 
 #[test]
 #[should_panic(expected: 'Token not supported')]
+// #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_tag: latest)]
 fn test_fibrous_swap_should_fail_for_token_not_supported() {
     let autoSwappr_contract_address = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
@@ -149,18 +152,18 @@ fn test_fibrous_swap_should_fail_for_token_not_supported() {
         let routeParams = RouteParams {
             token_in: contract_address_const::<123>(),
             token_out: contract_address_const::<456>(),
-            amount_in: 20,
+            amount_in: 15,
             min_received: 10,
             destination: contract_address_const::<789>(),
         };
 
-        let extra_data = array![1,2,3,4];
         let swapParamsItem = SwapParams {
             token_in: contract_address_const::<123>(),
             token_out: contract_address_const::<456>(),
+            pool_address: contract_address_const::<789>(),
             rate: 2,
             protocol_id: 3,
-            extra_data,
+            extra_data: array![1,2,3,4],
         };
         let swapParams = array![swapParamsItem];
 

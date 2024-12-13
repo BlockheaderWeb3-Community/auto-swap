@@ -210,8 +210,8 @@ pub mod AutoSwappr {
             routeParams: RouteParams,
             swapParams: Array<SwapParams>,
         ){
-            let this_contract = get_contract_address();
             let caller_address = get_caller_address();
+            let this_contract = get_contract_address();
 
             assert(
                 self.supported_assets.entry(routeParams.token_in).read(), Errors::UNSUPPORTED_TOKEN,
