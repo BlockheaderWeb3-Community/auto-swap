@@ -32,7 +32,7 @@ pub fn AVNU_ADDR() -> ContractAddress {
     contract_address_const::<'AVNU_ADDR'>()
 }
 pub fn FIBROUS_ADDR() -> ContractAddress {
-    contract_address_const::<0x00f6f4CF62E3C010E0aC2451cC7807b5eEc19a40b0FaaCd00CCA3914280FDf5a>()
+    contract_address_const::<'FIBROUS_ADDR'>()
 }
 pub fn OWNER() -> ContractAddress {
     contract_address_const::<'OWNER'>()

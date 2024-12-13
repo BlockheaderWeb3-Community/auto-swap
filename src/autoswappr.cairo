@@ -210,7 +210,6 @@ pub mod AutoSwappr {
             routeParams: RouteParams,
             swapParams: Array<SwapParams>,
         ){
-            let this_contract = get_contract_address();
             let caller_address = get_caller_address();
 
             assert(
@@ -223,10 +222,10 @@ pub mod AutoSwappr {
             assert(
                 token.balance_of(caller_address) >= routeParams.amount_in, Errors::INSUFFICIENT_BALANCE,
             );
-            assert(
-                token.allowance(caller_address, this_contract) >= routeParams.amount_in,
-                Errors::INSUFFICIENT_ALLOWANCE,
-            );
+            // assert(
+            //     token.allowance(caller_address, this_contract) >= routeParams.amount_in,
+            //     Errors::INSUFFICIENT_ALLOWANCE,
+            // );
 
             self
                 ._fibrous_swap(

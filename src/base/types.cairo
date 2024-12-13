@@ -31,5 +31,6 @@ pub struct SwapParams {
     pub token_out: ContractAddress,
     pub rate: u32,
     pub protocol_id: u32,
+    pub pool_address: ContractAddress,
     pub extra_data: Array<felt252>,
 }
