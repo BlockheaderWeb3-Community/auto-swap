@@ -18,6 +18,8 @@ use auto_swappr::interfaces::iautoswappr::{
 use auto_swappr::base::types::{Route};
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
+use auto_swappr::autoswappr::AutoSwappr::{Event, OperatorAdded, OperatorRemoved};
+
 // Contract Address Constants
 pub fn USER() -> ContractAddress {
     contract_address_const::<'USER'>()
@@ -349,4 +351,52 @@ fn test_remove_operator_succeeds_when_called_by_owner() {
     autoSwappr_dispatcher
         .swap(ZERO_ADDRESS(), 1, ZERO_ADDRESS(), 1, 1, ZERO_ADDRESS(), 0, ZERO_ADDRESS(), routes,);
     stop_cheat_caller_address_global();
+}
+
+#[test]
+fn test_set_operator_emits_event() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    let mut spy = spy_events();
+
+    start_cheat_caller_address_global(OWNER());
+    autoSwappr_dispatcher.set_operator(NEW_OPERATOR());
+    stop_cheat_caller_address_global();
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_contract_address,
+                    Event::OperatorAdded(OperatorAdded { operator: NEW_OPERATOR() })
+                )
+            ]
+        );
+}
+
+#[test]
+fn test_remove_operator_emits_event() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    let mut spy = spy_events();
+
+    start_cheat_caller_address_global(OWNER());
+    autoSwappr_dispatcher.remove_operator(OPERATOR());
+    stop_cheat_caller_address_global();
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_contract_address,
+                    Event::OperatorRemoved(OperatorRemoved { operator: OPERATOR() })
+                )
+            ]
+        );
 }
