@@ -25,7 +25,7 @@ const STRK_TOKEN_ADDRESS: felt252 =
 const ETH_TOKEN_ADDRESS: felt252 =
     0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7;
 
-const ADDRESS_WITH_STRK_1:felt252 = 0x0298a9d0d82aabfd7e2463bb5ec3590c4e86d03b2ece868d06bbe43475f2d3e6;
+const ADDRESS_WITH_STRK_1:felt252 = 0x0631c2f9043db0d45576045fdd3e417f81dcb0ae0bdcdcfa415c88b4cd7fc56b;
 
 
 
@@ -47,52 +47,53 @@ fn __setup__() -> ContractAddress {
     auto_swappr_contract_address
 }
 
-// #[test]
-// #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 979167)]
-// fn test_fibrous_swap() {
-//     let autoSwappr_contract_address = __setup__();
-//     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-//         contract_address: autoSwappr_contract_address.clone(),
-//     };
-//         let routeParams = RouteParams {
-//             token_in: contract_address_const::<ETH_TOKEN_ADDRESS>(),
-//             token_out: contract_address_const::<STRK_TOKEN_ADDRESS>(),
-//             amount_in: 10000000000000000,
-//             min_received:1000000,
-//             destination: contract_address_const::<0x0092fB909857ba418627B9e40A7863F75768A0ea80D306Fb5757eEA7DdbBd4Fc>(), // any starknet wallet
-//         };
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 982171)]
+fn test_fibrous_swap() {
+    let autoSwappr_contract_address = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address.clone(),
+    };
 
-//         let swapParamsItem = SwapParams {
-//             token_in: contract_address_const::<ETH_TOKEN_ADDRESS>(),
-//             token_out: contract_address_const::<STRK_TOKEN_ADDRESS>(),
-//             pool_address: contract_address_const::<0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b>(), // Ekubo
-//             rate: 1000000,
-//             protocol_id: 5,
-//             extra_data: array![],
-//         };
-//         let swapParams = array![swapParamsItem];
+    // Prefund contract for gas
+    let eth_token = IERC20Dispatcher { contract_address: contract_address_const::<ETH_TOKEN_ADDRESS>() };
+    let address_with_funds = contract_address_const::<ADDRESS_WITH_STRK_1>();
+    start_cheat_caller_address(eth_token.contract_address, address_with_funds);
+    eth_token
+    .transfer(
+        autoSwappr_dispatcher.contract_address,
+        2000000000000000000
+    );
+    stop_cheat_caller_address(eth_token.contract_address);
+    //
 
-//         // Prefund contract for gas
-//         let eth_token = IERC20Dispatcher { contract_address: contract_address_const::<ETH_TOKEN_ADDRESS>() };
-//         let address_with_funds = contract_address_const::<ADDRESS_WITH_STRK_1>();
 
-//         start_cheat_caller_address(eth_token.contract_address, address_with_funds);
-//         eth_token
-//         .approve(
-//             autoSwappr_dispatcher.contract_address,
-//             20000000000000000
-//         );
-//         stop_cheat_caller_address(eth_token.contract_address);
-//         //
+        let routeParams = RouteParams {
+            token_in: contract_address_const::<STRK_TOKEN_ADDRESS>(),
+            token_out: contract_address_const::<ETH_TOKEN_ADDRESS>(),
+            amount_in: 1000000000000000000,
+            min_received:1000000,
+            destination: contract_address_const::<0x0092fB909857ba418627B9e40A7863F75768A0ea80D306Fb5757eEA7DdbBd4Fc>(), // any starknet wallet
+        };
 
-//         start_cheat_caller_address(autoSwappr_dispatcher.contract_address, address_with_funds);
+        let swapParamsItem = SwapParams {
+            token_in: contract_address_const::<STRK_TOKEN_ADDRESS>(),
+            token_out: contract_address_const::<ETH_TOKEN_ADDRESS>(),
+            pool_address: contract_address_const::<0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b>(), // Ekubo
+            rate: 1000000,
+            protocol_id: 5,
+            extra_data: array![],
+        };
+        let swapParams = array![swapParamsItem];
+
+        start_cheat_caller_address(autoSwappr_dispatcher.contract_address, address_with_funds);
        
-//         autoSwappr_dispatcher
-//             .fibrous_swap(
-//                 routeParams,
-//                 swapParams,
-//             );
-// }
+        autoSwappr_dispatcher
+            .fibrous_swap(
+                routeParams,
+                swapParams,
+            );
+}
 
 
 #[test]

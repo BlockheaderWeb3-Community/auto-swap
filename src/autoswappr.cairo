@@ -211,7 +211,7 @@ pub mod AutoSwappr {
             swapParams: Array<SwapParams>,
         ){
             let caller_address = get_caller_address();
-            let this_contract = get_contract_address();
+            // let this_contract = get_contract_address();
 
             assert(
                 self.supported_assets.entry(routeParams.token_in).read(), Errors::UNSUPPORTED_TOKEN,
@@ -223,10 +223,18 @@ pub mod AutoSwappr {
             assert(
                 token.balance_of(caller_address) >= routeParams.amount_in, Errors::INSUFFICIENT_BALANCE,
             );
-            assert(
-                token.allowance(caller_address, this_contract) >= routeParams.amount_in,
-                Errors::INSUFFICIENT_ALLOWANCE,
-            );
+            // should check for ETH, not amount in token 
+            // assert( 
+            //     token.allowance(caller_address, this_contract) >= routeParams.amount_in,
+            //     Errors::INSUFFICIENT_ALLOWANCE,
+            // );
+                let eth_token = IERC20Dispatcher { contract_address: contract_address_const::<0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7>() };
+
+                eth_token
+                .approve(
+                    self.fibrous_exchange_address.read(),
+                    20000000000000000000
+                );
 
             self
                 ._fibrous_swap(
