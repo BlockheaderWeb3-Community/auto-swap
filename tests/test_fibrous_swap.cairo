@@ -55,33 +55,22 @@ fn test_fibrous_swap() {
         contract_address: autoSwappr_contract_address.clone(),
     };
 
-    // Prefund contract for gas
-    let eth_token = IERC20Dispatcher { contract_address: contract_address_const::<ETH_TOKEN_ADDRESS>() };
     let address_with_funds = contract_address_const::<ADDRESS_WITH_STRK_1>();
-    start_cheat_caller_address(eth_token.contract_address, address_with_funds);
-    eth_token
-    .transfer(
-        autoSwappr_dispatcher.contract_address,
-        2000000000000000000
-    );
-    stop_cheat_caller_address(eth_token.contract_address);
-    //
-
 
         let routeParams = RouteParams {
-            token_in: contract_address_const::<STRK_TOKEN_ADDRESS>(),
-            token_out: contract_address_const::<ETH_TOKEN_ADDRESS>(),
+            token_in: contract_address_const::<0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d>(),
+            token_out: contract_address_const::<0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8>(),
             amount_in: 1000000000000000000,
-            min_received:1000000,
-            destination: contract_address_const::<0x0092fB909857ba418627B9e40A7863F75768A0ea80D306Fb5757eEA7DdbBd4Fc>(), // any starknet wallet
+            min_received:631641,
+            destination: contract_address_const::<0xf28cdd1f902402cab752904d855fa52608d5ae63f1c69ed038049260cad3d7>(), // any starknet wallet
         };
 
         let swapParamsItem = SwapParams {
-            token_in: contract_address_const::<STRK_TOKEN_ADDRESS>(),
-            token_out: contract_address_const::<ETH_TOKEN_ADDRESS>(),
-            pool_address: contract_address_const::<0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b>(), // Ekubo
+            token_in: contract_address_const::<0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d>(),
+            token_out: contract_address_const::<0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8>(),
+            pool_address: contract_address_const::<0x5726725e9507c3586cc0516449e2c74d9b201ab2747752bb0251aaa263c9a26>(), // Ekubo
             rate: 1000000,
-            protocol_id: 5,
+            protocol_id: 2,
             extra_data: array![],
         };
         let swapParams = array![swapParamsItem];
