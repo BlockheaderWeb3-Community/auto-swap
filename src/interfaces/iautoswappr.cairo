@@ -5,6 +5,7 @@ use crate::base::types::{Route, Assets};
 pub struct ContractInfo {
     pub fees_collector: ContractAddress,
     pub avnu_exchange_address: ContractAddress,
+    pub fibrous_exchange_address: ContractAddress,
     pub strk_token: ContractAddress,
     pub eth_token: ContractAddress,
     pub owner: ContractAddress
