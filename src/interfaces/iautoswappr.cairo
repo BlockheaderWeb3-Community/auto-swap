@@ -2,21 +2,16 @@ use core::starknet::ContractAddress;
 use crate::base::types::Route;
 use crate::base::types::{RouteParams, SwapParams};
 
-// @title Contract Information Structure
-// @notice Holds the essential addresses and parameters for the AutoSwappr contract
-// @dev This struct is used to return the contract's configuration in a single call
 #[derive(Copy, Debug, Drop, PartialEq, Serde)]
 pub struct ContractInfo {
     pub fees_collector: ContractAddress,
     pub avnu_exchange_address: ContractAddress,
+    pub fibrous_exchange_address: ContractAddress,
     pub strk_token: ContractAddress,
     pub eth_token: ContractAddress,
-    pub owner: ContractAddress,
+    pub owner: ContractAddress
 }
 
-// @title IAutoSwappr Interface
-// @notice Interface defining the main functionality of the AutoSwappr contract
-// @dev Implements token swapping functionality through AVNU Exchange
 #[starknet::interface]
 pub trait IAutoSwappr<TContractState> {
     fn swap(
@@ -37,7 +32,8 @@ pub trait IAutoSwappr<TContractState> {
         swapParams: Array<SwapParams>,
     );
 
-    // @notice Retrieves the current contract parameters
-    // @return ContractInfo struct containing the contract's current configuration
     fn contract_parameters(self: @TContractState) -> ContractInfo;
+    fn set_operator(ref self: TContractState, address: ContractAddress);
+    fn remove_operator(ref self: TContractState, address: ContractAddress);
 }
+

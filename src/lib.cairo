@@ -9,4 +9,8 @@ pub mod interfaces {
     pub mod fibrous_exchange;
 }
 
+pub mod presets {
+    pub mod ERC20;
+}
+
 pub mod autoswappr;

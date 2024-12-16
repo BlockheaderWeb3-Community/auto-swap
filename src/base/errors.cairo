@@ -19,5 +19,7 @@ pub mod Errors {
     pub const ALLOWANCE_NOT_ZERO: felt252 = 'Allowance not zero';
     pub const ZERO_AMOUNT: felt252 = 'Amount is zero';
     pub const UNSUPPORTED_TOKEN: felt252 = 'Token not supported';
-    pub const APPROVAL_FAILED: felt252 = 'Approval Failed';
+    pub const EXISTING_ADDRESS: felt252 = 'address already exist';
+    pub const NON_EXISTING_ADDRESS: felt252 = 'address does not exist';
+    pub const INVALID_SENDER: felt252 = 'sender can not call';
 }
