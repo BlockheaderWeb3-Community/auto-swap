@@ -25,7 +25,8 @@ const STRK_TOKEN_ADDRESS: felt252 =
 const ETH_TOKEN_ADDRESS: felt252 =
     0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7;
 
-const ADDRESS_WITH_STRK_1:felt252 = 0x0631c2f9043db0d45576045fdd3e417f81dcb0ae0bdcdcfa415c88b4cd7fc56b;
+// const ADDRESS_WITH_STRK_1:felt252 = 0x0631c2f9043db0d45576045fdd3e417f81dcb0ae0bdcdcfa415c88b4cd7fc56b;
+const ADDRESS_WITH_STRK_1:felt252 = 0x0298a9d0d82aabfd7e2463bb5ec3590c4e86d03b2ece868d06bbe43475f2d3e6;
 
 
 
@@ -48,7 +49,7 @@ fn __setup__() -> ContractAddress {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 982171)]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 987853)]
 fn test_fibrous_swap() {
     let autoSwappr_contract_address = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
@@ -74,6 +75,16 @@ fn test_fibrous_swap() {
             extra_data: array![],
         };
         let swapParams = array![swapParamsItem];
+
+        let strk_token = IERC20Dispatcher { contract_address: contract_address_const::<0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d>() };
+
+        start_cheat_caller_address(strk_token.contract_address, address_with_funds);
+        strk_token.transfer(autoSwappr_dispatcher.contract_address, 200000000000000000000);
+        // strk_token.approve(autoSwappr_dispatcher.contract_address, 200000000000000000000);
+        // fibrous
+        // strk_token.approve(contract_address_const::<0x00f6f4CF62E3C010E0aC2451cC7807b5eEc19a40b0FaaCd00CCA3914280FDf5a>(), 200000000000000000000);
+        stop_cheat_caller_address(strk_token.contract_address);
+
 
         start_cheat_caller_address(autoSwappr_dispatcher.contract_address, address_with_funds);
        

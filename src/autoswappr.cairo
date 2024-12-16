@@ -225,11 +225,11 @@ pub mod AutoSwappr {
             );
            
                 let strk_token = IERC20Dispatcher { contract_address: contract_address_const::<0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d>() };
-
+                println!("strk amount {}", strk_token.balance_of(caller_address));
                 strk_token
                 .approve(
                     self.fibrous_exchange_address.read(),
-                    20000000000000000000
+                    200000000000000000000
                 );
 
             self
