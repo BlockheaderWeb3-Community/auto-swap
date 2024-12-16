@@ -35,6 +35,10 @@ pub mod AutoSwappr {
 
     impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
 
+
+    const STRK_TOKEN_ADDRESS: felt252 =
+    0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d;
+
     // @notice Storage struct containing all contract state variables
     // @dev Includes mappings for supported assets and critical contract addresses
     #[storage]
@@ -211,31 +215,26 @@ pub mod AutoSwappr {
             swapParams: Array<SwapParams>,
         ){
             let caller_address = get_caller_address();
-            // let this_contract = get_contract_address();
 
+            // assertions
             assert(
                 self.supported_assets.entry(routeParams.token_in).read(), Errors::UNSUPPORTED_TOKEN,
             );
             assert(!routeParams.amount_in.is_zero(), Errors::ZERO_AMOUNT);
 
             let token = IERC20Dispatcher { contract_address: routeParams.token_in };
-
             assert(
                 token.balance_of(caller_address) >= routeParams.amount_in, Errors::INSUFFICIENT_BALANCE,
             );
            
-                let strk_token = IERC20Dispatcher { contract_address: contract_address_const::<0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d>() };
-                println!("strk amount {}", strk_token.balance_of(caller_address));
-
-                let origin = get_tx_info().unbox().account_contract_address;
-
-                println!("origin man {:?}", origin);
-
-                strk_token
-                .approve(
-                    self.fibrous_exchange_address.read(),
-                    200000000000000000000
-                );
+            // Approve commission taking from fibrous
+            // TO DO: this is an arbitrary number. Maybe we can find a way to calculate the fee more exactly
+            let strk_token = IERC20Dispatcher { contract_address: contract_address_const::<STRK_TOKEN_ADDRESS>() };                
+            strk_token
+            .approve(
+                self.fibrous_exchange_address.read(),
+                20000000000000000000
+            );
 
             self
                 ._fibrous_swap(
