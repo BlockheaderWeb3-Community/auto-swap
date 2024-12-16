@@ -24,6 +24,9 @@ pub fn USER() -> ContractAddress {
 pub fn FEE_COLLECTOR_ADDR() -> ContractAddress {
     contract_address_const::<'FEE_COLLECTOR_ADDR'>()
 }
+pub fn FIBROUS_ADDR() -> ContractAddress {
+    contract_address_const::<'FIBROUS_ADDR'>()
+}
 pub fn AVNU_ADDR() -> ContractAddress {
     contract_address_const::<'AVNU_ADDR'>()
 }
@@ -68,47 +71,49 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     let strk_dispatcher = IERC20Dispatcher { contract_address: strk_contract_address };
     let eth_dispatcher = IERC20Dispatcher { contract_address: eth_contract_address };
 
-    // deploy  events
-    let autoSwappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
+    // deploy AutoSwappr
+    let autoswappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
     let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
     FEE_COLLECTOR_ADDR().serialize(ref autoSwappr_constructor_calldata);
+    FIBROUS_ADDR().serialize(ref autoSwappr_constructor_calldata);
     AVNU_ADDR().serialize(ref autoSwappr_constructor_calldata);
     strk_contract_address.serialize(ref autoSwappr_constructor_calldata);
     eth_contract_address.serialize(ref autoSwappr_constructor_calldata);
     OWNER().serialize(ref autoSwappr_constructor_calldata);
-    let (autoSwappr_contract_address, _) = autoSwappr_class_hash
+    let (autoSwappr_contract_address, _) = autoswappr_class_hash
         .deploy(@autoSwappr_constructor_calldata)
         .unwrap();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
     start_cheat_caller_address_global(OWNER());
-    autoSwappr_dispatcher.set_operator(OPERATOR());
+    autoswappr_dispatcher.set_operator(OPERATOR());
     return (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher);
 }
 
 #[test]
 fn test_constructor_initializes_correctly() {
     let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
-    let expected_contract_parameters = ContractInfo {
+    let expected_contract_params = ContractInfo {
         fees_collector: FEE_COLLECTOR_ADDR(),
+        fibrous_exchange_address: FIBROUS_ADDR(),
         avnu_exchange_address: AVNU_ADDR(),
         strk_token: strk_dispatcher.contract_address,
         eth_token: eth_dispatcher.contract_address,
         owner: OWNER()
     };
-    let actual_contract_parameters = autoSwappr_dispatcher.contract_parameters();
-    assert_eq!(expected_contract_parameters, actual_contract_parameters);
+    let actual_contract_params = autoswappr_dispatcher.contract_parameters();
+    assert_eq!(expected_contract_params, actual_contract_params);
 }
 
 #[test]
 #[should_panic(expected: 'Amount is zero')]
 fn test_swap_reverts_if_token_from_amount_is_zero() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
@@ -121,7 +126,7 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
     let mut routes: Array<Route> = ArrayTrait::new();
     start_cheat_caller_address_global(OPERATOR());
-    autoSwappr_dispatcher
+    autoswappr_dispatcher
         .swap(
             :token_from_address,
             :token_from_amount,
@@ -140,7 +145,7 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
 #[should_panic(expected: 'Token not supported')]
 fn test_swap_reverts_if_token_is_not_supported() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
     let token_from_address: ContractAddress = contract_address_const::<'RANDOM_TOKEN_ADDRESS'>();
@@ -153,7 +158,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
     let mut routes: Array<Route> = ArrayTrait::new();
     start_cheat_caller_address_global(OPERATOR());
-    autoSwappr_dispatcher
+    autoswappr_dispatcher
         .swap(
             :token_from_address,
             :token_from_amount,
@@ -172,7 +177,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
 #[should_panic(expected: 'Insufficient Balance')]
 fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
@@ -186,7 +191,7 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
     let mut routes: Array<Route> = ArrayTrait::new();
     start_cheat_caller_address_global(OPERATOR());
-    autoSwappr_dispatcher
+    autoswappr_dispatcher
         .swap(
             :token_from_address,
             :token_from_amount,
@@ -205,7 +210,7 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
 #[should_panic(expected: 'Insufficient Allowance')]
 fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
@@ -220,7 +225,7 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
     let mut routes: Array<Route> = ArrayTrait::new();
     //no approval to the autoSwappr contract
     start_cheat_caller_address_global(OPERATOR());
-    autoSwappr_dispatcher
+    autoswappr_dispatcher
         .swap(
             :token_from_address,
             :token_from_amount,

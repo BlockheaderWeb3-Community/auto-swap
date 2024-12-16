@@ -31,6 +31,8 @@ pub fn OWNER_TEST() -> ContractAddress {
 const FEE_COLLECTOR: felt252 = 0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
 const AVNU_EXCHANGE_ADDRESS: felt252 =
     0x04270219d365d6b017231b52e92b3fb5d7c8378b05e9abc97724537a80e93b0f;
+const FIBROUS_EXCHANGE_ADDRESS: felt252 =
+    0x00f6f4cf62e3c010e0ac2451cc7807b5eec19a40b0faacd00cca3914280fdf5a;
 const STRK_TOKEN_ADDRESS: felt252 =
     0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d;
 const ETH_TOKEN_ADDRESS: felt252 =
@@ -60,7 +62,12 @@ fn __setup__() -> ContractAddress {
     let auto_swappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
 
     let mut auto_swappr_constructor_calldata: Array<felt252> = array![
-        FEE_COLLECTOR, AVNU_EXCHANGE_ADDRESS, STRK_TOKEN_ADDRESS, ETH_TOKEN_ADDRESS, OWNER,
+        FEE_COLLECTOR,
+        FIBROUS_EXCHANGE_ADDRESS,
+        AVNU_EXCHANGE_ADDRESS,
+        STRK_TOKEN_ADDRESS,
+        ETH_TOKEN_ADDRESS,
+        OWNER,
     ];
 
     let (auto_swappr_contract_address, _) = auto_swappr_class_hash
