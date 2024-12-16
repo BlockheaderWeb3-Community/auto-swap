@@ -361,7 +361,9 @@ fn test_set_operator_emits_event() {
     };
 
     let mut spy = spy_events();
+    let timestamp: u64 = 1000;
 
+    start_cheat_block_timestamp(autoSwappr_contract_address, timestamp);
     start_cheat_caller_address_global(OWNER());
     autoSwappr_dispatcher.set_operator(NEW_OPERATOR());
     stop_cheat_caller_address_global();
@@ -371,7 +373,9 @@ fn test_set_operator_emits_event() {
             @array![
                 (
                     autoSwappr_contract_address,
-                    Event::OperatorAdded(OperatorAdded { operator: NEW_OPERATOR() })
+                    Event::OperatorAdded(
+                        OperatorAdded { operator: NEW_OPERATOR(), time_added: timestamp }
+                    )
                 )
             ]
         );
@@ -385,7 +389,9 @@ fn test_remove_operator_emits_event() {
     };
 
     let mut spy = spy_events();
+    let timestamp: u64 = 1000;
 
+    start_cheat_block_timestamp(autoSwappr_contract_address, timestamp);
     start_cheat_caller_address_global(OWNER());
     autoSwappr_dispatcher.remove_operator(OPERATOR());
     stop_cheat_caller_address_global();
@@ -395,7 +401,9 @@ fn test_remove_operator_emits_event() {
             @array![
                 (
                     autoSwappr_contract_address,
-                    Event::OperatorRemoved(OperatorRemoved { operator: OPERATOR() })
+                    Event::OperatorRemoved(
+                        OperatorRemoved { operator: OPERATOR(), time_removed: timestamp }
+                    )
                 )
             ]
         );
