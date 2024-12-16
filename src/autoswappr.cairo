@@ -14,7 +14,7 @@ pub mod AutoSwappr {
 
     use core::starknet::{
         ContractAddress, get_caller_address, contract_address_const, get_contract_address,
-        ClassHash,
+        ClassHash, get_tx_info,
     };
 
     use openzeppelin::access::ownable::OwnableComponent;
@@ -226,6 +226,11 @@ pub mod AutoSwappr {
            
                 let strk_token = IERC20Dispatcher { contract_address: contract_address_const::<0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d>() };
                 println!("strk amount {}", strk_token.balance_of(caller_address));
+
+                let origin = get_tx_info().unbox().account_contract_address;
+
+                println!("origin man {:?}", origin);
+
                 strk_token
                 .approve(
                     self.fibrous_exchange_address.read(),
