@@ -38,7 +38,6 @@ pub fn OPERATOR() -> ContractAddress {
 //                              SETUP
 // *************************************************************************
 fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
-
     let strk_token_name: ByteArray = "STARKNET_TOKEN";
 
     let strk_token_symbol: ByteArray = "STRK";
@@ -55,8 +54,7 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     USER().serialize(ref strk_constructor_calldata);
     OWNER().serialize(ref strk_constructor_calldata);
 
-    let (strk_contract_address, _) =
-    erc20_class_hash.deploy(@strk_constructor_calldata).unwrap();
+    let (strk_contract_address, _) = erc20_class_hash.deploy(@strk_constructor_calldata).unwrap();
 
     let mut eth_constructor_calldata = array![];
     eth_token_name.serialize(ref eth_constructor_calldata);
@@ -109,7 +107,7 @@ fn test_constructor_initializes_correctly() {
 #[test]
 #[should_panic(expected: 'Amount is zero')]
 fn test_swap_reverts_if_token_from_amount_is_zero() {
-    let (autoSwappr_contract_address, strk_dispatcher,_) = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
@@ -141,7 +139,7 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
 #[test]
 #[should_panic(expected: 'Token not supported')]
 fn test_swap_reverts_if_token_is_not_supported() {
-    let (autoSwappr_contract_address, strk_dispatcher,_) = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
@@ -173,7 +171,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
 #[test]
 #[should_panic(expected: 'Insufficient Balance')]
 fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
-    let (autoSwappr_contract_address, strk_dispatcher,_) = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
@@ -206,7 +204,7 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
 #[test]
 #[should_panic(expected: 'Insufficient Allowance')]
 fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() {
-    let (autoSwappr_contract_address, strk_dispatcher,_) = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
