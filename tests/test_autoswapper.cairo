@@ -234,3 +234,22 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
         );
     stop_cheat_caller_address_global();
 }
+
+#[test]
+fn test_is_operator() {
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address.clone()
+    };
+
+    assert(autoSwappr_dispatcher.is_operator(OPERATOR()) == true, 'is operator');
+
+    autoSwappr_dispatcher.remove_operator(OPERATOR());
+
+    assert(autoSwappr_dispatcher.is_operator(OPERATOR()) == false, 'non operator');
+
+    autoSwappr_dispatcher.set_operator(OPERATOR());
+
+    assert(autoSwappr_dispatcher.is_operator(OPERATOR()) == true, 'is operator');
+}
