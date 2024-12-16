@@ -37,6 +37,7 @@ pub mod AutoSwappr {
         strk_token: ContractAddress,
         eth_token: ContractAddress,
         fees_collector: ContractAddress,
+        avnu_exchange_address: ContractAddress,
         fibrous_exchange_address: ContractAddress,
         supported_assets: Map<ContractAddress, bool>,
         autoswappr_addresses: Map<ContractAddress, bool>,
@@ -93,6 +94,7 @@ pub mod AutoSwappr {
         ref self: ContractState,
         fees_collector: ContractAddress,
         fibrous_exchange_address: ContractAddress,
+        avnu_exchange_address: ContractAddress,
         _strk_token: ContractAddress,
         _eth_token: ContractAddress,
         owner: ContractAddress,
@@ -101,6 +103,7 @@ pub mod AutoSwappr {
         self.strk_token.write(_strk_token);
         self.eth_token.write(_eth_token);
         self.fibrous_exchange_address.write(fibrous_exchange_address);
+        self.avnu_exchange_address.write(avnu_exchange_address);
         self.ownable.initializer(owner);
         self.supported_assets.entry(_strk_token).write(true);
         self.supported_assets.entry(_eth_token).write(true);
@@ -130,7 +133,8 @@ pub mod AutoSwappr {
             routes: Array<Route>,
         ) {
             assert(
-                self.autoswappr_addresses.entry(get_caller_address()).read() == true, Errors::INVALID_SENDER
+                self.autoswappr_addresses.entry(get_caller_address()).read() == true,
+                Errors::INVALID_SENDER
             );
 
             assert(!token_from_amount.is_zero(), Errors::ZERO_AMOUNT);
@@ -182,13 +186,18 @@ pub mod AutoSwappr {
 
         fn set_operator(ref self: ContractState, address: ContractAddress) {
             assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
-            assert(self.autoswappr_addresses.entry(address).read() == false, Errors::EXISTING_ADDRESS);
+            assert(
+                self.autoswappr_addresses.entry(address).read() == false, Errors::EXISTING_ADDRESS
+            );
             self.autoswappr_addresses.entry(address).write(true);
         }
 
         fn remove_operator(ref self: ContractState, address: ContractAddress) {
             assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
-            assert(self.autoswappr_addresses.entry(address).read() == true, Errors::NON_EXISTING_ADDRESS);
+            assert(
+                self.autoswappr_addresses.entry(address).read() == true,
+                Errors::NON_EXISTING_ADDRESS
+            );
             self.autoswappr_addresses.entry(address).write(false);
         }
 
@@ -197,6 +206,7 @@ pub mod AutoSwappr {
             ContractInfo {
                 fees_collector: self.fees_collector.read(),
                 fibrous_exchange_address: self.fibrous_exchange_address.read(),
+                avnu_exchange_address: self.avnu_exchange_address.read(),
                 strk_token: self.strk_token.read(),
                 eth_token: self.eth_token.read(),
                 owner: self.ownable.owner()
@@ -242,7 +252,7 @@ pub mod AutoSwappr {
             integrator_fee_recipient: ContractAddress,
             routes: Array<Route>,
         ) -> bool {
-            let avnu = IExchangeDispatcher { contract_address: self.fibrous_exchange_address.read() };
+            let avnu = IExchangeDispatcher { contract_address: self.avnu_exchange_address.read() };
 
             avnu
                 .multi_route_swap(
