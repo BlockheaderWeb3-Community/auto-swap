@@ -198,6 +198,7 @@ pub mod AutoSwappr {
             swapParams: Array<SwapParams>,
         ){
             let caller_address = get_caller_address();
+            let contract_address = get_contract_address();
 
             // assertions
             assert(
@@ -207,16 +208,21 @@ pub mod AutoSwappr {
 
             let token = IERC20Dispatcher { contract_address: routeParams.token_in };
             assert(
-                token.balance_of(caller_address) >= routeParams.amount_in, Errors::INSUFFICIENT_BALANCE,
+                token.allowance(caller_address, contract_address) >= routeParams.amount_in, Errors::INSUFFICIENT_ALLOWANCE,
             );
            
             // Approve commission taking from fibrous
-            // TO DO: this is an arbitrary number. Maybe we can find a way to calculate the fee more exactly
-            let strk_token = IERC20Dispatcher { contract_address: contract_address_const::<STRK_TOKEN_ADDRESS>() };                
-            strk_token
+            let token = IERC20Dispatcher { contract_address: routeParams.token_in };                
+            token
+            .transfer_from(
+                caller_address,
+                contract_address,
+                routeParams.amount_in
+            );
+            token
             .approve(
                 self.fibrous_exchange_address.read(),
-                20000000000000000000
+                routeParams.amount_in
             );
 
             self
