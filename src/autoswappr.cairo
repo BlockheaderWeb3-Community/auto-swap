@@ -17,7 +17,7 @@ pub mod AutoSwappr {
 
     use openzeppelin::access::ownable::OwnableComponent;
     use crate::interfaces::iavnu_exchange::{IExchangeDispatcher, IExchangeDispatcherTrait};
-    use crate::interfaces::fibrous_exchange::{IFibrousExchangeDispatcher, IFibrousExchangeDispatcherTrait};
+    use crate::interfaces::ifibrous_exchange::{IFibrousExchangeDispatcher, IFibrousExchangeDispatcherTrait};
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
     use core::integer::{u256, u128};
@@ -225,6 +225,7 @@ pub mod AutoSwappr {
                     swapParams,
                 );
         }
+
         fn set_operator(ref self: ContractState, address: ContractAddress) {
             assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
             assert(
