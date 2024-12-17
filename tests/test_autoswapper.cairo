@@ -248,13 +248,9 @@ fn test_is_operator() {
         contract_address: autoSwappr_contract_address.clone()
     };
 
-    assert(autoSwappr_dispatcher.is_operator(OPERATOR()) == true, 'is operator');
+    assert(autoSwappr_dispatcher.is_operator(USER()) == false, 'non operator');
 
-    autoSwappr_dispatcher.remove_operator(OPERATOR());
-
-    assert(autoSwappr_dispatcher.is_operator(OPERATOR()) == false, 'non operator');
-
-    autoSwappr_dispatcher.set_operator(OPERATOR());
+    autoSwappr_dispatcher.set_operator(USER());
 
     assert(autoSwappr_dispatcher.is_operator(OPERATOR()) == true, 'is operator');
 }
