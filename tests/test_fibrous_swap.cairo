@@ -236,7 +236,7 @@ fn test_fibrous_swap_eth_to_usdt() {
     // variables for test
     start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
     start_cheat_caller_address(USDT_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    let strk_amount_before_swap = ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1());
+    let eth_amount_before_swap = ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1());
     let usdt_amount_before_swap = USDT_TOKEN().balance_of(ADDRESS_WITH_ETH_1());
     stop_cheat_caller_address(ETH_TOKEN().contract_address);
     stop_cheat_caller_address(USDT_TOKEN().contract_address);
@@ -289,7 +289,7 @@ fn test_fibrous_swap_eth_to_usdt() {
     // asserts
     start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
     start_cheat_caller_address(USDT_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    assert_eq!(ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1()), strk_amount_before_swap - AMOUNT_TO_SWAP_ETH, "Balance of from token should decrease");
+    assert_eq!(ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1()), eth_amount_before_swap - AMOUNT_TO_SWAP_ETH, "Balance of from token should decrease");
     assert_ge!(USDT_TOKEN().balance_of(ADDRESS_WITH_ETH_1()), usdt_amount_before_swap + MIN_RECEIVED_ETH_TO_STABLE, "Balance of to token should increase");
 }
 
@@ -302,7 +302,7 @@ fn test_fibrous_swap_eth_to_usdc() {
     // variables for test
     start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
     start_cheat_caller_address(USDC_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    let strk_amount_before_swap = ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1());
+    let eth_amount_before_swap = ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1());
     let usdc_amount_before_swap = USDC_TOKEN().balance_of(ADDRESS_WITH_ETH_1());
     stop_cheat_caller_address(ETH_TOKEN().contract_address);
     stop_cheat_caller_address(USDC_TOKEN().contract_address);
@@ -355,7 +355,7 @@ fn test_fibrous_swap_eth_to_usdc() {
     // asserts
     start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
     start_cheat_caller_address(USDC_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    assert_eq!(ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1()), strk_amount_before_swap - AMOUNT_TO_SWAP_ETH, "Balance of from token should decrease");
+    assert_eq!(ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1()), eth_amount_before_swap - AMOUNT_TO_SWAP_ETH, "Balance of from token should decrease");
     assert_ge!(USDC_TOKEN().balance_of(ADDRESS_WITH_ETH_1()), usdc_amount_before_swap + MIN_RECEIVED_ETH_TO_STABLE, "Balance of to token should increase");
 }
 
