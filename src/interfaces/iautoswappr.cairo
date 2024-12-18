@@ -1,5 +1,6 @@
 use core::starknet::ContractAddress;
-use crate::base::types::{Route, Assets};
+use crate::base::types::Route;
+use crate::base::types::{RouteParams, SwapParams};
 
 #[derive(Copy, Debug, Drop, PartialEq, Serde)]
 pub struct ContractInfo {
@@ -24,6 +25,9 @@ pub trait IAutoSwappr<TContractState> {
         integrator_fee_amount_bps: u128,
         integrator_fee_recipient: ContractAddress,
         routes: Array<Route>,
+    );
+    fn fibrous_swap(
+        ref self: TContractState, routeParams: RouteParams, swapParams: Array<SwapParams>,
     );
 
     fn contract_parameters(self: @TContractState) -> ContractInfo;

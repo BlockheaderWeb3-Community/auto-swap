@@ -3,7 +3,7 @@
 // @dev Implements upgradeable pattern and ownership control
 pub mod AutoSwappr {
     use crate::interfaces::iautoswappr::{IAutoSwappr, ContractInfo};
-    use crate::base::types::{Route, Assets};
+    use crate::base::types::{Route, Assets, RouteParams, SwapParams};
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
     use starknet::storage::{
@@ -17,6 +17,9 @@ pub mod AutoSwappr {
 
     use openzeppelin::access::ownable::OwnableComponent;
     use crate::interfaces::iavnu_exchange::{IExchangeDispatcher, IExchangeDispatcherTrait};
+    use crate::interfaces::ifibrous_exchange::{
+        IFibrousExchangeDispatcher, IFibrousExchangeDispatcherTrait
+    };
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
     use core::integer::{u256, u128};
@@ -32,6 +35,8 @@ pub mod AutoSwappr {
 
     impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
 
+    // @notice Storage struct containing all contract state variables
+    // @dev Includes mappings for supported assets and critical contract addresses
     #[storage]
     struct Storage {
         strk_token: ContractAddress,
@@ -93,8 +98,8 @@ pub mod AutoSwappr {
     fn constructor(
         ref self: ContractState,
         fees_collector: ContractAddress,
-        fibrous_exchange_address: ContractAddress,
         avnu_exchange_address: ContractAddress,
+        fibrous_exchange_address: ContractAddress,
         _strk_token: ContractAddress,
         _eth_token: ContractAddress,
         owner: ContractAddress,
@@ -104,6 +109,7 @@ pub mod AutoSwappr {
         self.eth_token.write(_eth_token);
         self.fibrous_exchange_address.write(fibrous_exchange_address);
         self.avnu_exchange_address.write(avnu_exchange_address);
+        self.fibrous_exchange_address.write(fibrous_exchange_address);
         self.ownable.initializer(owner);
         self.supported_assets.entry(_strk_token).write(true);
         self.supported_assets.entry(_eth_token).write(true);
@@ -182,6 +188,32 @@ pub mod AutoSwappr {
                         beneficiary
                     }
                 );
+        }
+
+        fn fibrous_swap(
+            ref self: ContractState, routeParams: RouteParams, swapParams: Array<SwapParams>,
+        ) {
+            let caller_address = get_caller_address();
+            let contract_address = get_contract_address();
+
+            // assertions
+            assert(
+                self.supported_assets.entry(routeParams.token_in).read(), Errors::UNSUPPORTED_TOKEN,
+            );
+            assert(!routeParams.amount_in.is_zero(), Errors::ZERO_AMOUNT);
+
+            let token = IERC20Dispatcher { contract_address: routeParams.token_in };
+            assert(
+                token.allowance(caller_address, contract_address) >= routeParams.amount_in,
+                Errors::INSUFFICIENT_ALLOWANCE,
+            );
+
+            // Approve commission taking from fibrous
+            let token = IERC20Dispatcher { contract_address: routeParams.token_in };
+            token.transfer_from(caller_address, contract_address, routeParams.amount_in);
+            token.approve(self.fibrous_exchange_address.read(), routeParams.amount_in);
+
+            self._fibrous_swap(routeParams, swapParams,);
         }
 
         fn set_operator(ref self: ContractState, address: ContractAddress) {
@@ -268,6 +300,19 @@ pub mod AutoSwappr {
                 )
         }
 
+        fn _fibrous_swap(
+            ref self: ContractState, routeParams: RouteParams, swapParams: Array<SwapParams>,
+        ) {
+            let fibrous = IFibrousExchangeDispatcher {
+                contract_address: self.fibrous_exchange_address.read()
+            };
+
+            fibrous.swap(routeParams, swapParams);
+        }
+
+        fn collect_fees(ref self: ContractState) {}
+
+        // @notice Returns the zero address constant
         fn zero_address(self: @ContractState) -> ContractAddress {
             contract_address_const::<0>()
         }
