@@ -78,7 +78,7 @@ const MIN_RECEIVED_ETH_TO_STABLE: u256 = 38000000;
 // *************************************************************************
 //                              SETUP
 // *************************************************************************
-fn __setup__() -> ContractAddress {
+fn __setup__() -> IAutoSwapprDispatcher {
     let auto_swappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
 
     let mut auto_swappr_constructor_calldata: Array<felt252> = array![
@@ -89,18 +89,19 @@ fn __setup__() -> ContractAddress {
         .deploy(@auto_swappr_constructor_calldata)
         .unwrap();
 
-    auto_swappr_contract_address
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: auto_swappr_contract_address,
+    };
+    autoSwappr_dispatcher
 }
 
 #[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 987853)]
 fn test_fibrous_swap_strk_to_usdt() {
     // Deploying auto swapper contract 
-    let autoSwappr_contract_address = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone(),
-    };
+    let autoSwappr_dispatcher = __setup__();
     
+    // variables for test
     start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
     start_cheat_caller_address(USDT_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
     let strk_amount_before_swap = STRK_TOKEN().balance_of(ADDRESS_WITH_STRK_1());
@@ -164,11 +165,9 @@ fn test_fibrous_swap_strk_to_usdt() {
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 987853)]
 fn test_fibrous_swap_strk_to_usdc() {
     // Deploying auto swapper contract 
-    let autoSwappr_contract_address = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone(),
-    };
+    let autoSwappr_dispatcher = __setup__();
         
+    // variables for test
     start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
     start_cheat_caller_address(USDC_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
     let strk_amount_before_swap = STRK_TOKEN().balance_of(ADDRESS_WITH_STRK_1());
@@ -232,11 +231,9 @@ fn test_fibrous_swap_strk_to_usdc() {
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 990337)]
 fn test_fibrous_swap_eth_to_usdt() {
     // Deploying auto swapper contract 
-    let autoSwappr_contract_address = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone(),
-    };
+    let autoSwappr_dispatcher = __setup__();
     
+    // variables for test
     start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
     start_cheat_caller_address(USDT_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
     let strk_amount_before_swap = ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1());
@@ -300,11 +297,9 @@ fn test_fibrous_swap_eth_to_usdt() {
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 990337)]
 fn test_fibrous_swap_eth_to_usdc() {
     // Deploying auto swapper contract 
-    let autoSwappr_contract_address = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone(),
-    };
+    let autoSwappr_dispatcher = __setup__();
 
+    // variables for test
     start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
     start_cheat_caller_address(USDC_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
     let strk_amount_before_swap = ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1());
@@ -369,10 +364,7 @@ fn test_fibrous_swap_eth_to_usdc() {
 #[should_panic(expected: 'Insufficient Allowance')]
 fn test_fibrous_swap_should_fail_for_insufficient_allowance_to_contract() {
     // Deploying auto swapper contract 
-    let autoSwappr_contract_address = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone(),
-    };
+    let autoSwappr_dispatcher = __setup__();
     
     // approving auto swapper to use the amount to swap. (such contract will use transfer_from before call fibrous swaper) 
     start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
@@ -423,10 +415,7 @@ fn test_fibrous_swap_should_fail_for_insufficient_allowance_to_contract() {
 #[should_panic(expected: 'Token not supported')]
 fn test_fibrous_swap_should_fail_for_token_not_supported() {
     // Deploying auto swapper contract 
-    let autoSwappr_contract_address = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone(),
-    };
+    let autoSwappr_dispatcher = __setup__();
 
     let unsupported_token = contract_address_const::<0x123>();
     
