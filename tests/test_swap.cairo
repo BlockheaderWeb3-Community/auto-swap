@@ -62,7 +62,12 @@ fn __setup__() -> ContractAddress {
     let auto_swappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
 
     let mut auto_swappr_constructor_calldata: Array<felt252> = array![
-        FEE_COLLECTOR, AVNU_EXCHANGE_ADDRESS, FIBROUS_EXCHANGE_ADDRESS, STRK_TOKEN_ADDRESS, ETH_TOKEN_ADDRESS, OWNER,
+        FEE_COLLECTOR,
+        AVNU_EXCHANGE_ADDRESS,
+        FIBROUS_EXCHANGE_ADDRESS,
+        STRK_TOKEN_ADDRESS,
+        ETH_TOKEN_ADDRESS,
+        OWNER,
     ];
 
     let (auto_swappr_contract_address, _) = auto_swappr_class_hash

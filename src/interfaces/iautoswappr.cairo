@@ -27,9 +27,7 @@ pub trait IAutoSwappr<TContractState> {
         routes: Array<Route>,
     );
     fn fibrous_swap(
-        ref self: TContractState,
-        routeParams: RouteParams,
-        swapParams: Array<SwapParams>,
+        ref self: TContractState, routeParams: RouteParams, swapParams: Array<SwapParams>,
     );
 
     fn contract_parameters(self: @TContractState) -> ContractInfo;

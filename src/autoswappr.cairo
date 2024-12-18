@@ -17,7 +17,9 @@ pub mod AutoSwappr {
 
     use openzeppelin::access::ownable::OwnableComponent;
     use crate::interfaces::iavnu_exchange::{IExchangeDispatcher, IExchangeDispatcherTrait};
-    use crate::interfaces::ifibrous_exchange::{IFibrousExchangeDispatcher, IFibrousExchangeDispatcherTrait};
+    use crate::interfaces::ifibrous_exchange::{
+        IFibrousExchangeDispatcher, IFibrousExchangeDispatcherTrait
+    };
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
     use core::integer::{u256, u128};
@@ -189,10 +191,8 @@ pub mod AutoSwappr {
         }
 
         fn fibrous_swap(
-            ref self: ContractState,
-            routeParams: RouteParams,
-            swapParams: Array<SwapParams>,
-        ){
+            ref self: ContractState, routeParams: RouteParams, swapParams: Array<SwapParams>,
+        ) {
             let caller_address = get_caller_address();
             let contract_address = get_contract_address();
 
@@ -204,28 +204,16 @@ pub mod AutoSwappr {
 
             let token = IERC20Dispatcher { contract_address: routeParams.token_in };
             assert(
-                token.allowance(caller_address, contract_address) >= routeParams.amount_in, Errors::INSUFFICIENT_ALLOWANCE,
-            );
-           
-            // Approve commission taking from fibrous
-            let token = IERC20Dispatcher { contract_address: routeParams.token_in };                
-            token
-            .transfer_from(
-                caller_address,
-                contract_address,
-                routeParams.amount_in
-            );
-            token
-            .approve(
-                self.fibrous_exchange_address.read(),
-                routeParams.amount_in
+                token.allowance(caller_address, contract_address) >= routeParams.amount_in,
+                Errors::INSUFFICIENT_ALLOWANCE,
             );
 
-            self
-                ._fibrous_swap(
-                    routeParams,
-                    swapParams,
-                );
+            // Approve commission taking from fibrous
+            let token = IERC20Dispatcher { contract_address: routeParams.token_in };
+            token.transfer_from(caller_address, contract_address, routeParams.amount_in);
+            token.approve(self.fibrous_exchange_address.read(), routeParams.amount_in);
+
+            self._fibrous_swap(routeParams, swapParams,);
         }
 
         fn set_operator(ref self: ContractState, address: ContractAddress) {
@@ -313,17 +301,13 @@ pub mod AutoSwappr {
         }
 
         fn _fibrous_swap(
-            ref self: ContractState,
-            routeParams: RouteParams,
-            swapParams: Array<SwapParams>,
+            ref self: ContractState, routeParams: RouteParams, swapParams: Array<SwapParams>,
         ) {
-            let fibrous = IFibrousExchangeDispatcher { contract_address: self.fibrous_exchange_address.read() };
+            let fibrous = IFibrousExchangeDispatcher {
+                contract_address: self.fibrous_exchange_address.read()
+            };
 
-            fibrous
-                .swap(
-                    routeParams, 
-                    swapParams
-                );
+            fibrous.swap(routeParams, swapParams);
         }
 
         fn collect_fees(ref self: ContractState) {}
