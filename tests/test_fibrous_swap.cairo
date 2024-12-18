@@ -41,13 +41,10 @@ fn USDT_TOKEN_ADDRESS () -> ContractAddress {
     contract_address_const::<0x068F5c6a61780768455de69077E07e89787839bf8166dEcfBf92B645209c0fB8>()
 }
 
-fn ADDRESS_WITH_STRK_1 () -> ContractAddress {
-    contract_address_const::<0x0298a9d0d82aabfd7e2463bb5ec3590c4e86d03b2ece868d06bbe43475f2d3e6>()
-}
 
-fn ADDRESS_WITH_ETH_1 () -> ContractAddress {
-    // 0.010608430645451531 ETH = 42.449317USD on block 
-    contract_address_const::<0x028096b9a1b0f085ed2a6e6c07a58c2a33a0789c6a9d0ff55b0f816d52ab948e>()
+fn ADDRESS_WITH_FUNDS () -> ContractAddress {
+    // 0.01 ETH - 8.4 STRK
+    contract_address_const::<0x049c6e318b49bfba4f38dd839e7a44010119c6188d1574e406dbbedef29d096d>()
 }
 
 fn JEDISWAP_POOL_ADDRESS () -> ContractAddress {
@@ -70,10 +67,10 @@ fn USDC_TOKEN () -> IERC20Dispatcher {
     IERC20Dispatcher { contract_address: USDC_TOKEN_ADDRESS() }
 } 
 
-const AMOUNT_TO_SWAP_STRK: u256 = 1000000000000000000;
-const AMOUNT_TO_SWAP_ETH: u256 = 10000000000000000;
-const MIN_RECEIVED_STRK_TO_STABLE: u256 = 610000;
-const MIN_RECEIVED_ETH_TO_STABLE: u256 = 38000000;
+const AMOUNT_TO_SWAP_STRK: u256 = 1000000000000000000; // 1 STRK
+const AMOUNT_TO_SWAP_ETH: u256 = 10000000000000000; // 0.01 ETH 
+const MIN_RECEIVED_STRK_TO_STABLE: u256 = 550000; // 0.55 USD stable coin (USDC or USDT)
+const MIN_RECEIVED_ETH_TO_STABLE: u256 = 38000000; // 38 USD stable coin (USDC or USDT) 
 
 // *************************************************************************
 //                              SETUP
@@ -96,40 +93,206 @@ fn __setup__() -> IAutoSwapprDispatcher {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 987853)]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
 fn test_fibrous_swap_strk_to_usdt() {
-    // Deploying auto swapper contract 
+    let autoSwappr_dispatcher = __setup__();
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+     
+    approve_amount(STRK_TOKEN().contract_address, ADDRESS_WITH_FUNDS(), autoSwappr_dispatcher.contract_address,  AMOUNT_TO_SWAP_STRK);
+
+    let (routeParams, swapParams) = get_swap_parameters(SwapType::strk_usdt);
+
+    call_fibrous_swap(autoSwappr_dispatcher, routeParams, swapParams);
+
+    // asserts
+    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_FUNDS());
+    start_cheat_caller_address(USDT_TOKEN().contract_address, ADDRESS_WITH_FUNDS());
+    assert_eq!(STRK_TOKEN().balance_of(ADDRESS_WITH_FUNDS()), previous_amounts.strk - AMOUNT_TO_SWAP_STRK, "Balance of from token should decrease");
+    assert_ge!(USDT_TOKEN().balance_of(ADDRESS_WITH_FUNDS()), previous_amounts.usdt + MIN_RECEIVED_STRK_TO_STABLE, "Balance of to token should increase");
+}
+
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+fn test_fibrous_swap_strk_to_usdc() {
+    let autoSwappr_dispatcher = __setup__();
+        
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+     
+    approve_amount(STRK_TOKEN().contract_address, ADDRESS_WITH_FUNDS(), autoSwappr_dispatcher.contract_address,  AMOUNT_TO_SWAP_STRK);
+
+    let (routeParams, swapParams) = get_swap_parameters(SwapType::strk_usdc);
+
+    call_fibrous_swap(autoSwappr_dispatcher, routeParams, swapParams);
+
+    // asserts
+    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_FUNDS());
+    start_cheat_caller_address(USDC_TOKEN().contract_address, ADDRESS_WITH_FUNDS());
+    assert_eq!(STRK_TOKEN().balance_of(ADDRESS_WITH_FUNDS()), previous_amounts.strk - AMOUNT_TO_SWAP_STRK, "Balance of from token should decrease");
+    assert_ge!(USDC_TOKEN().balance_of(ADDRESS_WITH_FUNDS()), previous_amounts.usdc + MIN_RECEIVED_STRK_TO_STABLE, "Balance of to token should increase");
+}
+
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+fn test_fibrous_swap_eth_to_usdt() {
     let autoSwappr_dispatcher = __setup__();
     
-    // variables for test
-    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    start_cheat_caller_address(USDT_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    let strk_amount_before_swap = STRK_TOKEN().balance_of(ADDRESS_WITH_STRK_1());
-    let usdt_amount_before_swap = USDT_TOKEN().balance_of(ADDRESS_WITH_STRK_1());
-    stop_cheat_caller_address(STRK_TOKEN().contract_address);
-    stop_cheat_caller_address(USDT_TOKEN().contract_address);
-    
-    // approving auto swapper to use the amount to swap. (such contract will use transfer_from before call fibrous swaper) 
-    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    STRK_TOKEN().approve(autoSwappr_dispatcher.contract_address, AMOUNT_TO_SWAP_STRK);
-    stop_cheat_caller_address(STRK_TOKEN().contract_address);
-    
-    // Approve Fibrous exchange contract to use to amount we want to swap
-    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    STRK_TOKEN()
-    .approve(
-        FIBROUS_EXCHANGE_ADDRESS(), // fibrous
-        AMOUNT_TO_SWAP_STRK
-    );
-    stop_cheat_caller_address(STRK_TOKEN().contract_address);
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+     
+    approve_amount(ETH_TOKEN().contract_address, ADDRESS_WITH_FUNDS(), autoSwappr_dispatcher.contract_address,  AMOUNT_TO_SWAP_ETH);
 
-    // Preparing params to call auto swapper's fibrous_swap function
+    let (routeParams, swapParams) = get_swap_parameters(SwapType::eth_usdt);
+
+    call_fibrous_swap(autoSwappr_dispatcher, routeParams, swapParams);
+
+    // asserts
+    start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_FUNDS());
+    start_cheat_caller_address(USDT_TOKEN().contract_address, ADDRESS_WITH_FUNDS());
+    assert_eq!(ETH_TOKEN().balance_of(ADDRESS_WITH_FUNDS()), previous_amounts.eth - AMOUNT_TO_SWAP_ETH, "Balance of from token should decrease");
+    assert_ge!(USDT_TOKEN().balance_of(ADDRESS_WITH_FUNDS()), previous_amounts.usdt + MIN_RECEIVED_ETH_TO_STABLE, "Balance of to token should increase");
+}
+
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+fn test_fibrous_swap_eth_to_usdc() {
+    let autoSwappr_dispatcher = __setup__();
+
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+     
+    approve_amount(ETH_TOKEN().contract_address, ADDRESS_WITH_FUNDS(), autoSwappr_dispatcher.contract_address,  AMOUNT_TO_SWAP_ETH);
+
+    let (routeParams, swapParams) = get_swap_parameters(SwapType::eth_usdc);
+
+    call_fibrous_swap(autoSwappr_dispatcher, routeParams, swapParams);
+
+    // asserts
+    start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_FUNDS());
+    start_cheat_caller_address(USDC_TOKEN().contract_address, ADDRESS_WITH_FUNDS());
+    assert_eq!(ETH_TOKEN().balance_of(ADDRESS_WITH_FUNDS()), previous_amounts.eth - AMOUNT_TO_SWAP_ETH, "Balance of from token should decrease");
+    assert_ge!(USDC_TOKEN().balance_of(ADDRESS_WITH_FUNDS()), previous_amounts.usdc + MIN_RECEIVED_ETH_TO_STABLE, "Balance of to token should increase");
+}
+
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+fn test_fibrous_swap_strk_to_usdt_and_eth_to_usdc() {
+    let autoSwappr_dispatcher = __setup__();
+
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+     
+    approve_amount(STRK_TOKEN().contract_address, ADDRESS_WITH_FUNDS(), autoSwappr_dispatcher.contract_address,  AMOUNT_TO_SWAP_STRK);
+    approve_amount(ETH_TOKEN().contract_address, ADDRESS_WITH_FUNDS(), autoSwappr_dispatcher.contract_address,  AMOUNT_TO_SWAP_ETH);
+
+    let (routeParams_strk_to_usdt, swapParams_strk_to_usdt) = get_swap_parameters(SwapType::strk_usdt);
+    let (routeParams_eth_to_usdc, swapParams_eth_to_usdc) = get_swap_parameters(SwapType::eth_usdc);
+
+    call_fibrous_swap(autoSwappr_dispatcher, routeParams_strk_to_usdt, swapParams_strk_to_usdt);
+    call_fibrous_swap(autoSwappr_dispatcher, routeParams_eth_to_usdc, swapParams_eth_to_usdc);
+
+    // asserts
+    start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_FUNDS());
+    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_FUNDS());
+    start_cheat_caller_address(USDC_TOKEN().contract_address, ADDRESS_WITH_FUNDS());
+    start_cheat_caller_address(USDT_TOKEN().contract_address, ADDRESS_WITH_FUNDS());
+    assert_eq!(STRK_TOKEN().balance_of(ADDRESS_WITH_FUNDS()), previous_amounts.strk - AMOUNT_TO_SWAP_STRK, "STRK Balance of from token should decrease");
+    assert_ge!(USDT_TOKEN().balance_of(ADDRESS_WITH_FUNDS()), previous_amounts.usdt + MIN_RECEIVED_STRK_TO_STABLE, "USDT Balance of to token should increase");
+    assert_eq!(ETH_TOKEN().balance_of(ADDRESS_WITH_FUNDS()), previous_amounts.eth - AMOUNT_TO_SWAP_ETH, "ETH Balance of from token should decrease");
+    assert_ge!(USDC_TOKEN().balance_of(ADDRESS_WITH_FUNDS()), previous_amounts.usdc + MIN_RECEIVED_ETH_TO_STABLE, "USDC Balance of to token should increase");
+}
+
+
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+#[should_panic(expected: 'Insufficient Allowance')]
+fn test_fibrous_swap_should_fail_for_insufficient_allowance_to_contract() {
+    let autoSwappr_dispatcher = __setup__();
+    
+    // not allow so the error will occurs
+    // approve_amount(STRK_TOKEN().contract_address, ADDRESS_WITH_FUNDS(), autoSwappr_dispatcher.contract_address,  AMOUNT_TO_SWAP_STRK);
+
+    let (routeParams, swapParams) = get_swap_parameters(SwapType::strk_usdt);
+
+    call_fibrous_swap(autoSwappr_dispatcher, routeParams, swapParams);
+}
+
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+#[should_panic(expected: 'Token not supported')]
+fn test_fibrous_swap_should_fail_for_token_not_supported() {
+    let autoSwappr_dispatcher = __setup__();
+
+    let unsupported_token = contract_address_const::<0x123>();
+     
+    approve_amount(STRK_TOKEN().contract_address, ADDRESS_WITH_FUNDS(), autoSwappr_dispatcher.contract_address,  AMOUNT_TO_SWAP_STRK);
+
     let routeParams = RouteParams {
+        token_in: unsupported_token,
+        token_out: USDT_TOKEN_ADDRESS(),
+        amount_in: AMOUNT_TO_SWAP_STRK,
+        min_received: MIN_RECEIVED_STRK_TO_STABLE,
+        destination: ADDRESS_WITH_FUNDS()
+    };
+
+    let swapParamsItem = SwapParams {
+        token_in: unsupported_token,
+        token_out: USDT_TOKEN_ADDRESS(),
+        pool_address: JEDISWAP_POOL_ADDRESS(), 
+        rate: 1000000,
+        protocol_id: 2,
+        extra_data: array![],
+    };
+    let swapParams = array![swapParamsItem];
+
+
+    // Calling function
+    call_fibrous_swap(autoSwappr_dispatcher, routeParams, swapParams);
+}
+
+
+// UTILS
+fn call_fibrous_swap(autoSwappr_dispatcher:IAutoSwapprDispatcher, routeParams:RouteParams, swapParams:Array<SwapParams>) {
+    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, ADDRESS_WITH_FUNDS());
+    start_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS(), ADDRESS_WITH_FUNDS());
+    autoSwappr_dispatcher
+        .fibrous_swap(
+            routeParams,
+            swapParams,
+        );
+    stop_cheat_caller_address(autoSwappr_dispatcher.contract_address);
+    stop_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS());
+}
+
+fn get_wallet_amounts(wallet_address:ContractAddress) -> WalletAmounts {
+    start_cheat_caller_address(STRK_TOKEN().contract_address, wallet_address);
+    start_cheat_caller_address(ETH_TOKEN().contract_address, wallet_address);
+    start_cheat_caller_address(USDT_TOKEN().contract_address, wallet_address);
+    start_cheat_caller_address(USDC_TOKEN().contract_address, wallet_address);
+    let strk = STRK_TOKEN().balance_of(wallet_address);
+    let eth = ETH_TOKEN().balance_of(wallet_address);
+    let usdt = USDT_TOKEN().balance_of(wallet_address);
+    let usdc = USDC_TOKEN().balance_of(wallet_address);
+    stop_cheat_caller_address(STRK_TOKEN().contract_address);
+    stop_cheat_caller_address(ETH_TOKEN().contract_address);
+    stop_cheat_caller_address(USDT_TOKEN().contract_address);
+    stop_cheat_caller_address(USDC_TOKEN().contract_address);
+
+    let amounts = WalletAmounts { strk, eth, usdt, usdc };
+    amounts
+}
+
+fn approve_amount(token:ContractAddress, owner:ContractAddress, spender:ContractAddress, amount:u256) {
+    start_cheat_caller_address(token, owner);
+    let token_dispatcher = IERC20Dispatcher { contract_address: token };
+    token_dispatcher.approve(spender, amount);
+    stop_cheat_caller_address(token);
+}
+
+fn get_swap_parameters (swap_type:SwapType) -> (RouteParams, Array<SwapParams>) {
+    
+    let mut routeParams = RouteParams {
         token_in: STRK_TOKEN_ADDRESS(),
         token_out: USDT_TOKEN_ADDRESS(),
         amount_in: AMOUNT_TO_SWAP_STRK,
         min_received: MIN_RECEIVED_STRK_TO_STABLE,
-        destination: ADDRESS_WITH_STRK_1()
+        destination: ADDRESS_WITH_FUNDS()
     };
 
     let swapParamsItem = SwapParams {
@@ -140,325 +303,101 @@ fn test_fibrous_swap_strk_to_usdt() {
         protocol_id: 2,
         extra_data: array![],
     };
-    let swapParams = array![swapParamsItem];
-
-
-    // Calling function
-    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, ADDRESS_WITH_STRK_1());
-    start_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS(), ADDRESS_WITH_STRK_1());
-    autoSwappr_dispatcher
-        .fibrous_swap(
-            routeParams,
-            swapParams,
-        );
-    stop_cheat_caller_address(autoSwappr_dispatcher.contract_address);
-    stop_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS());
-
-    // asserts
-    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    start_cheat_caller_address(USDT_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    assert_eq!(STRK_TOKEN().balance_of(ADDRESS_WITH_STRK_1()), strk_amount_before_swap - AMOUNT_TO_SWAP_STRK, "Balance of from token should decrease");
-    assert_ge!(USDT_TOKEN().balance_of(ADDRESS_WITH_STRK_1()), usdt_amount_before_swap + MIN_RECEIVED_STRK_TO_STABLE, "Balance of to token should increase");
-}
-
-#[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 987853)]
-fn test_fibrous_swap_strk_to_usdc() {
-    // Deploying auto swapper contract 
-    let autoSwappr_dispatcher = __setup__();
+    let mut swapParams = array![swapParamsItem];
+    
+    match swap_type {
+        SwapType::strk_usdt => {
+            routeParams = RouteParams {
+                token_in: STRK_TOKEN_ADDRESS(),
+                token_out: USDT_TOKEN_ADDRESS(),
+                amount_in: AMOUNT_TO_SWAP_STRK,
+                min_received: MIN_RECEIVED_STRK_TO_STABLE,
+                destination: ADDRESS_WITH_FUNDS()
+            };
         
-    // variables for test
-    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    start_cheat_caller_address(USDC_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    let strk_amount_before_swap = STRK_TOKEN().balance_of(ADDRESS_WITH_STRK_1());
-    let usdc_amount_before_swap = USDC_TOKEN().balance_of(ADDRESS_WITH_STRK_1());
-    stop_cheat_caller_address(STRK_TOKEN().contract_address);
-    stop_cheat_caller_address(USDC_TOKEN().contract_address);
-    
-    // approving auto swapper to use the amount to swap. (such contract will use transfer_from before call fibrous swaper) 
-    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    STRK_TOKEN().approve(autoSwappr_dispatcher.contract_address, AMOUNT_TO_SWAP_STRK);
-    stop_cheat_caller_address(STRK_TOKEN().contract_address);
-    
-    // Approve Fibrous exchange contract to use to amount we want to swap
-    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    STRK_TOKEN()
-    .approve(
-        FIBROUS_EXCHANGE_ADDRESS(), // fibrous
-        AMOUNT_TO_SWAP_STRK
-    );
-    stop_cheat_caller_address(STRK_TOKEN().contract_address);
-
-    // Preparing params to call auto swapper's fibrous_swap function
-    let routeParams = RouteParams {
-        token_in: STRK_TOKEN_ADDRESS(),
-        token_out: USDC_TOKEN_ADDRESS(),
-        amount_in: AMOUNT_TO_SWAP_STRK,
-        min_received: MIN_RECEIVED_STRK_TO_STABLE,
-        destination: ADDRESS_WITH_STRK_1()
-    };
-
-    let swapParamsItem = SwapParams {
-        token_in: STRK_TOKEN_ADDRESS(),
-        token_out: USDC_TOKEN_ADDRESS(),
-        pool_address: JEDISWAP_POOL_ADDRESS(), 
-        rate: 1000000,
-        protocol_id: 2,
-        extra_data: array![],
-    };
-    let swapParams = array![swapParamsItem];
-
-
-    // Calling function
-    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, ADDRESS_WITH_STRK_1());
-    start_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS(), ADDRESS_WITH_STRK_1());
-    autoSwappr_dispatcher
-        .fibrous_swap(
-            routeParams,
-            swapParams,
-        );
-    stop_cheat_caller_address(autoSwappr_dispatcher.contract_address);
-    stop_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS());
-
-    // asserts
-    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    start_cheat_caller_address(USDC_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    assert_eq!(STRK_TOKEN().balance_of(ADDRESS_WITH_STRK_1()), strk_amount_before_swap - AMOUNT_TO_SWAP_STRK, "Balance of from token should decrease");
-    assert_ge!(USDC_TOKEN().balance_of(ADDRESS_WITH_STRK_1()), usdc_amount_before_swap + MIN_RECEIVED_STRK_TO_STABLE, "Balance of to token should increase");
+            let swapParamsItem = SwapParams {
+                token_in: STRK_TOKEN_ADDRESS(),
+                token_out: USDT_TOKEN_ADDRESS(),
+                pool_address: JEDISWAP_POOL_ADDRESS(),
+                rate: 1000000,
+                protocol_id: 2,
+                extra_data: array![],
+            };
+            swapParams = array![swapParamsItem];
+        },
+        SwapType::strk_usdc => {
+            routeParams = RouteParams {
+                token_in: STRK_TOKEN_ADDRESS(),
+                token_out: USDC_TOKEN_ADDRESS(),
+                amount_in: AMOUNT_TO_SWAP_STRK,
+                min_received: MIN_RECEIVED_STRK_TO_STABLE,
+                destination: ADDRESS_WITH_FUNDS()
+            };
+        
+            let swapParamsItem = SwapParams {
+                token_in: STRK_TOKEN_ADDRESS(),
+                token_out: USDC_TOKEN_ADDRESS(),
+                pool_address: JEDISWAP_POOL_ADDRESS(), 
+                rate: 1000000,
+                protocol_id: 2,
+                extra_data: array![],
+            };
+            swapParams = array![swapParamsItem];
+        },
+        SwapType::eth_usdt => {
+            routeParams = RouteParams {
+                token_in: ETH_TOKEN_ADDRESS(),
+                token_out: USDT_TOKEN_ADDRESS(),
+                amount_in: AMOUNT_TO_SWAP_ETH,
+                min_received: MIN_RECEIVED_ETH_TO_STABLE,
+                destination: ADDRESS_WITH_FUNDS()
+            };
+        
+            let swapParamsItem = SwapParams {
+                token_in: ETH_TOKEN_ADDRESS(),
+                token_out: USDT_TOKEN_ADDRESS(),
+                pool_address: JEDISWAP_POOL_ADDRESS(), 
+                rate: 1000000,
+                protocol_id: 2,
+                extra_data: array![],
+            };
+            swapParams = array![swapParamsItem];
+        },
+        SwapType::eth_usdc => {
+            routeParams = RouteParams {
+                token_in: ETH_TOKEN_ADDRESS(),
+                token_out: USDC_TOKEN_ADDRESS(),
+                amount_in: AMOUNT_TO_SWAP_ETH,
+                min_received: MIN_RECEIVED_ETH_TO_STABLE,
+                destination: ADDRESS_WITH_FUNDS()
+            };
+        
+            let swapParamsItem = SwapParams {
+                token_in: ETH_TOKEN_ADDRESS(),
+                token_out: USDC_TOKEN_ADDRESS(),
+                pool_address: JEDISWAP_POOL_ADDRESS(), 
+                rate: 1000000,
+                protocol_id: 2,
+                extra_data: array![],
+            };
+            swapParams = array![swapParamsItem];
+        },
+    }
+    (routeParams, swapParams)
 }
 
-#[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 990337)]
-fn test_fibrous_swap_eth_to_usdt() {
-    // Deploying auto swapper contract 
-    let autoSwappr_dispatcher = __setup__();
-    
-    // variables for test
-    start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    start_cheat_caller_address(USDT_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    let eth_amount_before_swap = ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1());
-    let usdt_amount_before_swap = USDT_TOKEN().balance_of(ADDRESS_WITH_ETH_1());
-    stop_cheat_caller_address(ETH_TOKEN().contract_address);
-    stop_cheat_caller_address(USDT_TOKEN().contract_address);
-    
-    // approving auto swapper to use the amount to swap. (such contract will use transfer_from before call fibrous swaper) 
-    start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    ETH_TOKEN().approve(autoSwappr_dispatcher.contract_address, AMOUNT_TO_SWAP_ETH);
-    stop_cheat_caller_address(ETH_TOKEN().contract_address);
-    
-    // Approve Fibrous exchange contract to use to amount we want to swap
-    start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    ETH_TOKEN()
-    .approve(
-        FIBROUS_EXCHANGE_ADDRESS(), // fibrous
-        AMOUNT_TO_SWAP_ETH
-    );
-    stop_cheat_caller_address(ETH_TOKEN().contract_address);
-
-    // Preparing params to call auto swapper's fibrous_swap function
-    let routeParams = RouteParams {
-        token_in: ETH_TOKEN_ADDRESS(),
-        token_out: USDT_TOKEN_ADDRESS(),
-        amount_in: AMOUNT_TO_SWAP_ETH,
-        min_received: MIN_RECEIVED_ETH_TO_STABLE,
-        destination: ADDRESS_WITH_ETH_1()
-    };
-
-    let swapParamsItem = SwapParams {
-        token_in: ETH_TOKEN_ADDRESS(),
-        token_out: USDT_TOKEN_ADDRESS(),
-        pool_address: JEDISWAP_POOL_ADDRESS(), 
-        rate: 1000000,
-        protocol_id: 2,
-        extra_data: array![],
-    };
-    let swapParams = array![swapParamsItem];
-
-
-    // Calling function
-    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, ADDRESS_WITH_ETH_1());
-    start_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS(), ADDRESS_WITH_ETH_1());
-    autoSwappr_dispatcher
-        .fibrous_swap(
-            routeParams,
-            swapParams,
-        );
-    stop_cheat_caller_address(autoSwappr_dispatcher.contract_address);
-    stop_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS());
-
-    // asserts
-    start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    start_cheat_caller_address(USDT_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    assert_eq!(ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1()), eth_amount_before_swap - AMOUNT_TO_SWAP_ETH, "Balance of from token should decrease");
-    assert_ge!(USDT_TOKEN().balance_of(ADDRESS_WITH_ETH_1()), usdt_amount_before_swap + MIN_RECEIVED_ETH_TO_STABLE, "Balance of to token should increase");
+#[derive(Drop, Serde, Clone, Debug)]
+struct WalletAmounts {
+    strk: u256,
+    eth: u256,
+    usdt: u256,
+    usdc: u256,
 }
 
-#[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 990337)]
-fn test_fibrous_swap_eth_to_usdc() {
-    // Deploying auto swapper contract 
-    let autoSwappr_dispatcher = __setup__();
-
-    // variables for test
-    start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    start_cheat_caller_address(USDC_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    let eth_amount_before_swap = ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1());
-    let usdc_amount_before_swap = USDC_TOKEN().balance_of(ADDRESS_WITH_ETH_1());
-    stop_cheat_caller_address(ETH_TOKEN().contract_address);
-    stop_cheat_caller_address(USDC_TOKEN().contract_address);
-    
-    // approving auto swapper to use the amount to swap. (such contract will use transfer_from before call fibrous swaper) 
-    start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    ETH_TOKEN().approve(autoSwappr_dispatcher.contract_address, AMOUNT_TO_SWAP_ETH);
-    stop_cheat_caller_address(ETH_TOKEN().contract_address);
-    
-    // Approve Fibrous exchange contract to use to amount we want to swap
-    start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    ETH_TOKEN()
-    .approve(
-        FIBROUS_EXCHANGE_ADDRESS(), // fibrous
-        AMOUNT_TO_SWAP_ETH
-    );
-    stop_cheat_caller_address(ETH_TOKEN().contract_address);
-
-    // Preparing params to call auto swapper's fibrous_swap function
-    let routeParams = RouteParams {
-        token_in: ETH_TOKEN_ADDRESS(),
-        token_out: USDC_TOKEN_ADDRESS(),
-        amount_in: AMOUNT_TO_SWAP_ETH,
-        min_received: MIN_RECEIVED_ETH_TO_STABLE,
-        destination: ADDRESS_WITH_ETH_1()
-    };
-
-    let swapParamsItem = SwapParams {
-        token_in: ETH_TOKEN_ADDRESS(),
-        token_out: USDC_TOKEN_ADDRESS(),
-        pool_address: JEDISWAP_POOL_ADDRESS(), 
-        rate: 1000000,
-        protocol_id: 2,
-        extra_data: array![],
-    };
-    let swapParams = array![swapParamsItem];
-
-
-    // Calling function
-    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, ADDRESS_WITH_ETH_1());
-    start_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS(), ADDRESS_WITH_ETH_1());
-    autoSwappr_dispatcher
-        .fibrous_swap(
-            routeParams,
-            swapParams,
-        );
-    stop_cheat_caller_address(autoSwappr_dispatcher.contract_address);
-    stop_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS());
-
-    // asserts
-    start_cheat_caller_address(ETH_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    start_cheat_caller_address(USDC_TOKEN().contract_address, ADDRESS_WITH_ETH_1());
-    assert_eq!(ETH_TOKEN().balance_of(ADDRESS_WITH_ETH_1()), eth_amount_before_swap - AMOUNT_TO_SWAP_ETH, "Balance of from token should decrease");
-    assert_ge!(USDC_TOKEN().balance_of(ADDRESS_WITH_ETH_1()), usdc_amount_before_swap + MIN_RECEIVED_ETH_TO_STABLE, "Balance of to token should increase");
-}
-
-#[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 987853)]
-#[should_panic(expected: 'Insufficient Allowance')]
-fn test_fibrous_swap_should_fail_for_insufficient_allowance_to_contract() {
-    // Deploying auto swapper contract 
-    let autoSwappr_dispatcher = __setup__();
-    
-    // approving auto swapper to use the amount to swap. (such contract will use transfer_from before call fibrous swaper) 
-    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    STRK_TOKEN().approve(autoSwappr_dispatcher.contract_address, AMOUNT_TO_SWAP_STRK - 1000); // subtracting to provocate allowance error
-    stop_cheat_caller_address(STRK_TOKEN().contract_address);
-    
-    // Approve Fibrous exchange contract to use to amount we want to swap
-    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    STRK_TOKEN()
-    .approve(
-        FIBROUS_EXCHANGE_ADDRESS(), // fibrous
-        AMOUNT_TO_SWAP_STRK
-    );
-    stop_cheat_caller_address(STRK_TOKEN().contract_address);
-
-    // Preparing params to call auto swapper's fibrous_swap function
-    let routeParams = RouteParams {
-        token_in: STRK_TOKEN_ADDRESS(),
-        token_out: USDT_TOKEN_ADDRESS(),
-        amount_in: AMOUNT_TO_SWAP_STRK,
-        min_received: MIN_RECEIVED_STRK_TO_STABLE,
-        destination: ADDRESS_WITH_STRK_1()
-    };
-
-    let swapParamsItem = SwapParams {
-        token_in: STRK_TOKEN_ADDRESS(),
-        token_out: USDT_TOKEN_ADDRESS(),
-        pool_address: JEDISWAP_POOL_ADDRESS(), 
-        rate: 1000000,
-        protocol_id: 2,
-        extra_data: array![],
-    };
-    let swapParams = array![swapParamsItem];
-
-
-    // Calling function
-    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, ADDRESS_WITH_STRK_1());
-    start_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS(), ADDRESS_WITH_STRK_1());
-    autoSwappr_dispatcher
-        .fibrous_swap(
-            routeParams,
-            swapParams,
-        );
-}
-
-#[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 987853)]
-#[should_panic(expected: 'Token not supported')]
-fn test_fibrous_swap_should_fail_for_token_not_supported() {
-    // Deploying auto swapper contract 
-    let autoSwappr_dispatcher = __setup__();
-
-    let unsupported_token = contract_address_const::<0x123>();
-    
-    // approving auto swapper to use the amount to swap. (such contract will use transfer_from before call fibrous swaper) 
-    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    STRK_TOKEN().approve(autoSwappr_dispatcher.contract_address, AMOUNT_TO_SWAP_STRK - 1000); // subtracting to provocate allowance error
-    stop_cheat_caller_address(STRK_TOKEN().contract_address);
-    
-    // Approve Fibrous exchange contract to use to amount we want to swap
-    start_cheat_caller_address(STRK_TOKEN().contract_address, ADDRESS_WITH_STRK_1());
-    STRK_TOKEN()
-    .approve(
-        FIBROUS_EXCHANGE_ADDRESS(), // fibrous
-        AMOUNT_TO_SWAP_STRK
-    );
-    stop_cheat_caller_address(STRK_TOKEN().contract_address);
-
-    // Preparing params to call auto swapper's fibrous_swap function
-    let routeParams = RouteParams {
-        token_in: unsupported_token,
-        token_out: USDT_TOKEN_ADDRESS(),
-        amount_in: AMOUNT_TO_SWAP_STRK,
-        min_received: MIN_RECEIVED_STRK_TO_STABLE,
-        destination: ADDRESS_WITH_STRK_1()
-    };
-
-    let swapParamsItem = SwapParams {
-        token_in: unsupported_token,
-        token_out: USDT_TOKEN_ADDRESS(),
-        pool_address: JEDISWAP_POOL_ADDRESS(), 
-        rate: 1000000,
-        protocol_id: 2,
-        extra_data: array![],
-    };
-    let swapParams = array![swapParamsItem];
-
-
-    // Calling function
-    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, ADDRESS_WITH_STRK_1());
-    start_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS(), ADDRESS_WITH_STRK_1());
-    autoSwappr_dispatcher
-        .fibrous_swap(
-            routeParams,
-            swapParams,
-        );
+#[derive(Drop, Serde, Clone, Debug)]
+enum SwapType {
+    strk_usdt,
+    strk_usdc,
+    eth_usdt,
+    eth_usdc
 }
