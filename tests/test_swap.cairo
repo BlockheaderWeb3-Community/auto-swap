@@ -70,7 +70,7 @@ fn USDC_TOKEN() -> IERC20Dispatcher {
 }
 
 const AMOUNT_TO_SWAP_STRK: u256 = 1000000000000000000; // 1 STRK
-const AMOUNT_TO_SWAP_ETH: u256 = 10000000000000000; // 0.01 ETH 
+const AMOUNT_TO_SWAP_ETH: u256 = 200000000000000; // 0.0002 ETH 
 
 
 // UTILS
@@ -204,7 +204,43 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                 ]
             };
         },
-        SwapType::eth_usdt => {},
+        SwapType::eth_usdt => {
+            params = AVNUParams {
+                token_from_address: ETH_TOKEN_ADDRESS(),
+                token_from_amount: AMOUNT_TO_SWAP_ETH,
+                token_to_address: USDT_TOKEN_ADDRESS(), 
+                token_to_amount: 795791,
+                token_to_min_amount: 795791 - 1000, // subtract a bit to give a margin
+                beneficiary: ADDRESS_WITH_FUNDS(),
+                integrator_fee_amount_bps: 0,
+                integrator_fee_recipient: contract_address_const::<0>(),
+                routes: array![
+                    Route {
+                        token_from: contract_address_const::<0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7>(), // ETH
+                        token_to: contract_address_const::<0x124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49>(), // Realms: LORDS
+                        exchange_address: contract_address_const::<158098919692956613592021320609952044916245725306097615271255138786123>(), // EKUBO core
+                        percent: 1000000000000,
+                        additional_swap_params: array![
+                            0x124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49,
+                            0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7,
+                            3402823669209384634633746074317682114,
+                            'MZ',
+                            0,
+                            3519403778994931520712610040380
+                        ],
+                    },
+                    Route {
+                        token_from: contract_address_const::<0x124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49>(), // Realms: LORDS
+                        token_to: contract_address_const::<0x68f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8>(), // USDT
+                        exchange_address: contract_address_const::<0x28c858a586fa12123a1ccb337a0a3b369281f91ea00544d0c086524b759f627>(), // SithSwap: AMM Router
+                        percent: 1000000000000,
+                        additional_swap_params: array![
+                            0
+                        ],
+                    }
+                ]
+            };
+        },
         SwapType::eth_usdc => {},
     };
 
@@ -316,6 +352,7 @@ fn test_avnu_swap_strk_to_usdt() {
     );
 }
 
+// based on tx https://starkscan.co/tx/0x507b8d0d38e604ecdb87f06254e8d07a2569363520bf15d3d03e5743c299cd3
 #[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996957)]
 fn test_avnu_swap_strk_to_usdc() {
@@ -356,6 +393,51 @@ fn test_avnu_swap_strk_to_usdc() {
     assert_ge!(
         new_amounts.usdc,
         previous_amounts.usdc + (params.token_to_min_amount - 1000),
+        "Balance of to token should increase"
+    );
+}
+
+// based on tx https://starkscan.co/tx/0x15df9c1387c59bb7ba0f82703d448e522a1a392ee0d968227b6882f16e80e1f
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 997043)]
+fn test_avnu_swap_eth_to_usdt() {
+    let autoSwappr_dispatcher = __setup__();
+
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
+    approve_amount(
+        ETH_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_ETH
+    );
+
+    let params = get_swap_parameters(SwapType::eth_usdt);
+    
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params.token_from_address, 
+        params.token_from_amount,
+        params.token_to_address,
+        params.token_to_amount,
+        params.token_to_min_amount,
+        params.beneficiary,
+        params.integrator_fee_amount_bps,
+        params.integrator_fee_recipient,
+        params.routes
+    );
+    let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
+    // asserts
+    assert_eq!(
+        new_amounts.eth,
+        previous_amounts.eth - AMOUNT_TO_SWAP_ETH,
+        "Balance of from token should decrease"
+    );
+    
+    assert_ge!(
+        new_amounts.usdt,
+        previous_amounts.usdt + (params.token_to_min_amount - 1000),
         "Balance of to token should increase"
     );
 }
