@@ -156,6 +156,7 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
     };
 
     match swap_type {
+        // test based on this tx -> https://starkscan.co/tx/0x014ed3ebca0d2f1bc33b025da8fb4547f1d45e1b7d1681262e6756bbd698b03a
         SwapType::strk_usdt => {
             params = AVNUParams {
                 token_from_address: STRK_TOKEN_ADDRESS(),
@@ -181,6 +182,7 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                 ]
             };
         },
+        // based on tx https://starkscan.co/tx/0x507b8d0d38e604ecdb87f06254e8d07a2569363520bf15d3d03e5743c299cd3
         SwapType::strk_usdc => {
             params = AVNUParams {
                 token_from_address: STRK_TOKEN_ADDRESS(),
@@ -204,6 +206,7 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                 ]
             };
         },
+    // based on tx https://starkscan.co/tx/0x15df9c1387c59bb7ba0f82703d448e522a1a392ee0d968227b6882f16e80e1f
         SwapType::eth_usdt => {
             params = AVNUParams {
                 token_from_address: ETH_TOKEN_ADDRESS(),
@@ -241,6 +244,7 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                 ]
             };
         },
+        // based on tx https://starkscan.co/tx/0x5be8a02e5c4c41fea081f7f4977439f7029168f6ff1d165949dcbf8be55c200
         SwapType::eth_usdc => {
             params = AVNUParams {
                 token_from_address: ETH_TOKEN_ADDRESS(),
@@ -330,7 +334,6 @@ fn __setup__() -> IAutoSwapprDispatcher {
     autoSwappr_dispatcher
 }
 
-// test based on this tx -> https://starkscan.co/tx/0x014ed3ebca0d2f1bc33b025da8fb4547f1d45e1b7d1681262e6756bbd698b03a
 #[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
 fn test_avnu_swap_strk_to_usdt() {
@@ -375,7 +378,6 @@ fn test_avnu_swap_strk_to_usdt() {
     );
 }
 
-// based on tx https://starkscan.co/tx/0x507b8d0d38e604ecdb87f06254e8d07a2569363520bf15d3d03e5743c299cd3
 #[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996957)]
 fn test_avnu_swap_strk_to_usdc() {
@@ -420,7 +422,6 @@ fn test_avnu_swap_strk_to_usdc() {
     );
 }
 
-// based on tx https://starkscan.co/tx/0x15df9c1387c59bb7ba0f82703d448e522a1a392ee0d968227b6882f16e80e1f
 #[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 997043)]
 fn test_avnu_swap_eth_to_usdt() {
@@ -465,7 +466,6 @@ fn test_avnu_swap_eth_to_usdt() {
     );
 }
 
-// based on tx https://starkscan.co/tx/0x5be8a02e5c4c41fea081f7f4977439f7029168f6ff1d165949dcbf8be55c200
 #[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 997080)]
 fn test_avnu_swap_eth_to_usdc() {
@@ -507,6 +507,87 @@ fn test_avnu_swap_eth_to_usdc() {
         new_amounts.usdc,
         previous_amounts.usdc + (params.token_to_min_amount - 1000),
         "Balance of to token should increase"
+    );
+}
+
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 997080)]
+fn test_avnu_swap_strk_to_usdt_and_eth_to_usdc() {
+    let autoSwappr_dispatcher = __setup__();
+
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
+    approve_amount(
+        STRK_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_STRK
+    );
+
+    approve_amount(
+        ETH_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_ETH
+    );
+
+    let params_strk_to_usdt = get_swap_parameters(SwapType::strk_usdt);
+    let params_eth_to_usdc = get_swap_parameters(SwapType::eth_usdc);
+
+    // In the block used for the test, the value of the STRK token is less than the on returned from get_swap_parameters
+    // so we replace it with the next value (this is an specific case for this test, so it's better to handle it locally)
+    let usdt_min_amount = 440000;
+    
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params_strk_to_usdt.token_from_address,
+        params_strk_to_usdt.token_from_amount,
+        params_strk_to_usdt.token_to_address,
+        params_strk_to_usdt.token_to_amount,
+        // params_strk_to_usdt.token_to_min_amount,
+        usdt_min_amount, 
+        params_strk_to_usdt.beneficiary,
+        params_strk_to_usdt.integrator_fee_amount_bps,
+        params_strk_to_usdt.integrator_fee_recipient,
+        params_strk_to_usdt.routes
+    );
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params_eth_to_usdc.token_from_address,
+        params_eth_to_usdc.token_from_amount,
+        params_eth_to_usdc.token_to_address,
+        params_eth_to_usdc.token_to_amount,
+        params_eth_to_usdc.token_to_min_amount,
+        params_eth_to_usdc.beneficiary,
+        params_eth_to_usdc.integrator_fee_amount_bps,
+        params_eth_to_usdc.integrator_fee_recipient,
+        params_eth_to_usdc.routes
+    );
+
+    let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
+    // asserts
+    assert_eq!(
+        new_amounts.strk,
+        previous_amounts.strk - AMOUNT_TO_SWAP_STRK,
+        "STRK Balance of from token should decrease"
+    );
+    
+    assert_ge!(
+        new_amounts.usdt,
+        previous_amounts.usdt + (usdt_min_amount),
+        "USDT Balance of to token should increase"
+    );
+    assert_eq!(
+        new_amounts.eth,
+        previous_amounts.eth - AMOUNT_TO_SWAP_ETH,
+        "ETH Balance of from token should decrease"
+    );
+    
+    assert_ge!(
+        new_amounts.usdc,
+        previous_amounts.usdc + (params_eth_to_usdc.token_to_min_amount - 1000),
+        "USDC Balance of to token should increase"
     );
 }
 
