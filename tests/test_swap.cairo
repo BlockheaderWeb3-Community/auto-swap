@@ -591,3 +591,49 @@ fn test_avnu_swap_strk_to_usdt_and_eth_to_usdc() {
     );
 }
 
+
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+#[should_panic(expected: 'Insufficient Allowance')]
+fn test_avnu_swap_should_fail_for_insufficient_allowance_to_contract() {
+    let autoSwappr_dispatcher = __setup__();
+
+    let params = get_swap_parameters(SwapType::strk_usdt);
+    
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params.token_from_address,
+        params.token_from_amount,
+        params.token_to_address,
+        params.token_to_amount,
+        params.token_to_min_amount,
+        params.beneficiary,
+        params.integrator_fee_amount_bps,
+        params.integrator_fee_recipient,
+        params.routes
+    );
+}
+
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+#[should_panic(expected: 'Token not supported')]
+fn test_fibrous_swap_should_fail_for_token_not_supported () {
+    let autoSwappr_dispatcher = __setup__();
+
+    let params = get_swap_parameters(SwapType::strk_usdt);
+    
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        // params.token_from_address,
+        contract_address_const::<0x123>(), // not supported token
+        params.token_from_amount,
+        params.token_to_address,
+        params.token_to_amount,
+        params.token_to_min_amount,
+        params.beneficiary,
+        params.integrator_fee_amount_bps,
+        params.integrator_fee_recipient,
+        params.routes
+    );
+}
+

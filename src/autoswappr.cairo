@@ -147,10 +147,16 @@ pub mod AutoSwappr {
             assert(
                 self.check_if_token_from_is_supported(token_from_address), Errors::UNSUPPORTED_TOKEN
             );
+
             let this_contract = get_contract_address();
             let token_from_contract = IERC20Dispatcher { contract_address: token_from_address };
             let token_to_contract = IERC20Dispatcher { contract_address: token_to_address };
             let contract_token_to_balance = token_to_contract.balance_of(this_contract);
+
+            assert(
+                token_from_contract.allowance(get_caller_address(), this_contract) >= token_from_amount,
+                Errors::INSUFFICIENT_ALLOWANCE,
+            );
             
             token_from_contract.transfer_from(get_caller_address(), this_contract, token_from_amount);
             token_from_contract.approve(self.avnu_exchange_address.read(), token_from_amount);
@@ -244,24 +250,6 @@ pub mod AutoSwappr {
 
     #[generate_trait]
     impl InternalImpl of InternalTrait {
-        fn checked_transfer_from(
-            self: @ContractState,
-            token_amount: u256,
-            token_contract: IERC20Dispatcher,
-            this_contract: ContractAddress,
-            token_sender: ContractAddress
-        ) {
-            assert(
-                token_amount <= token_contract.balance_of(token_sender),
-                Errors::INSUFFICIENT_BALANCE
-            );
-            assert(
-                token_amount <= token_contract.allowance(token_sender, this_contract),
-                Errors::INSUFFICIENT_ALLOWANCE
-            );
-            token_contract.transfer_from(token_sender, this_contract, token_amount);
-        }
-
         fn check_if_token_from_is_supported(
             self: @ContractState, token_from: ContractAddress
         ) -> bool {
