@@ -27,11 +27,12 @@ pub fn USER() -> ContractAddress {
 pub fn FEE_COLLECTOR_ADDR() -> ContractAddress {
     contract_address_const::<'FEE_COLLECTOR_ADDR'>()
 }
-pub fn FIBROUS_ADDR() -> ContractAddress {
-    contract_address_const::<'FIBROUS_ADDR'>()
-}
+
 pub fn AVNU_ADDR() -> ContractAddress {
     contract_address_const::<'AVNU_ADDR'>()
+}
+pub fn FIBROUS_ADDR() -> ContractAddress {
+    contract_address_const::<'FIBROUS_ADDR'>()
 }
 pub fn OWNER() -> ContractAddress {
     contract_address_const::<'OWNER'>()
@@ -90,8 +91,8 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     let autoswappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
     let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
     FEE_COLLECTOR_ADDR().serialize(ref autoSwappr_constructor_calldata);
-    FIBROUS_ADDR().serialize(ref autoSwappr_constructor_calldata);
     AVNU_ADDR().serialize(ref autoSwappr_constructor_calldata);
+    FIBROUS_ADDR().serialize(ref autoSwappr_constructor_calldata);
     strk_contract_address.serialize(ref autoSwappr_constructor_calldata);
     eth_contract_address.serialize(ref autoSwappr_constructor_calldata);
     OWNER().serialize(ref autoSwappr_constructor_calldata);
