@@ -150,32 +150,28 @@ pub mod AutoSwappr {
             let this_contract = get_contract_address();
             let token_from_contract = IERC20Dispatcher { contract_address: token_from_address };
             let token_to_contract = IERC20Dispatcher { contract_address: token_to_address };
-            self
-                .checked_transfer_from(
-                    token_from_amount, token_from_contract, this_contract, beneficiary
-                );
             let contract_token_to_balance = token_to_contract.balance_of(this_contract);
-            {
-                let beneficiary = this_contract; // the contract is the swap recipient
+            
+            token_from_contract.transfer_from(get_caller_address(), this_contract, token_from_amount);
+            token_from_contract.approve(self.avnu_exchange_address.read(), token_from_amount);
 
                 let swap = self
                     ._swap(
-                        :token_from_address,
-                        :token_from_amount,
-                        :token_to_address,
-                        :token_to_amount,
-                        :token_to_min_amount,
-                        :beneficiary,
-                        :integrator_fee_amount_bps,
-                        :integrator_fee_recipient,
-                        :routes
+                        token_from_address,
+                        token_from_amount,
+                        token_to_address,
+                        token_to_amount,
+                        token_to_min_amount,
+                        // beneficiary,
+                        this_contract, // only caller address can be the beneficiary, in this case, the contract. 
+                        integrator_fee_amount_bps,
+                        integrator_fee_recipient,
+                        routes
                     );
                 assert(swap, Errors::SWAP_FAILED);
-            }
 
             let new_contract_token_to_balance = token_to_contract.balance_of(this_contract);
             let mut token_to_received = new_contract_token_to_balance - contract_token_to_balance;
-            assert(token_to_received >= token_to_min_amount, Errors::SWAP_FAILED);
             token_to_contract.transfer(beneficiary, token_to_received);
 
             self
