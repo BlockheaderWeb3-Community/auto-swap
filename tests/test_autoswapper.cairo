@@ -261,7 +261,7 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
 }
 
 #[test]
-#[should_panic(expected: 'Caller Not Owner')]
+#[should_panic(expected: 'Caller is not the owner')]
 fn test_set_operator_reverts_if_caller_is_not_owner() {
     let (autoSwappr_contract_address, _, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
@@ -316,7 +316,7 @@ fn test_set_operator_succeeds_when_called_by_owner() {
 }
 
 #[test]
-#[should_panic(expected: 'Caller Not Owner')]
+#[should_panic(expected: 'Caller is not the owner')]
 fn test_remove_operator_reverts_if_caller_is_not_owner() {
     let (autoSwappr_contract_address, _, _) = __setup__();
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {

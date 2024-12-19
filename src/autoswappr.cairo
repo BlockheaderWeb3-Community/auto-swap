@@ -235,35 +235,39 @@ pub mod AutoSwappr {
         }
 
         fn set_operator(ref self: ContractState, address: ContractAddress) {
-            assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
-            assert(self.autoswappr_addresses.read(address) == false, Errors::EXISTING_ADDRESS);
+            // Check if caller is owner
+            self.ownable.assert_only_owner();
+
+            // Check if operator doesn't already exist
+            assert(!self.autoswappr_addresses.read(address), Errors::EXISTING_ADDRESS);
+
+            // Add operator
             self.autoswappr_addresses.write(address, true);
+
+            // Emit event
             self
                 .emit(
                     OperatorAdded { operator: address, time_added: get_block_timestamp().into() }
                 );
-            assert(
-                self.autoswappr_addresses.entry(address).read() == false, Errors::EXISTING_ADDRESS
-            );
-            self.autoswappr_addresses.entry(address).write(true);
         }
 
         fn remove_operator(ref self: ContractState, address: ContractAddress) {
-            assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
-            assert(self.autoswappr_addresses.read(address) == true, Errors::NON_EXISTING_ADDRESS);
+            // Check if caller is owner
+            self.ownable.assert_only_owner();
+
+            // Check if operator exists
+            assert(self.autoswappr_addresses.read(address), Errors::NON_EXISTING_ADDRESS);
+
+            // Remove operator
             self.autoswappr_addresses.write(address, false);
+
+            // Emit event
             self
                 .emit(
                     OperatorRemoved {
                         operator: address, time_removed: get_block_timestamp().into()
                     }
                 );
-
-            assert(
-                self.autoswappr_addresses.entry(address).read() == true,
-                Errors::NON_EXISTING_ADDRESS
-            );
-            self.autoswappr_addresses.entry(address).write(false);
         }
 
 
