@@ -18,6 +18,9 @@ use auto_swappr::interfaces::iautoswappr::{
 use auto_swappr::base::types::{Route};
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
+use auto_swappr::autoswappr::AutoSwappr::{Event, OperatorAdded, OperatorRemoved};
+
+// Contract Address Constants
 pub fn USER() -> ContractAddress {
     contract_address_const::<'USER'>()
 }
@@ -36,6 +39,18 @@ pub fn OWNER() -> ContractAddress {
 }
 pub fn OPERATOR() -> ContractAddress {
     contract_address_const::<'OPERATOR'>()
+}
+pub fn NEW_OPERATOR() -> ContractAddress {
+    contract_address_const::<'NEW_OPERATOR'>()
+}
+pub fn RANDOM_TOKEN() -> ContractAddress {
+    contract_address_const::<'RANDOM_TOKEN'>()
+}
+pub fn ZERO_ADDRESS() -> ContractAddress {
+    contract_address_const::<0>()
+}
+pub fn NON_EXISTENT_OPERATOR() -> ContractAddress {
+    contract_address_const::<'NON_EXISTENT_OPERATOR'>()
 }
 
 // *************************************************************************
@@ -114,6 +129,7 @@ fn test_constructor_initializes_correctly() {
 #[should_panic(expected: 'Amount is zero')]
 fn test_swap_reverts_if_token_from_amount_is_zero() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
@@ -146,6 +162,7 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
 #[should_panic(expected: 'Token not supported')]
 fn test_swap_reverts_if_token_is_not_supported() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
@@ -178,6 +195,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
 #[should_panic(expected: 'Insufficient Balance')]
 fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
@@ -211,6 +229,7 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
 #[should_panic(expected: 'Insufficient Allowance')]
 fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
@@ -239,4 +258,163 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
             :routes
         );
     stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'Caller Not Owner')]
+fn test_set_operator_reverts_if_caller_is_not_owner() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    start_cheat_caller_address_global(USER());
+    autoSwappr_dispatcher.set_operator(NEW_OPERATOR());
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'address already exist')]
+fn test_set_operator_reverts_if_operator_already_exists() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    start_cheat_caller_address_global(OWNER());
+    autoSwappr_dispatcher.set_operator(OPERATOR());
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'Token not supported')]
+fn test_set_operator_succeeds_when_called_by_owner() {
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    start_cheat_caller_address_global(OWNER());
+    autoSwappr_dispatcher.set_operator(NEW_OPERATOR());
+    stop_cheat_caller_address_global();
+
+    start_cheat_caller_address_global(NEW_OPERATOR());
+    let token_from_amount: u256 = 1000;
+    autoSwappr_dispatcher
+        .swap(
+            RANDOM_TOKEN(),
+            token_from_amount,
+            contract_address_const::<'USDC_TOKEN_ADDRESS'>(),
+            1000,
+            1000,
+            USER(),
+            0,
+            ZERO_ADDRESS(),
+            ArrayTrait::new(),
+        );
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'Caller Not Owner')]
+fn test_remove_operator_reverts_if_caller_is_not_owner() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    start_cheat_caller_address_global(USER());
+    autoSwappr_dispatcher.remove_operator(OPERATOR());
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'address does not exist')]
+fn test_remove_operator_reverts_if_operator_does_not_exist() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    start_cheat_caller_address_global(OWNER());
+    autoSwappr_dispatcher.remove_operator(NON_EXISTENT_OPERATOR());
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'sender can not call')]
+fn test_remove_operator_succeeds_when_called_by_owner() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    // Remove the operator
+    start_cheat_caller_address_global(OWNER());
+    autoSwappr_dispatcher.remove_operator(OPERATOR());
+    stop_cheat_caller_address_global();
+
+    // Verify the removed operator can no longer call restricted functions
+    start_cheat_caller_address_global(OPERATOR());
+    // This should now fail with 'sender can not call'
+    let mut routes: Array<Route> = ArrayTrait::new();
+    autoSwappr_dispatcher
+        .swap(ZERO_ADDRESS(), 1, ZERO_ADDRESS(), 1, 1, ZERO_ADDRESS(), 0, ZERO_ADDRESS(), routes,);
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+fn test_set_operator_emits_event() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    let mut spy = spy_events();
+    let timestamp: u64 = 1000;
+
+    start_cheat_block_timestamp(autoSwappr_contract_address, timestamp);
+    start_cheat_caller_address_global(OWNER());
+    autoSwappr_dispatcher.set_operator(NEW_OPERATOR());
+    stop_cheat_caller_address_global();
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_contract_address,
+                    Event::OperatorAdded(
+                        OperatorAdded { operator: NEW_OPERATOR(), time_added: timestamp }
+                    )
+                )
+            ]
+        );
+}
+
+#[test]
+fn test_remove_operator_emits_event() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    let mut spy = spy_events();
+    let timestamp: u64 = 1000;
+
+    start_cheat_block_timestamp(autoSwappr_contract_address, timestamp);
+    start_cheat_caller_address_global(OWNER());
+    autoSwappr_dispatcher.remove_operator(OPERATOR());
+    stop_cheat_caller_address_global();
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_contract_address,
+                    Event::OperatorRemoved(
+                        OperatorRemoved { operator: OPERATOR(), time_removed: timestamp }
+                    )
+                )
+            ]
+        );
 }
