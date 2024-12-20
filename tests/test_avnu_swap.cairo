@@ -555,34 +555,31 @@ fn test_avnu_swap_eth_to_usdc() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 997080)]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 999126)]
 fn test_multi_swaps() {
     let autoSwappr_dispatcher = __setup__();
 
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
 
+    // params 
+    let params_strk_to_usdt = get_swap_parameters(SwapType::strk_usdt);
+    let params_strk_to_usdc = get_swap_parameters(SwapType::strk_usdc);
+    let params_eth_to_usdt = get_swap_parameters(SwapType::eth_usdt);
+    let params_eth_to_usdc = get_swap_parameters(SwapType::eth_usdc);
+    
+    // In the block used for the test, the value of the STRK token is less than the on returned from
+    // get_swap_parameters so we replace it with the next value (this is an specific case for this
+    // test, so it's better to handle it locally)
+    let strk_to_stable_min_amount = 420000;
+    let eth_to_stable_min_amount = 595791;
+
+    //strk to usdt
     approve_amount(
         STRK_TOKEN().contract_address,
         ADDRESS_WITH_FUNDS(),
         autoSwappr_dispatcher.contract_address,
         AMOUNT_TO_SWAP_STRK
     );
-
-    approve_amount(
-        ETH_TOKEN().contract_address,
-        ADDRESS_WITH_FUNDS(),
-        autoSwappr_dispatcher.contract_address,
-        AMOUNT_TO_SWAP_ETH
-    );
-
-    let params_strk_to_usdt = get_swap_parameters(SwapType::strk_usdt);
-    let params_eth_to_usdc = get_swap_parameters(SwapType::eth_usdc);
-
-    // In the block used for the test, the value of the STRK token is less than the on returned from
-    // get_swap_parameters so we replace it with the next value (this is an specific case for this
-    // test, so it's better to handle it locally)
-    let usdt_min_amount = 440000;
-
     call_avnu_swap(
         autoSwappr_dispatcher,
         params_strk_to_usdt.token_from_address,
@@ -590,11 +587,91 @@ fn test_multi_swaps() {
         params_strk_to_usdt.token_to_address,
         params_strk_to_usdt.token_to_amount,
         // params_strk_to_usdt.token_to_min_amount,
-        usdt_min_amount,
+        strk_to_stable_min_amount,
         params_strk_to_usdt.beneficiary,
         params_strk_to_usdt.integrator_fee_amount_bps,
         params_strk_to_usdt.integrator_fee_recipient,
         params_strk_to_usdt.routes
+    );
+    let amounts_after_strk_to_usdt = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    assert_eq!(
+        amounts_after_strk_to_usdt.strk,
+        previous_amounts.strk - AMOUNT_TO_SWAP_STRK,
+        "(amounts_after_strk_to_usdt) STRK Balance of from token should decrease"
+    );
+    assert_ge!(
+        amounts_after_strk_to_usdt.usdt,
+        previous_amounts.usdt + strk_to_stable_min_amount,
+        "(amounts_after_strk_to_usdt) USDT Balance of to token should increase"
+    );
+    // // strk to usdc
+    approve_amount(
+        STRK_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_STRK
+    );
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params_strk_to_usdc.token_from_address,
+        params_strk_to_usdc.token_from_amount,
+        params_strk_to_usdc.token_to_address,
+        params_strk_to_usdc.token_to_amount,
+        // params_strk_to_usdc.token_to_min_amount,
+        strk_to_stable_min_amount,
+        params_strk_to_usdc.beneficiary,
+        params_strk_to_usdc.integrator_fee_amount_bps,
+        params_strk_to_usdc.integrator_fee_recipient,
+        params_strk_to_usdc.routes
+    );
+    let amounts_after_strk_to_usdc = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    assert_eq!(
+        amounts_after_strk_to_usdc.strk,
+        amounts_after_strk_to_usdt.strk - AMOUNT_TO_SWAP_STRK,
+        "(amounts_after_strk_to_usdc) STRK Balance of from token should decrease"
+    );
+    assert_ge!(
+        amounts_after_strk_to_usdc.usdc,
+        amounts_after_strk_to_usdt.usdc + strk_to_stable_min_amount,
+        "(amounts_after_strk_to_usdc) USDC Balance of to token should increase"
+    );
+    // eth to usdt
+    approve_amount(
+        ETH_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_ETH
+    );
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params_eth_to_usdt.token_from_address,
+        params_eth_to_usdt.token_from_amount,
+        params_eth_to_usdt.token_to_address,
+        params_eth_to_usdt.token_to_amount,
+        // params_eth_to_usdt.token_to_min_amount,
+        eth_to_stable_min_amount,
+        params_eth_to_usdt.beneficiary,
+        params_eth_to_usdt.integrator_fee_amount_bps,
+        params_eth_to_usdt.integrator_fee_recipient,
+        params_eth_to_usdt.routes
+    );
+    let amounts_after_eth_to_usdt = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    assert_eq!(
+        amounts_after_eth_to_usdt.eth,
+        previous_amounts.eth - AMOUNT_TO_SWAP_ETH,
+        "(amounts_after_eth_to_usdt) ETH Balance of from token should decrease"
+    );
+    assert_ge!(
+        amounts_after_eth_to_usdt.usdt,
+        amounts_after_strk_to_usdc.usdt + eth_to_stable_min_amount,
+        "(amounts_after_eth_to_usdt) USDT Balance of to token should increase"
+    );
+    // eth to usdc
+    approve_amount(
+        ETH_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_ETH
     );
     call_avnu_swap(
         autoSwappr_dispatcher,
@@ -602,37 +679,47 @@ fn test_multi_swaps() {
         params_eth_to_usdc.token_from_amount,
         params_eth_to_usdc.token_to_address,
         params_eth_to_usdc.token_to_amount,
-        params_eth_to_usdc.token_to_min_amount,
+        // params_eth_to_usdc.token_to_min_amount,
+        eth_to_stable_min_amount,
         params_eth_to_usdc.beneficiary,
         params_eth_to_usdc.integrator_fee_amount_bps,
         params_eth_to_usdc.integrator_fee_recipient,
         params_eth_to_usdc.routes
     );
-
-    let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
-
-    // asserts
+    let amounts_after_eth_to_usdc = get_wallet_amounts(ADDRESS_WITH_FUNDS());
     assert_eq!(
-        new_amounts.strk,
-        previous_amounts.strk - AMOUNT_TO_SWAP_STRK,
+        amounts_after_eth_to_usdc.eth,
+        amounts_after_eth_to_usdt.eth - AMOUNT_TO_SWAP_ETH,
+        "(amounts_after_eth_to_usdc) ETH Balance of from token should decrease"
+    );
+    assert_ge!(
+        amounts_after_eth_to_usdc.usdc,
+        amounts_after_eth_to_usdt.usdc + eth_to_stable_min_amount,
+        "(amounts_after_eth_to_usdc) USDC Balance of to token should increase"
+    );
+
+    let final_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
+    assert_eq!(
+        final_amounts.strk,
+        previous_amounts.strk - AMOUNT_TO_SWAP_STRK * 2, // times 2 because we swap to stable twice one from STRK and one from ETH
         "STRK Balance of from token should decrease"
     );
-
-    assert_ge!(
-        new_amounts.usdt,
-        previous_amounts.usdt + (usdt_min_amount),
-        "USDT Balance of to token should increase"
-    );
     assert_eq!(
-        new_amounts.eth,
-        previous_amounts.eth - AMOUNT_TO_SWAP_ETH,
+        final_amounts.eth,
+        previous_amounts.eth - AMOUNT_TO_SWAP_ETH * 2, // times 2 because we swap to stable twice one from STRK and one from ETH
         "ETH Balance of from token should decrease"
     );
 
     assert_ge!(
-        new_amounts.usdc,
-        previous_amounts.usdc
-            + (params_eth_to_usdc.token_to_min_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+        final_amounts.usdt,
+        previous_amounts.usdt + (strk_to_stable_min_amount + eth_to_stable_min_amount), // should increase the sum of strk and eth swaps to usdt
+        "USDT Balance of to token should increase"
+    );
+
+    assert_ge!(
+        final_amounts.usdc,
+        previous_amounts.usdc + (eth_to_stable_min_amount + strk_to_stable_min_amount), // should increase the sum of strk and eth swaps to usdc
         "USDC Balance of to token should increase"
     );
 }
