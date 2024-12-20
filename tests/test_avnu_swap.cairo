@@ -934,6 +934,161 @@ fn test_avnu_swap_event_emition() {
         );
 }
 
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 999126)]
+fn test_multi_swaps_event_emition() {
+    let mut spy = spy_events();
+    let autoSwappr_dispatcher = __setup__();
+
+    // params 
+    let params_strk_to_usdt = get_swap_parameters(SwapType::strk_usdt);
+    let params_strk_to_usdc = get_swap_parameters(SwapType::strk_usdc);
+    let params_eth_to_usdt = get_swap_parameters(SwapType::eth_usdt);
+    let params_eth_to_usdc = get_swap_parameters(SwapType::eth_usdc);
+    
+    let strk_to_stable_min_amount = 420000;
+    let eth_to_stable_min_amount = 595791;
+
+    //strk to usdt
+    approve_amount(
+        STRK_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_STRK
+    );
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params_strk_to_usdt.token_from_address,
+        params_strk_to_usdt.token_from_amount,
+        params_strk_to_usdt.token_to_address,
+        params_strk_to_usdt.token_to_amount,
+        // params_strk_to_usdt.token_to_min_amount,
+        strk_to_stable_min_amount,
+        params_strk_to_usdt.beneficiary,
+        params_strk_to_usdt.integrator_fee_amount_bps,
+        params_strk_to_usdt.integrator_fee_recipient,
+        params_strk_to_usdt.routes
+    );
+    
+    // // strk to usdc
+    approve_amount(
+        STRK_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_STRK
+    );
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params_strk_to_usdc.token_from_address,
+        params_strk_to_usdc.token_from_amount,
+        params_strk_to_usdc.token_to_address,
+        params_strk_to_usdc.token_to_amount,
+        // params_strk_to_usdc.token_to_min_amount,
+        strk_to_stable_min_amount,
+        params_strk_to_usdc.beneficiary,
+        params_strk_to_usdc.integrator_fee_amount_bps,
+        params_strk_to_usdc.integrator_fee_recipient,
+        params_strk_to_usdc.routes
+    );
+    let amounts_after_strk_to_usdc = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
+    // eth to usdt
+    approve_amount(
+        ETH_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_ETH
+    );
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params_eth_to_usdt.token_from_address,
+        params_eth_to_usdt.token_from_amount,
+        params_eth_to_usdt.token_to_address,
+        params_eth_to_usdt.token_to_amount,
+        // params_eth_to_usdt.token_to_min_amount,
+        eth_to_stable_min_amount,
+        params_eth_to_usdt.beneficiary,
+        params_eth_to_usdt.integrator_fee_amount_bps,
+        params_eth_to_usdt.integrator_fee_recipient,
+        params_eth_to_usdt.routes
+    );
+    
+    // eth to usdc
+    approve_amount(
+        ETH_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_ETH
+    );
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params_eth_to_usdc.token_from_address,
+        params_eth_to_usdc.token_from_amount,
+        params_eth_to_usdc.token_to_address,
+        params_eth_to_usdc.token_to_amount,
+        // params_eth_to_usdc.token_to_min_amount,
+        eth_to_stable_min_amount,
+        params_eth_to_usdc.beneficiary,
+        params_eth_to_usdc.integrator_fee_amount_bps,
+        params_eth_to_usdc.integrator_fee_recipient,
+        params_eth_to_usdc.routes
+    );
+
+    // assert events
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_dispatcher.contract_address,
+                    Event::SwapSuccessful(
+                        SwapSuccessful {
+                            token_from_address: params_strk_to_usdt.token_from_address,
+                            token_from_amount: params_strk_to_usdt.token_from_amount,
+                            token_to_address: params_strk_to_usdt.token_to_address,
+                            token_to_amount: params_strk_to_usdt.token_to_amount,
+                            beneficiary: params_strk_to_usdt.beneficiary,
+                        }
+                    )
+                ),
+                (
+                    autoSwappr_dispatcher.contract_address,
+                    Event::SwapSuccessful(
+                        SwapSuccessful {
+                            token_from_address: params_strk_to_usdc.token_from_address,
+                            token_from_amount: params_strk_to_usdc.token_from_amount,
+                            token_to_address: params_strk_to_usdc.token_to_address,
+                            token_to_amount: params_strk_to_usdc.token_to_amount,
+                            beneficiary: params_strk_to_usdc.beneficiary,
+                        }
+                    )
+                ),
+                (
+                    autoSwappr_dispatcher.contract_address,
+                    Event::SwapSuccessful(
+                        SwapSuccessful {
+                            token_from_address: params_eth_to_usdt.token_from_address,
+                            token_from_amount: params_eth_to_usdt.token_from_amount,
+                            token_to_address: params_eth_to_usdt.token_to_address,
+                            token_to_amount: params_eth_to_usdt.token_to_amount,
+                            beneficiary: params_eth_to_usdt.beneficiary,
+                        }
+                    )
+                ),
+                (
+                    autoSwappr_dispatcher.contract_address,
+                    Event::SwapSuccessful(
+                        SwapSuccessful {
+                            token_from_address: params_eth_to_usdc.token_from_address,
+                            token_from_amount: params_eth_to_usdc.token_from_amount,
+                            token_to_address: params_eth_to_usdc.token_to_address,
+                            token_to_amount: params_eth_to_usdc.token_to_amount,
+                            beneficiary: params_eth_to_usdc.beneficiary,
+                        }
+                    )
+                )
+            ]
+        );
+}
 
 // *************************************************************************
 //                        SHOULD PANIC CASES
