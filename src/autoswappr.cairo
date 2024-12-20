@@ -73,18 +73,18 @@ pub mod AutoSwappr {
     // @param token_to_address Address of the token being bought
     // @param token_to_amount Amount of tokens being bought
     // @param beneficiary Address receiving the bought tokens
-    struct SwapSuccessful {
-        token_from_address: ContractAddress,
-        token_from_amount: u256,
-        token_to_address: ContractAddress,
-        token_to_amount: u256,
-        beneficiary: ContractAddress
+    pub struct SwapSuccessful {
+        pub token_from_address: ContractAddress,
+        pub token_from_amount: u256,
+        pub token_to_address: ContractAddress,
+        pub token_to_amount: u256,
+        pub beneficiary: ContractAddress
     }
 
     #[derive(starknet::Event, Drop)]
-    struct Subscribed {
-        user: ContractAddress,
-        assets: Assets,
+    pub struct Subscribed {
+        pub user: ContractAddress,
+        pub assets: Assets,
     }
 
     #[derive(starknet::Event, Drop)]

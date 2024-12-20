@@ -7,8 +7,10 @@ use starknet::{ContractAddress, contract_address_const};
 use snforge_std::{
     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
     DeclareResultTrait, start_cheat_account_contract_address, stop_cheat_account_contract_address,
+    spy_events, EventSpyAssertionsTrait
 };
 
+use auto_swappr::autoswappr::AutoSwappr::{Event, SwapSuccessful};
 use auto_swappr::interfaces::iautoswappr::{IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait};
 use auto_swappr::base::types::Route;
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
@@ -753,6 +755,54 @@ fn test_unswapped_token_balances_should_remain_unchanged_for_eth_usdt_swap() {
     assert_eq!(
         new_amounts.strk, previous_amounts.strk, "STRK balance should remain unchanged"
     ); // unchanged STRK token balance
+}
+
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+fn test_avnu_swap_event_emition() {
+    let mut spy = spy_events();
+    let autoSwappr_dispatcher = __setup__();
+
+    approve_amount(
+        STRK_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_STRK
+    );
+
+    let params = get_swap_parameters(SwapType::strk_usdt);
+
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params.token_from_address,
+        params.token_from_amount,
+        params.token_to_address,
+        params.token_to_amount,
+        params.token_to_min_amount,
+        params.beneficiary,
+        params.integrator_fee_amount_bps,
+        params.integrator_fee_recipient,
+        params.routes
+    );
+
+    // assertions
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_dispatcher.contract_address,
+                    Event::SwapSuccessful(
+                        SwapSuccessful {
+                            token_from_address: params.token_from_address,
+                            token_from_amount: params.token_from_amount,
+                            token_to_address: params.token_to_address,
+                            token_to_amount: params.token_to_amount,
+                            beneficiary: params.beneficiary,
+                        }
+                    )
+                )
+            ]
+        );
 }
 
 
