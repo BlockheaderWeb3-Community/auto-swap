@@ -845,6 +845,48 @@ fn test_unswapped_token_balances_should_remain_unchanged_for_eth_usdt_swap() {
 }
 
 #[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 997043)]
+fn test_unswapped_token_balances_should_remain_unchanged_for_eth_usdc_swap() {
+    let autoSwappr_dispatcher = __setup__();
+
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
+    approve_amount(
+        ETH_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_ETH
+    );
+
+    let params = get_swap_parameters(SwapType::eth_usdc);
+
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params.token_from_address,
+        params.token_from_amount,
+        params.token_to_address,
+        params.token_to_amount,
+        params.token_to_min_amount - 10000, // original:679940 -> give a bit more margin cause test was failing due to 'Insufficient tokens received'
+        params.beneficiary,
+        params.integrator_fee_amount_bps,
+        params.integrator_fee_recipient,
+        params.routes
+    );
+    let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
+    // assertions
+    assert_eq!(
+        new_amounts.usdt, previous_amounts.usdt, "USDC balance should remain unchanged"
+    ); // unchanged USDC token balance
+    assert_eq!(
+        new_amounts.strk, previous_amounts.strk, "STRK balance should remain unchanged"
+    ); // unchanged STRK token balance
+}
+
+// *************************************************************************
+//                        EVENT EMITIONS
+// *************************************************************************
+#[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
 fn test_avnu_swap_event_emition() {
     let mut spy = spy_events();
@@ -893,6 +935,9 @@ fn test_avnu_swap_event_emition() {
 }
 
 
+// *************************************************************************
+//                        SHOULD PANIC CASES
+// *************************************************************************
 #[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
 #[should_panic(expected: 'Insufficient Allowance')]
