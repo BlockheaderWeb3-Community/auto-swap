@@ -1,14 +1,11 @@
 // *************************************************************************
 //                              Events TEST
 // *************************************************************************
-use core::option::OptionTrait;
 use core::result::ResultTrait;
-use core::traits::{TryInto, Into};
-use starknet::{ContractAddress, get_block_timestamp, get_caller_address, contract_address_const};
+use starknet::{ContractAddress, contract_address_const};
 
 use snforge_std::{
-    declare, start_cheat_caller_address, start_cheat_block_timestamp, ContractClassTrait,
-    DeclareResultTrait, spy_events, EventSpyAssertionsTrait, start_cheat_caller_address_global,
+    declare, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address_global,
     stop_cheat_caller_address_global
 };
 

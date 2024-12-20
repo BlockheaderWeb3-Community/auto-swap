@@ -154,27 +154,29 @@ pub mod AutoSwappr {
             let contract_token_to_balance = token_to_contract.balance_of(this_contract);
 
             assert(
-                token_from_contract.allowance(get_caller_address(), this_contract) >= token_from_amount,
+                token_from_contract
+                    .allowance(get_caller_address(), this_contract) >= token_from_amount,
                 Errors::INSUFFICIENT_ALLOWANCE,
             );
-            
-            token_from_contract.transfer_from(get_caller_address(), this_contract, token_from_amount);
+
+            token_from_contract
+                .transfer_from(get_caller_address(), this_contract, token_from_amount);
             token_from_contract.approve(self.avnu_exchange_address.read(), token_from_amount);
 
-                let swap = self
-                    ._swap(
-                        token_from_address,
-                        token_from_amount,
-                        token_to_address,
-                        token_to_amount,
-                        token_to_min_amount,
-                        // beneficiary,
-                        this_contract, // only caller address can be the beneficiary, in this case, the contract. 
-                        integrator_fee_amount_bps,
-                        integrator_fee_recipient,
-                        routes
-                    );
-                assert(swap, Errors::SWAP_FAILED);
+            let swap = self
+                ._swap(
+                    token_from_address,
+                    token_from_amount,
+                    token_to_address,
+                    token_to_amount,
+                    token_to_min_amount,
+                    // beneficiary,
+                    this_contract, // only caller address can be the beneficiary, in this case, the contract. 
+                    integrator_fee_amount_bps,
+                    integrator_fee_recipient,
+                    routes
+                );
+            assert(swap, Errors::SWAP_FAILED);
 
             let new_contract_token_to_balance = token_to_contract.balance_of(this_contract);
             let mut token_to_received = new_contract_token_to_balance - contract_token_to_balance;

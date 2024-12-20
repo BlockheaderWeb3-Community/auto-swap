@@ -1,4 +1,3 @@
-use starknet::ContractAddress;
 use crate::base::types::{RouteParams, SwapParams};
 
 #[starknet::interface]
