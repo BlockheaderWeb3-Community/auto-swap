@@ -126,7 +126,7 @@ pub mod AutoSwappr {
 
     #[abi(embed_v0)]
     impl AutoSwappr of IAutoSwappr<ContractState> {
-        fn swap(
+        fn avnu_swap(
             ref self: ContractState,
             token_from_address: ContractAddress,
             token_from_amount: u256,
@@ -164,7 +164,7 @@ pub mod AutoSwappr {
             token_from_contract.approve(self.avnu_exchange_address.read(), token_from_amount);
 
             let swap = self
-                ._swap(
+                ._avnu_swap(
                     token_from_address,
                     token_from_amount,
                     token_to_address,
@@ -258,7 +258,7 @@ pub mod AutoSwappr {
             self.supported_assets.entry(token_from).read()
         }
 
-        fn _swap(
+        fn _avnu_swap(
             ref self: ContractState,
             token_from_address: ContractAddress,
             token_from_amount: u256,

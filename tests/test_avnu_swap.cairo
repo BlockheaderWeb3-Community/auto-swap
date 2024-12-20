@@ -91,7 +91,7 @@ fn call_avnu_swap(
     start_cheat_caller_address(autoSwappr_dispatcher.contract_address, ADDRESS_WITH_FUNDS());
     start_cheat_account_contract_address(AVNU_EXCHANGE_ADDRESS(), ADDRESS_WITH_FUNDS());
     autoSwappr_dispatcher
-        .swap(
+        .avnu_swap(
             token_from_address,
             token_from_amount,
             token_to_address,

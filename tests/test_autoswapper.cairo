@@ -125,7 +125,7 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
     let mut routes: Array<Route> = ArrayTrait::new();
     start_cheat_caller_address_global(OPERATOR());
     autoswappr_dispatcher
-        .swap(
+        .avnu_swap(
             :token_from_address,
             :token_from_amount,
             :token_to_address,
@@ -157,7 +157,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
     let mut routes: Array<Route> = ArrayTrait::new();
     start_cheat_caller_address_global(OPERATOR());
     autoswappr_dispatcher
-        .swap(
+        .avnu_swap(
             :token_from_address,
             :token_from_amount,
             :token_to_address,
