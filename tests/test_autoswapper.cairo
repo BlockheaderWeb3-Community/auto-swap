@@ -240,3 +240,81 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
         );
     stop_cheat_caller_address_global();
 }
+
+#[test]
+#[should_panic(expected: 'ERC20: insufficient allowance')]
+fn test_revoke_token_approval_after_swap() {
+    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+
+    let token_from_address = strk_dispatcher.contract_address;
+    let token_from_amount: u256 = 1_000_000_000_000_000_000;
+    let token_to_address = eth_dispatcher.contract_address;
+    let token_to_amount: u256 = 100_000_000_000_000;
+    let token_to_min_amount: u256 = 50_000_000_000_000;
+    let beneficiary = USER();
+    
+    start_cheat_caller_address_global(USER());
+    strk_dispatcher.approve(autoSwappr_contract_address, token_from_amount);
+    
+    let initial_allowance = strk_dispatcher.allowance(USER(), autoSwappr_contract_address);
+    assert(initial_allowance == token_from_amount, 'Initial allowance incorrect');
+
+    let mut routes = ArrayTrait::new();
+    routes.append(
+        Route {
+            token_from: token_from_address,
+            token_to: token_to_address,
+            exchange_address: AVNU_ADDR(),
+            percent: 10000000000,
+            additional_swap_params: ArrayTrait::new(),
+        }
+    );
+
+    start_cheat_caller_address_global(OPERATOR());
+    autoswappr_dispatcher.swap(
+        token_from_address,
+        token_from_amount,
+        token_to_address,
+        token_to_amount,
+        token_to_min_amount,
+        beneficiary,
+        0,
+        contract_address_const::<0>(),
+        routes
+    );
+    stop_cheat_caller_address_global();
+
+    start_cheat_caller_address_global(USER());
+    strk_dispatcher.approve(autoSwappr_contract_address, 0);
+
+    let final_allowance = strk_dispatcher.allowance(USER(), autoSwappr_contract_address);
+    assert(final_allowance == 0, 'Approval not fully revoked');
+    stop_cheat_caller_address_global();
+
+    let mut new_routes = ArrayTrait::new();
+    new_routes.append(
+        Route {
+            token_from: token_from_address,
+            token_to: token_to_address,
+            exchange_address: AVNU_ADDR(),
+            percent: 10000000000, // 100%
+            additional_swap_params: ArrayTrait::new(),
+        }
+    );
+
+    start_cheat_caller_address_global(OPERATOR());
+    autoswappr_dispatcher.swap(
+        token_from_address,
+        token_from_amount,
+        token_to_address,
+        token_to_amount,
+        token_to_min_amount,
+        beneficiary,
+        0,
+        contract_address_const::<0>(),
+        new_routes
+    );
+}
