@@ -559,8 +559,6 @@ fn test_avnu_swap_eth_to_usdc() {
 fn test_multi_swaps() {
     let autoSwappr_dispatcher = __setup__();
 
-    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
-
     // params 
     let params_strk_to_usdt = get_swap_parameters(SwapType::strk_usdt);
     let params_strk_to_usdc = get_swap_parameters(SwapType::strk_usdc);
@@ -572,6 +570,8 @@ fn test_multi_swaps() {
     // test, so it's better to handle it locally)
     let strk_to_stable_min_amount = 420000;
     let eth_to_stable_min_amount = 595791;
+
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
 
     //strk to usdt
     approve_amount(
@@ -990,7 +990,6 @@ fn test_multi_swaps_event_emition() {
         params_strk_to_usdc.integrator_fee_recipient,
         params_strk_to_usdc.routes
     );
-    let amounts_after_strk_to_usdc = get_wallet_amounts(ADDRESS_WITH_FUNDS());
 
     // eth to usdt
     approve_amount(
