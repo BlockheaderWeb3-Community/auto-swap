@@ -68,6 +68,38 @@ fn INTEGRATOR_FEE_RECIPIENT() -> ContractAddress {
     contract_address_const::<0>()
 }
 
+fn EXCHANGE_STRK_USDT() -> ContractAddress {
+    contract_address_const::<0x359550b990167afd6635fa574f3bdadd83cb51850e1d00061fe693158c23f80>() // jedi swap: swap router v2
+}
+fn EXCHANGE_STRK_USDT_POOL() -> ContractAddress { 
+    // Sometimes the exchange contract takes the currencies to swap from another contract, in this case, the first address of the route extra params
+    contract_address_const::<0xb74193526135104973a1e285bb0372adf41a5d7a8fc5e6f30ea535847613ce>() // jedi swap: swap router v2
+}
+
+fn EXCHANGE_STRK_USDC() -> ContractAddress {
+    contract_address_const::<0x41fd22b238fa21cfcf5dd45a8548974d8263b3a531a60388411c5e230f97023>() // jedi swap: AMM swap
+}
+
+fn EXCHANGE_STRK_USDC_POOL() -> ContractAddress {
+    contract_address_const::<0x05726725e9507c3586cc0516449e2c74d9b201ab2747752bb0251aaa263c9a26>() // jedi swap: AMM swap
+}
+
+fn EXCHANGE_ETH_USDT_POOL() -> ContractAddress {
+    contract_address_const::<0x0351d125294ae90c5ac53405ebc491d5d910e4f903cdc5d8c0d342dfa71fd0e9>()
+}
+
+fn EXCHANGE_ETH_USDT_SITH() -> ContractAddress {
+    contract_address_const::<0x28c858a586fa12123a1ccb337a0a3b369281f91ea00544d0c086524b759f627>() // sith swap: AMM router
+}
+
+fn EXCHANGE_ETH_USDT_EKUBO() -> ContractAddress {
+    contract_address_const::<158098919692956613592021320609952044916245725306097615271255138786123>() // EKUBO core
+}
+
+fn EXCHANGE_ETH_USDC() -> ContractAddress {
+    contract_address_const::<0x1114c7103e12c2b2ecbd3a2472ba9c48ddcbf702b1c242dd570057e26212111>() // myswap: CL AMM swap
+}
+
 
 const AMOUNT_TO_SWAP_STRK: u256 = 1000000000000000000; // 1 STRK
 const AMOUNT_TO_SWAP_ETH: u256 = 200000000000000; // 0.0002 ETH 
@@ -126,6 +158,11 @@ fn get_wallet_amounts(wallet_address: ContractAddress) -> WalletAmounts {
     amounts
 }
 
+fn get_exchange_amount(token_dispatcher: IERC20Dispatcher, exchange_address: ContractAddress) -> u256 {
+        let amount = token_dispatcher.balance_of(exchange_address);
+        amount
+}
+
 fn approve_amount(
     token: ContractAddress, owner: ContractAddress, spender: ContractAddress, amount: u256
 ) {
@@ -150,12 +187,10 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
             Route {
                 token_from: STRK_TOKEN_ADDRESS(),
                 token_to: USDT_TOKEN_ADDRESS(),
-                exchange_address: contract_address_const::<
-                    0x359550b990167afd6635fa574f3bdadd83cb51850e1d00061fe693158c23f80
-                >(), // JediSwap: Swap Router V2,
+                exchange_address: EXCHANGE_STRK_USDT(),
                 percent: ROUTES_PERCENT,
                 additional_swap_params: array![
-                    0xb74193526135104973a1e285bb0372adf41a5d7a8fc5e6f30ea535847613ce,
+                    EXCHANGE_STRK_USDT_POOL().into(),
                     1018588075927140995502,
                     3000
                 ],
@@ -182,12 +217,10 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                         Route {
                             token_from: STRK_TOKEN_ADDRESS(),
                             token_to: USDT_TOKEN_ADDRESS(),
-                            exchange_address: contract_address_const::<
-                                0x359550b990167afd6635fa574f3bdadd83cb51850e1d00061fe693158c23f80
-                            >(), // JediSwap: Swap Router V2,
+                            exchange_address: EXCHANGE_STRK_USDT(),
                             percent: ROUTES_PERCENT,
                             additional_swap_params: array![
-                                0xb74193526135104973a1e285bb0372adf41a5d7a8fc5e6f30ea535847613ce,
+                                EXCHANGE_STRK_USDT_POOL().into(),
                                 1018588075927140995502,
                                 3000
                             ],
@@ -213,9 +246,7 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                         Route {
                             token_from: STRK_TOKEN_ADDRESS(),
                             token_to: USDC_TOKEN_ADDRESS(),
-                            exchange_address: contract_address_const::<
-                                0x41fd22b238fa21cfcf5dd45a8548974d8263b3a531a60388411c5e230f97023
-                            >(), // JediSwap: AMM Swap
+                            exchange_address: EXCHANGE_STRK_USDC(),
                             percent: ROUTES_PERCENT,
                             additional_swap_params: array![],
                         }
@@ -230,23 +261,18 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                     token_from_address: ETH_TOKEN_ADDRESS(),
                     token_from_amount: AMOUNT_TO_SWAP_ETH,
                     token_to_address: USDT_TOKEN_ADDRESS(),
-                    token_to_amount: 795791,
-                    token_to_min_amount: 795791
-                        - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
+                    token_to_amount: 659940,
+                    token_to_min_amount: 659940 - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
                     beneficiary: ADDRESS_WITH_FUNDS(),
                     integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
                     integrator_fee_recipient: INTEGRATOR_FEE_RECIPIENT(),
                     routes: array![
                         Route {
-                            token_from: contract_address_const::<
-                                0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7
-                            >(), // ETH
+                            token_from: ETH_TOKEN_ADDRESS(), // ETH
                             token_to: contract_address_const::<
                                 0x124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49
                             >(), // Realms: LORDS
-                            exchange_address: contract_address_const::<
-                                158098919692956613592021320609952044916245725306097615271255138786123
-                            >(), // EKUBO core
+                            exchange_address: EXCHANGE_ETH_USDT_EKUBO(),
                             percent: ROUTES_PERCENT,
                             additional_swap_params: array![
                                 0x124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49,
@@ -261,12 +287,8 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                             token_from: contract_address_const::<
                                 0x124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49
                             >(), // Realms: LORDS
-                            token_to: contract_address_const::<
-                                0x68f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8
-                            >(), // USDT
-                            exchange_address: contract_address_const::<
-                                0x28c858a586fa12123a1ccb337a0a3b369281f91ea00544d0c086524b759f627
-                            >(), // SithSwap: AMM Router
+                            token_to: USDT_TOKEN_ADDRESS(),
+                            exchange_address: EXCHANGE_ETH_USDT_SITH(),
                             percent: ROUTES_PERCENT,
                             additional_swap_params: array![0],
                         }
@@ -281,8 +303,8 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                     token_from_address: ETH_TOKEN_ADDRESS(),
                     token_from_amount: AMOUNT_TO_SWAP_ETH,
                     token_to_address: USDC_TOKEN_ADDRESS(),
-                    token_to_amount: 679940,
-                    token_to_min_amount: 679940
+                    token_to_amount: 659940,
+                    token_to_min_amount: 659940
                         - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
                     beneficiary: ADDRESS_WITH_FUNDS(),
                     integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
@@ -295,9 +317,7 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                             token_to: contract_address_const::<
                                 0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8
                             >(), // USDC
-                            exchange_address: contract_address_const::<
-                                0x1114c7103e12c2b2ecbd3a2472ba9c48ddcbf702b1c242dd570057e26212111
-                            >(), // MySwap: CL AMM Swap
+                            exchange_address: EXCHANGE_ETH_USDC(),
                             percent: ROUTES_PERCENT,
                             additional_swap_params: array![
                                 0x71273c5c5780b4be42d9e6567b1b1a6934f43ab8abaf975c0c3da219fc4d040,
@@ -378,6 +398,8 @@ fn test_avnu_swap_strk_to_usdt() {
     let autoSwappr_dispatcher = __setup__();
 
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let previous_exchange_amount_strk = get_exchange_amount(STRK_TOKEN(), EXCHANGE_STRK_USDT_POOL());
+    let previous_exchange_amount_usdt = get_exchange_amount(USDT_TOKEN(), EXCHANGE_STRK_USDT_POOL());
 
     approve_amount(
         STRK_TOKEN().contract_address,
@@ -401,6 +423,9 @@ fn test_avnu_swap_strk_to_usdt() {
         params.routes
     );
     let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let new_exchange_amount_strk = get_exchange_amount(STRK_TOKEN(), EXCHANGE_STRK_USDT_POOL());
+    let new_exchange_amount_usdt = get_exchange_amount(USDT_TOKEN(), EXCHANGE_STRK_USDT_POOL());
+
 
     // assertions
     assert_eq!(
@@ -417,6 +442,19 @@ fn test_avnu_swap_strk_to_usdt() {
             + (params.token_to_min_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
         "Balance of to token should increase"
     );
+
+    // assertions for the exchange
+    assert_le!(
+        new_exchange_amount_usdt,
+        previous_exchange_amount_usdt - params.token_to_min_amount,
+        "Exchange address USDT balance should decrease"
+    );
+
+    assert_eq!(
+        new_exchange_amount_strk,
+        previous_exchange_amount_strk + AMOUNT_TO_SWAP_STRK,
+        "Exchange address STRK balance should increase"
+    );
 }
 
 #[test]
@@ -425,6 +463,8 @@ fn test_avnu_swap_strk_to_usdc() {
     let autoSwappr_dispatcher = __setup__();
 
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let previous_exchange_amount_strk = get_exchange_amount(STRK_TOKEN(), EXCHANGE_STRK_USDC_POOL());
+    let previous_exchange_amount_usdc = get_exchange_amount(USDC_TOKEN(), EXCHANGE_STRK_USDC_POOL());
 
     approve_amount(
         STRK_TOKEN().contract_address,
@@ -448,6 +488,8 @@ fn test_avnu_swap_strk_to_usdc() {
         params.routes
     );
     let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let new_exchange_amount_strk = get_exchange_amount(STRK_TOKEN(), EXCHANGE_STRK_USDC_POOL());
+    let new_exchange_amount_usdc = get_exchange_amount(USDC_TOKEN(), EXCHANGE_STRK_USDC_POOL());
 
     // assertions
     assert_eq!(
@@ -462,6 +504,19 @@ fn test_avnu_swap_strk_to_usdc() {
             + (params.token_to_min_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
         "Balance of to token should increase"
     );
+
+    // assertions for the exchange
+    assert_le!(
+        new_exchange_amount_usdc,
+        previous_exchange_amount_usdc - params.token_to_min_amount,
+        "Exchange address USDC balance should decrease"
+    );
+
+    assert_eq!(
+        new_exchange_amount_strk,
+        previous_exchange_amount_strk + AMOUNT_TO_SWAP_STRK,
+        "Exchange address STRK balance should increase"
+    );
 }
 
 #[test]
@@ -470,6 +525,8 @@ fn test_avnu_swap_eth_to_usdt() {
     let autoSwappr_dispatcher = __setup__();
 
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let previous_exchange_amount_eth = get_exchange_amount(ETH_TOKEN(), EXCHANGE_ETH_USDT_EKUBO());
+    let previous_exchange_amount_usdt = get_exchange_amount(USDT_TOKEN(), EXCHANGE_ETH_USDT_POOL());
 
     approve_amount(
         ETH_TOKEN().contract_address,
@@ -494,6 +551,9 @@ fn test_avnu_swap_eth_to_usdt() {
     );
     let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
 
+    let new_exchange_amount_eth = get_exchange_amount(ETH_TOKEN(), EXCHANGE_ETH_USDT_EKUBO());
+    let new_exchange_amount_usdt = get_exchange_amount(USDT_TOKEN(), EXCHANGE_ETH_USDT_POOL()); 
+
     // assertion
     assert_eq!(
         new_amounts.eth,
@@ -507,14 +567,31 @@ fn test_avnu_swap_eth_to_usdt() {
             + (params.token_to_min_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
         "Balance of to token should increase"
     );
+
+    // assertions for the exchange
+    assert_le!(
+        new_exchange_amount_usdt,
+        // previous_exchange_amount_usdt - params.token_to_min_amount + 1000, // for this special case, AVNU is taking a % of the USDT to send from his own balance and not from the called pool, so we add that aprox. remainer here 
+        previous_exchange_amount_usdt - params.token_to_min_amount,
+        "Exchange address USDT balance should decrease"
+    );
+
+    assert_eq!(
+        new_exchange_amount_eth,
+        previous_exchange_amount_eth + AMOUNT_TO_SWAP_ETH,
+        "Exchange address ETH balance should increase"
+    );
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 997080)]
+// #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 997080)]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 1002124)]
 fn test_avnu_swap_eth_to_usdc() {
     let autoSwappr_dispatcher = __setup__();
 
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let previous_exchange_amount_eth = get_exchange_amount(ETH_TOKEN(), EXCHANGE_ETH_USDC());
+    let previous_exchange_amount_usdc = get_exchange_amount(USDC_TOKEN(), EXCHANGE_ETH_USDC());
 
     approve_amount(
         ETH_TOKEN().contract_address,
@@ -538,6 +615,8 @@ fn test_avnu_swap_eth_to_usdc() {
         params.routes
     );
     let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let new_exchange_amount_eth = get_exchange_amount(ETH_TOKEN(), EXCHANGE_ETH_USDC());
+    let new_exchange_amount_usdc = get_exchange_amount(USDC_TOKEN(), EXCHANGE_ETH_USDC());
 
     // assertion
     assert_eq!(
@@ -551,6 +630,19 @@ fn test_avnu_swap_eth_to_usdc() {
         previous_amounts.usdc
             + (params.token_to_min_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
         "Balance of to token should increase"
+    );
+
+    // assertions for the exchange
+    assert_le!(
+        new_exchange_amount_usdc,
+        previous_exchange_amount_usdc - params.token_to_min_amount,
+        "Exchange address USDC balance should decrease"
+    );
+
+    assert_eq!(
+        new_exchange_amount_eth,
+        previous_exchange_amount_eth + AMOUNT_TO_SWAP_ETH,
+        "Exchange address ETH balance should increase"
     );
 }
 
