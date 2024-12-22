@@ -15,6 +15,8 @@ use auto_swappr::interfaces::iautoswappr::{
 use auto_swappr::base::types::{Route};
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
+const INTEGRATOR_FEE_AMOUNT_BPS: u128 = 0;
+
 pub fn USER() -> ContractAddress {
     contract_address_const::<'USER'>()
 }
@@ -120,7 +122,6 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
     let token_to_amount: u256 = 5_000_000_000;
     let token_to_min_amount: u256 = 5_000_000_000;
     let beneficiary: ContractAddress = USER();
-    let integrator_fee_amount_bps = 0;
     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
     let mut routes: Array<Route> = ArrayTrait::new();
     start_cheat_caller_address_global(OPERATOR());
@@ -132,7 +133,7 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
             :token_to_amount,
             :token_to_min_amount,
             :beneficiary,
-            :integrator_fee_amount_bps,
+            integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT_BPS,
             :integrator_fee_recipient,
             :routes
         );
@@ -152,7 +153,6 @@ fn test_swap_reverts_if_token_is_not_supported() {
     let token_to_amount: u256 = 5_000_000_000;
     let token_to_min_amount: u256 = 5_000_000_000;
     let beneficiary: ContractAddress = USER();
-    let integrator_fee_amount_bps = 0;
     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
     let mut routes: Array<Route> = ArrayTrait::new();
     start_cheat_caller_address_global(OPERATOR());
@@ -164,7 +164,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
             :token_to_amount,
             :token_to_min_amount,
             :beneficiary,
-            :integrator_fee_amount_bps,
+            integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT_BPS,
             :integrator_fee_recipient,
             :routes
         );
