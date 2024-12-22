@@ -6,6 +6,7 @@ name = "auto_swappr"
 version = "0.1.0"
 dependencies = [
  "openzeppelin",
+ "pragma_lib",
  "snforge_std",
 ]
 
@@ -114,6 +115,11 @@ source = "git+https://github.com/OpenZeppelin/cairo-contracts.git?tag=v0.19.0#8d
 name = "openzeppelin_utils"
 version = "0.19.0"
 source = "git+https://github.com/OpenZeppelin/cairo-contracts.git?tag=v0.19.0#8d49e8c445efd9bdc99b050c8b7d11ae5ad19628"
+
+[[package]]
+name = "pragma_lib"
+version = "1.0.0"
+source = "git+https://github.com/astraly-labs/pragma-lib?tag=2.8.2#86d7ccdc15b349b8b48d9796fc8464c947bea6e1"
 
 [[package]]
 name = "snforge_scarb_plugin"
