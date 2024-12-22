@@ -183,7 +183,7 @@ fn test_contract_fetches_eth_usd_price_correctly() {
         contract_address: autoSwappr_contract_address
     };
     let (eth_usd_price, decimals) = autoswappr_dispatcher.get_eth_usd_price();
-    print!("The eth/usd price is {} with {} decimals", eth_usd_price, decimals);
+    println!("The eth/usd price is {} with {} decimals", eth_usd_price, decimals);
 }
 
 #[test]
@@ -194,6 +194,6 @@ fn test_contract_fetches_strk_usd_price_correctly() {
         contract_address: autoSwappr_contract_address
     };
     let (strk_usd_price, decimals) = autoswappr_dispatcher.get_strk_usd_price();
-    print!("The strk/usd price is {} with {} decimals", strk_usd_price, decimals);
+    println!("The strk/usd price is {} with {} decimals", strk_usd_price, decimals);
 }
 
