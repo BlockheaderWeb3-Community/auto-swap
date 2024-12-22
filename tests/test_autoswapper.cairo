@@ -35,6 +35,10 @@ pub fn OPERATOR() -> ContractAddress {
     contract_address_const::<'OPERATOR'>()
 }
 
+pub fn ORACLE_ADDRESS() -> ContractAddress {
+    contract_address_const::<0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b>()
+}
+
 // *************************************************************************
 //                              SETUP
 // *************************************************************************
@@ -75,6 +79,7 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     FEE_COLLECTOR_ADDR().serialize(ref autoSwappr_constructor_calldata);
     AVNU_ADDR().serialize(ref autoSwappr_constructor_calldata);
     FIBROUS_ADDR().serialize(ref autoSwappr_constructor_calldata);
+    ORACLE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
     strk_contract_address.serialize(ref autoSwappr_constructor_calldata);
     eth_contract_address.serialize(ref autoSwappr_constructor_calldata);
     OWNER().serialize(ref autoSwappr_constructor_calldata);
@@ -187,4 +192,26 @@ fn test_is_operator() {
 
     assert(autoSwappr_dispatcher.is_operator(USER()) == true, 'is operator');
     stop_cheat_caller_address_global();
+}
+
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+fn test_contract_fetches_eth_usd_price_correctly() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    let (eth_usd_price, decimals) = autoswappr_dispatcher.get_eth_usd_price();
+    println!("The eth/usd price is {} with {} decimals", eth_usd_price, decimals);
+}
+
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+fn test_contract_fetches_strk_usd_price_correctly() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    let (strk_usd_price, decimals) = autoswappr_dispatcher.get_strk_usd_price();
+    println!("The strk/usd price is {} with {} decimals", strk_usd_price, decimals);
 }
