@@ -308,6 +308,10 @@ pub mod AutoSwappr {
             );
             // ... rest of implementation
         }
+
+        fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
+            self.autoswappr_addresses.read(address)
+        }
     }
 
     #[generate_trait]

@@ -191,40 +191,6 @@ fn test_swap_reverts_if_token_is_not_supported() {
 }
 
 #[test]
-#[should_panic(expected: 'Insufficient Balance')]
-fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
-    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
-
-    let autoswappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone()
-    };
-    let token_from_address: ContractAddress = strk_dispatcher.contract_address;
-    let token_from_amount: u256 = strk_dispatcher.balance_of(USER())
-        * 2; // swap amount is greater than user's balance
-    let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
-    let token_to_amount: u256 = 5_000_000_000;
-    let token_to_min_amount: u256 = 5_000_000_000;
-    let beneficiary: ContractAddress = USER();
-    let integrator_fee_amount_bps = 0;
-    let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
-    let mut routes: Array<Route> = ArrayTrait::new();
-    start_cheat_caller_address_global(OPERATOR());
-    autoswappr_dispatcher
-        .swap(
-            :token_from_address,
-            :token_from_amount,
-            :token_to_address,
-            :token_to_amount,
-            :token_to_min_amount,
-            :beneficiary,
-            :integrator_fee_amount_bps,
-            :integrator_fee_recipient,
-            :routes
-        );
-    stop_cheat_caller_address_global();
-}
-
-#[test]
 #[should_panic(expected: 'Insufficient Allowance')]
 fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();

@@ -46,5 +46,7 @@ pub trait IAutoSwappr<TContractState> {
         integrator_fee_recipient: ContractAddress,
         routes: Array<Route>
     );
+
+    fn is_operator(self: @TContractState, address: ContractAddress) -> bool;
 }
 
