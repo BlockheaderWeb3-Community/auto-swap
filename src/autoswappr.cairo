@@ -266,6 +266,13 @@ pub mod AutoSwappr {
                 owner: self.ownable.owner()
             }
         }
+
+        // @notice Checks if an account is an operator
+        // @param address Account address to check
+        // @return bool true if the account is an operator, false otherwise
+        fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
+            self.autoswappr_addresses.read(address)
+        }
     }
 
     #[generate_trait]
