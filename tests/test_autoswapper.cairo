@@ -173,7 +173,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
 
 #[test]
 fn test_is_operator() {
-    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let (autoSwappr_contract_address, _, _) = __setup__();
 
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
