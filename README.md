@@ -1,6 +1,5 @@
 # AutoSwappr
 
-<img src='./images/autoswappr.png' alt="autoswappr logo" width="250" height="auto"><br>
 AutoSwappr is a Starknet-based DeFi solution designed for automated token swapping, offering a one-stop solution to guard against highly volatile non-stable crypto assets. By leveraging DEX aggregators, it simplifies the process of auto-swapping non-stable crypto assets to stable assets ensuring secure and seamless token swap processes with minimal manual intervention.
 
 ## Features
