@@ -65,6 +65,10 @@ fn USDC_TOKEN() -> IERC20Dispatcher {
     IERC20Dispatcher { contract_address: USDC_TOKEN_ADDRESS() }
 }
 
+pub fn ORACLE_ADDRESS() -> ContractAddress {
+    contract_address_const::<0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b>()
+}
+
 const AMOUNT_TO_SWAP_STRK: u256 = 1000000000000000000; // 1 STRK
 const AMOUNT_TO_SWAP_ETH: u256 = 10000000000000000; // 0.01 ETH 
 const MIN_RECEIVED_STRK_TO_STABLE: u256 = 550000; // 0.55 USD stable coin (USDC or USDT)
@@ -240,6 +244,7 @@ fn __setup__() -> IAutoSwapprDispatcher {
         FEE_COLLECTOR,
         AVNU_EXCHANGE_ADDRESS().into(),
         FIBROUS_EXCHANGE_ADDRESS().into(),
+        ORACLE_ADDRESS().into(),
         STRK_TOKEN_ADDRESS().into(),
         ETH_TOKEN_ADDRESS().into(),
         OWNER,

@@ -115,6 +115,10 @@ fn EXCHANGE_ETH_USDC() -> ContractAddress {
     >() // myswap: CL AMM swap
 }
 
+pub fn ORACLE_ADDRESS() -> ContractAddress {
+    contract_address_const::<0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b>()
+}
+
 
 const AMOUNT_TO_SWAP_STRK: u256 = 1000000000000000000; // 1 STRK
 const AMOUNT_TO_SWAP_ETH: u256 = 200000000000000; // 0.0002 ETH 
@@ -389,6 +393,7 @@ fn __setup__() -> IAutoSwapprDispatcher {
         FEE_COLLECTOR,
         AVNU_EXCHANGE_ADDRESS().into(),
         FIBROUS_EXCHANGE_ADDRESS().into(),
+        ORACLE_ADDRESS().into(),
         STRK_TOKEN_ADDRESS().into(),
         ETH_TOKEN_ADDRESS().into(),
         OWNER,
