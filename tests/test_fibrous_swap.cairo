@@ -261,7 +261,7 @@ fn __setup__() -> IAutoSwapprDispatcher {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+#[fork("MAINNET")]
 fn test_fibrous_swap_strk_to_usdt() {
     let autoSwappr_dispatcher = __setup__();
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
@@ -293,7 +293,7 @@ fn test_fibrous_swap_strk_to_usdt() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+#[fork("MAINNET")]
 fn test_fibrous_swap_strk_to_usdc() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -326,7 +326,7 @@ fn test_fibrous_swap_strk_to_usdc() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+#[fork("MAINNET")]
 fn test_fibrous_swap_eth_to_usdt() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -359,7 +359,7 @@ fn test_fibrous_swap_eth_to_usdt() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+#[fork("MAINNET")]
 fn test_fibrous_swap_eth_to_usdc() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -392,7 +392,7 @@ fn test_fibrous_swap_eth_to_usdc() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+#[fork("MAINNET")]
 fn test_fibrous_swap_strk_to_usdt_and_eth_to_usdc() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -448,7 +448,7 @@ fn test_fibrous_swap_strk_to_usdt_and_eth_to_usdc() {
 
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+#[fork("MAINNET")]
 #[should_panic(expected: 'Insufficient Allowance')]
 fn test_fibrous_swap_should_fail_for_insufficient_allowance_to_contract() {
     let autoSwappr_dispatcher = __setup__();
@@ -463,7 +463,7 @@ fn test_fibrous_swap_should_fail_for_insufficient_allowance_to_contract() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+#[fork("MAINNET")]
 #[should_panic(expected: 'Token not supported')]
 fn test_fibrous_swap_should_fail_for_token_not_supported() {
     let autoSwappr_dispatcher = __setup__();

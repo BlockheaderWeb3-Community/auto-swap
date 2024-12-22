@@ -195,7 +195,7 @@ fn test_is_operator() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+#[fork("MAINNET")]
 fn test_contract_fetches_eth_usd_price_correctly() {
     let (autoSwappr_contract_address, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
@@ -206,7 +206,7 @@ fn test_contract_fetches_eth_usd_price_correctly() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+#[fork("MAINNET")]
 fn test_contract_fetches_strk_usd_price_correctly() {
     let (autoSwappr_contract_address, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {

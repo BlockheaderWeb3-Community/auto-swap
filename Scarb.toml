@@ -46,8 +46,8 @@ test = "snforge test"
 
 [[tool.snforge.fork]]
 name = "MAINNET"
-url = "https://starknet-mainnet.public.blastapi.io/rpc/v0_7"
-block_id.number = "519354"
+url = "$RPC_URL"
+block_id.tag = "latest"
 
 # [profile.dev.cairo]                                        # Configure Cairo compiler
 # unstable-add-statements-code-locations-debug-info = true   # Should be used if you want to use coverage
