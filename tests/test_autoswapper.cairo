@@ -171,3 +171,20 @@ fn test_swap_reverts_if_token_is_not_supported() {
     stop_cheat_caller_address_global();
 }
 
+#[test]
+fn test_is_operator() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address.clone()
+    };
+
+    start_cheat_caller_address_global(OWNER());
+
+    assert(autoSwappr_dispatcher.is_operator(USER()) == false, 'non operator');
+
+    autoSwappr_dispatcher.set_operator(USER());
+
+    assert(autoSwappr_dispatcher.is_operator(USER()) == true, 'is operator');
+    stop_cheat_caller_address_global();
+}
