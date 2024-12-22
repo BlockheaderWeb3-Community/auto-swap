@@ -38,9 +38,7 @@ jobs:
         with:
           starknet-foundry-version: "0.33.0"
 
-      - name: Setup env
-        run: |
-          export RPC_URL=${{secrets.RPC_URL}}
-
       - name: Run tests
+        env:
+          RPC_URL: ${{ secrets.RPC_URL }}
         run: snforge test
