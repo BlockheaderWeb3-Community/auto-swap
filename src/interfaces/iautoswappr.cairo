@@ -14,7 +14,7 @@ pub struct ContractInfo {
 
 #[starknet::interface]
 pub trait IAutoSwappr<TContractState> {
-    fn swap(
+    fn avnu_swap(
         ref self: TContractState,
         token_from_address: ContractAddress,
         token_from_amount: u256,

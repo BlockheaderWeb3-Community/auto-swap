@@ -78,18 +78,18 @@ pub mod AutoSwappr {
     // @param token_to_address Address of the token being bought
     // @param token_to_amount Amount of tokens being bought
     // @param beneficiary Address receiving the bought tokens
-    struct SwapSuccessful {
-        token_from_address: ContractAddress,
-        token_from_amount: u256,
-        token_to_address: ContractAddress,
-        token_to_amount: u256,
-        beneficiary: ContractAddress
+    pub struct SwapSuccessful {
+        pub token_from_address: ContractAddress,
+        pub token_from_amount: u256,
+        pub token_to_address: ContractAddress,
+        pub token_to_amount: u256,
+        pub beneficiary: ContractAddress
     }
 
     #[derive(starknet::Event, Drop)]
-    struct Subscribed {
-        user: ContractAddress,
-        assets: Assets,
+    pub struct Subscribed {
+        pub user: ContractAddress,
+        pub assets: Assets,
     }
 
     #[derive(starknet::Event, Drop)]
@@ -144,7 +144,7 @@ pub mod AutoSwappr {
 
     #[abi(embed_v0)]
     impl AutoSwappr of IAutoSwappr<ContractState> {
-        fn swap(
+        fn avnu_swap(
             ref self: ContractState,
             token_from_address: ContractAddress,
             token_from_amount: u256,
@@ -165,35 +165,39 @@ pub mod AutoSwappr {
             assert(
                 self.check_if_token_from_is_supported(token_from_address), Errors::UNSUPPORTED_TOKEN
             );
+
             let this_contract = get_contract_address();
             let token_from_contract = IERC20Dispatcher { contract_address: token_from_address };
             let token_to_contract = IERC20Dispatcher { contract_address: token_to_address };
-            self
-                .checked_transfer_from(
-                    token_from_amount, token_from_contract, this_contract, beneficiary
-                );
             let contract_token_to_balance = token_to_contract.balance_of(this_contract);
-            {
-                let beneficiary = this_contract; // the contract is the swap recipient
 
-                let swap = self
-                    ._swap(
-                        :token_from_address,
-                        :token_from_amount,
-                        :token_to_address,
-                        :token_to_amount,
-                        :token_to_min_amount,
-                        :beneficiary,
-                        :integrator_fee_amount_bps,
-                        :integrator_fee_recipient,
-                        :routes
-                    );
-                assert(swap, Errors::SWAP_FAILED);
-            }
+            assert(
+                token_from_contract
+                    .allowance(get_caller_address(), this_contract) >= token_from_amount,
+                Errors::INSUFFICIENT_ALLOWANCE,
+            );
+
+            token_from_contract
+                .transfer_from(get_caller_address(), this_contract, token_from_amount);
+            token_from_contract.approve(self.avnu_exchange_address.read(), token_from_amount);
+
+            let swap = self
+                ._avnu_swap(
+                    token_from_address,
+                    token_from_amount,
+                    token_to_address,
+                    token_to_amount,
+                    token_to_min_amount,
+                    // beneficiary,
+                    this_contract, // only caller address can be the beneficiary, in this case, the contract. 
+                    integrator_fee_amount_bps,
+                    integrator_fee_recipient,
+                    routes
+                );
+            assert(swap, Errors::SWAP_FAILED);
 
             let new_contract_token_to_balance = token_to_contract.balance_of(this_contract);
             let mut token_to_received = new_contract_token_to_balance - contract_token_to_balance;
-            assert(token_to_received >= token_to_min_amount, Errors::SWAP_FAILED);
             token_to_contract.transfer(beneficiary, token_to_received);
 
             self
@@ -285,31 +289,13 @@ pub mod AutoSwappr {
 
     #[generate_trait]
     impl InternalImpl of InternalTrait {
-        fn checked_transfer_from(
-            self: @ContractState,
-            token_amount: u256,
-            token_contract: IERC20Dispatcher,
-            this_contract: ContractAddress,
-            token_sender: ContractAddress
-        ) {
-            assert(
-                token_amount <= token_contract.balance_of(token_sender),
-                Errors::INSUFFICIENT_BALANCE
-            );
-            assert(
-                token_amount <= token_contract.allowance(token_sender, this_contract),
-                Errors::INSUFFICIENT_ALLOWANCE
-            );
-            token_contract.transfer_from(token_sender, this_contract, token_amount);
-        }
-
         fn check_if_token_from_is_supported(
             self: @ContractState, token_from: ContractAddress
         ) -> bool {
             self.supported_assets.entry(token_from).read()
         }
 
-        fn _swap(
+        fn _avnu_swap(
             ref self: ContractState,
             token_from_address: ContractAddress,
             token_from_amount: u256,

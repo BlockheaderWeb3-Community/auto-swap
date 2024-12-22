@@ -1,14 +1,11 @@
 // *************************************************************************
 //                              Events TEST
 // *************************************************************************
-use core::option::OptionTrait;
 use core::result::ResultTrait;
-use core::traits::{TryInto, Into};
-use starknet::{ContractAddress, get_block_timestamp, get_caller_address, contract_address_const};
+use starknet::{ContractAddress, contract_address_const};
 
 use snforge_std::{
-    declare, start_cheat_caller_address, start_cheat_block_timestamp, ContractClassTrait,
-    DeclareResultTrait, spy_events, EventSpyAssertionsTrait, start_cheat_caller_address_global,
+    declare, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address_global,
     stop_cheat_caller_address_global
 };
 
@@ -144,7 +141,7 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
     let mut routes: Array<Route> = ArrayTrait::new();
     start_cheat_caller_address_global(OPERATOR());
     autoswappr_dispatcher
-        .swap(
+        .avnu_swap(
             :token_from_address,
             :token_from_amount,
             :token_to_address,
@@ -195,7 +192,6 @@ fn test_swap_reverts_if_token_is_not_supported() {
 #[should_panic(expected: 'Insufficient Balance')]
 fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
-
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
@@ -229,7 +225,6 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
 #[should_panic(expected: 'Insufficient Allowance')]
 fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
-
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
