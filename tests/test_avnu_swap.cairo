@@ -41,6 +41,9 @@ fn USDT_TOKEN_ADDRESS() -> ContractAddress {
     contract_address_const::<0x068F5c6a61780768455de69077E07e89787839bf8166dEcfBf92B645209c0fB8>()
 }
 
+pub fn ORACLE_ADDRESS() -> ContractAddress {
+    contract_address_const::<0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b>()
+}
 
 fn ADDRESS_WITH_FUNDS() -> ContractAddress {
     // 0.01 ETH - 8.4 STRK
@@ -389,6 +392,7 @@ fn __setup__() -> IAutoSwapprDispatcher {
         FEE_COLLECTOR,
         AVNU_EXCHANGE_ADDRESS().into(),
         FIBROUS_EXCHANGE_ADDRESS().into(),
+        ORACLE_ADDRESS().into(),
         STRK_TOKEN_ADDRESS().into(),
         ETH_TOKEN_ADDRESS().into(),
         OWNER,
