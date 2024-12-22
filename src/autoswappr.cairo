@@ -230,11 +230,11 @@ pub mod AutoSwappr {
         }
 
         fn get_strk_usd_price(self: @ContractState) -> (u128, u32) {
-            self.get_asset_price_median(self.oracle_address.read(), DataType::SpotEntry(STRK_KEY))
+            self.get_asset_price_median(DataType::SpotEntry(STRK_KEY))
         }
 
         fn get_eth_usd_price(self: @ContractState) -> (u128, u32) {
-            self.get_asset_price_median(self.oracle_address.read(), DataType::SpotEntry(ETH_KEY))
+            self.get_asset_price_median(DataType::SpotEntry(ETH_KEY))
         }
 
 
@@ -315,9 +315,9 @@ pub mod AutoSwappr {
         }
 
         fn get_asset_price_median(
-            self: @ContractState, oracle_address: ContractAddress, asset: DataType
+            self: @ContractState, asset: DataType
         ) -> (u128, u32) {
-            let oracle_dispatcher = IPragmaABIDispatcher { contract_address: oracle_address };
+            let oracle_dispatcher = IPragmaABIDispatcher {contract_address: self.oracle_address.read()};
             let output: PragmaPricesResponse = oracle_dispatcher
                 .get_data(asset, AggregationMode::Median(()));
             return (output.price, output.decimals);
