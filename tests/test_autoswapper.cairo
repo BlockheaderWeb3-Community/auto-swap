@@ -190,7 +190,7 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
     let mut routes: Array<Route> = ArrayTrait::new();
     start_cheat_caller_address_global(OPERATOR());
     autoswappr_dispatcher
-        .swap(
+        .avnu_swap(
             :token_from_address,
             :token_from_amount,
             :token_to_address,
@@ -224,7 +224,7 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
     //no approval to the autoSwappr contract
     start_cheat_caller_address_global(OPERATOR());
     autoswappr_dispatcher
-        .swap(
+        .avnu_swap(
             :token_from_address,
             :token_from_amount,
             :token_to_address,
@@ -239,7 +239,7 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
 }
 
 #[test]
-#[should_panic(expected: 'ERC20: insufficient allowance')]
+#[should_panic(expected: 'Insufficient Allowance')]  // Changed from 'ERC20: insufficient allowance'
 fn test_revoke_token_approval_after_swap() {
     let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
@@ -271,7 +271,7 @@ fn test_revoke_token_approval_after_swap() {
     );
 
     start_cheat_caller_address_global(OPERATOR());
-    autoswappr_dispatcher.swap(
+    autoswappr_dispatcher.avnu_swap(
         token_from_address,
         token_from_amount,
         token_to_address,
@@ -297,13 +297,13 @@ fn test_revoke_token_approval_after_swap() {
             token_from: token_from_address,
             token_to: token_to_address,
             exchange_address: AVNU_ADDR(),
-            percent: 10000000000, // 100%
+            percent: 10000000000,
             additional_swap_params: ArrayTrait::new(),
         }
     );
 
     start_cheat_caller_address_global(OPERATOR());
-    autoswappr_dispatcher.swap(
+    autoswappr_dispatcher.avnu_swap(
         token_from_address,
         token_from_amount,
         token_to_address,
