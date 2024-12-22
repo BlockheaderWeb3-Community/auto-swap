@@ -285,6 +285,29 @@ pub mod AutoSwappr {
                 owner: self.ownable.owner()
             }
         }
+
+        fn swap(
+            self: @ContractState,
+            token_from_address: ContractAddress,
+            token_from_amount: u256,
+            token_to_address: ContractAddress,
+            token_to_amount: u256,
+            token_to_min_amount: u256,
+            beneficiary: ContractAddress,
+            integrator_fee_amount_bps: u256,
+            integrator_fee_recipient: ContractAddress,
+            routes: Array<Route>
+        ) {
+            // Add your swap implementation here
+            // For now, just validate basic conditions:
+            assert(token_from_amount > 0, 'Amount is zero');
+            assert(
+                token_from_address == self.contract_parameters().strk_token
+                    || token_from_address == self.contract_parameters().eth_token,
+                'Token not supported'
+            );
+            // ... rest of implementation
+        }
     }
 
     #[generate_trait]

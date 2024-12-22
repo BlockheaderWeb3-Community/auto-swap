@@ -33,5 +33,18 @@ pub trait IAutoSwappr<TContractState> {
     fn contract_parameters(self: @TContractState) -> ContractInfo;
     fn set_operator(ref self: TContractState, address: ContractAddress);
     fn remove_operator(ref self: TContractState, address: ContractAddress);
+
+    fn swap(
+        self: @TContractState,
+        token_from_address: ContractAddress,
+        token_from_amount: u256,
+        token_to_address: ContractAddress,
+        token_to_amount: u256,
+        token_to_min_amount: u256,
+        beneficiary: ContractAddress,
+        integrator_fee_amount_bps: u256,
+        integrator_fee_recipient: ContractAddress,
+        routes: Array<Route>
+    );
 }
 
