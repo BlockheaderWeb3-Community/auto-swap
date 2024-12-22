@@ -2,6 +2,8 @@
 // @title AutoSwappr Contract
 // @dev Implements upgradeable pattern and ownership control
 pub mod AutoSwappr {
+    use pragma_lib::abi::{IPragmaABIDispatcher, IPragmaABIDispatcherTrait};
+    use pragma_lib::types::{AggregationMode, DataType, PragmaPricesResponse};
     use crate::interfaces::iautoswappr::{IAutoSwappr, ContractInfo};
     use crate::base::types::{Route, Assets, RouteParams, SwapParams};
     use openzeppelin_upgrades::UpgradeableComponent;
@@ -25,6 +27,10 @@ pub mod AutoSwappr {
     use core::integer::{u256, u128};
     use core::num::traits::Zero;
 
+    const ETH_KEY: felt252 = 'ETH/USD';
+    const STRK_KEY: felt252 = 'STRK/USD';
+
+
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
 
@@ -44,6 +50,7 @@ pub mod AutoSwappr {
         fees_collector: ContractAddress,
         avnu_exchange_address: ContractAddress,
         fibrous_exchange_address: ContractAddress,
+        oracle_address: ContractAddress,
         supported_assets: Map<ContractAddress, bool>,
         autoswappr_addresses: Map<ContractAddress, bool>,
         #[substorage(v0)]
@@ -100,6 +107,7 @@ pub mod AutoSwappr {
         fees_collector: ContractAddress,
         avnu_exchange_address: ContractAddress,
         fibrous_exchange_address: ContractAddress,
+        oracle_address: ContractAddress,
         _strk_token: ContractAddress,
         _eth_token: ContractAddress,
         owner: ContractAddress,
@@ -110,6 +118,7 @@ pub mod AutoSwappr {
         self.fibrous_exchange_address.write(fibrous_exchange_address);
         self.avnu_exchange_address.write(avnu_exchange_address);
         self.fibrous_exchange_address.write(fibrous_exchange_address);
+        self.oracle_address.write(oracle_address);
         self.ownable.initializer(owner);
         self.supported_assets.entry(_strk_token).write(true);
         self.supported_assets.entry(_eth_token).write(true);
@@ -220,6 +229,15 @@ pub mod AutoSwappr {
             self._fibrous_swap(routeParams, swapParams,);
         }
 
+        fn get_strk_usd_price(self: @ContractState) -> (u128, u32) {
+            self.get_asset_price_median(DataType::SpotEntry(STRK_KEY))
+        }
+
+        fn get_eth_usd_price(self: @ContractState) -> (u128, u32) {
+            self.get_asset_price_median(DataType::SpotEntry(ETH_KEY))
+        }
+
+
         fn set_operator(ref self: ContractState, address: ContractAddress) {
             assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
             assert(
@@ -249,12 +267,6 @@ pub mod AutoSwappr {
             }
         }
 
-        // @notice Checks if an account is an operator
-        // @param address Account address to check
-        // @return bool true if the account is an operator, false otherwise
-        fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
-            self.autoswappr_addresses.read(address)
-        }
     }
 
     #[generate_trait]
@@ -302,6 +314,16 @@ pub mod AutoSwappr {
 
             fibrous.swap(routeParams, swapParams);
         }
+
+        fn get_asset_price_median(
+            self: @ContractState, asset: DataType
+        ) -> (u128, u32) {
+            let oracle_dispatcher = IPragmaABIDispatcher {contract_address: self.oracle_address.read()};
+            let output: PragmaPricesResponse = oracle_dispatcher
+                .get_data(asset, AggregationMode::Median(()));
+            return (output.price, output.decimals);
+        }
+
 
         fn collect_fees(ref self: ContractState) {}
 

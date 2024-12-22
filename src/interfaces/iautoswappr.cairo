@@ -33,6 +33,7 @@ pub trait IAutoSwappr<TContractState> {
     fn contract_parameters(self: @TContractState) -> ContractInfo;
     fn set_operator(ref self: TContractState, address: ContractAddress);
     fn remove_operator(ref self: TContractState, address: ContractAddress);
-    fn is_operator(self: @TContractState, address: ContractAddress) -> bool;
+    fn get_strk_usd_price(self: @TContractState) -> (u128, u32);
+    fn get_eth_usd_price(self: @TContractState) -> (u128, u32);
 }
 
