@@ -48,5 +48,7 @@ pub trait IAutoSwappr<TContractState> {
     );
 
     fn is_operator(self: @TContractState, address: ContractAddress) -> bool;
+    fn get_strk_usd_price(self: @TContractState) -> (u128, u32);
+    fn get_eth_usd_price(self: @TContractState) -> (u128, u32);
 }
 
