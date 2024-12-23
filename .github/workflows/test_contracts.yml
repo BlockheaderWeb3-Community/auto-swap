@@ -41,9 +41,9 @@ jobs:
 
       - name: Debug RPC_URL
         run: |
-          echo "RPC_URL: $RPC_URL"
+          echo "RPC: $RPC"
         env:
-          RPC_URL: ${{ vars.RPC }}
+          RPC: ${{ vars.RPC }}
 
       - name: Run tests
         env:
