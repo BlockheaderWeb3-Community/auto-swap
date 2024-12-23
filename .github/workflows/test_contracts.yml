@@ -43,7 +43,7 @@ jobs:
         run: |
           echo "RPC_URL: $RPC_URL"
         env:
-          RPC_URL: ${{ vars.RPC_URL }}
+          RPC_URL: ${{ vars.RPC }}
 
       - name: Run tests
         env:
