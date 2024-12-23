@@ -42,4 +42,6 @@ jobs:
       - name: Run tests
         env:
           RPC_URL: ${{ secrets.RPC_URL }}
-        run: snforge test
+        run: |
+          echo "Using RPC: ${{ secrets.RPC_URL }}"
+          snforge test
