@@ -23,7 +23,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    environment: autoswappr
+    # environment: autoswappr
     name: tests
     steps:
       - name: Checkout code
@@ -41,7 +41,7 @@ jobs:
 
       - name: Run tests
         env:
-          RPC_URL: ${{ secrets.RPC_URL }}
+          RPC_URL: ${{ secrets.RPC }}
         run: |
-          echo "Using RPC: ${{ secrets.RPC_URL }}"
+          echo "Using RPC: ${{ secrets.RPC }}"
           snforge test
