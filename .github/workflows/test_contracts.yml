@@ -23,7 +23,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    environment: development
+    environment: autoswappr
     name: tests
     steps:
       - name: Checkout code
