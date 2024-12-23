@@ -1269,3 +1269,62 @@ fn test_fibrous_swap_should_fail_for_token_not_supported() {
     );
 }
 
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+#[should_panic(expected: 'Insufficient Allowance')]
+fn test_swap_should_fail_after_token_approval_is_revoked_avnu() {
+    let autoSwappr_dispatcher = __setup__();
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
+    approve_amount(
+        STRK_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_STRK
+    );
+
+    let params1 = get_swap_parameters(SwapType::strk_usdt);
+
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params1.token_from_address,
+        params1.token_from_amount,
+        params1.token_to_address,
+        params1.token_to_amount,
+        params1.token_to_min_amount,
+        params1.beneficiary,
+        params1.integrator_fee_amount_bps,
+        params1.integrator_fee_recipient,
+        params1.routes
+    );
+
+    let post_swap_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    assert_eq!(
+        post_swap_amounts.strk,
+        previous_amounts.strk - AMOUNT_TO_SWAP_STRK,
+        "First swap should decrease STRK balance"
+    );
+
+    approve_amount(
+        STRK_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        0
+    );
+
+    let params2 = get_swap_parameters(SwapType::strk_usdt);
+
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params2.token_from_address,
+        params2.token_from_amount,
+        params2.token_to_address,
+        params2.token_to_amount,
+        params2.token_to_min_amount,
+        params2.beneficiary,
+        params2.integrator_fee_amount_bps,
+        params2.integrator_fee_recipient,
+        params2.routes
+    );
+}
+

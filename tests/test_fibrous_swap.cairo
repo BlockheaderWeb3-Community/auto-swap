@@ -499,3 +499,40 @@ fn test_fibrous_swap_should_fail_for_token_not_supported() {
     call_fibrous_swap(autoSwappr_dispatcher, routeParams, swapParams);
 }
 
+#[test]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 993231)]
+#[should_panic(expected: 'Insufficient Allowance')]
+fn test_swap_should_fail_after_token_approval_is_revoked_fibrous() {
+    let autoSwappr_dispatcher = __setup__();
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
+    approve_amount(
+        STRK_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_STRK
+    );
+
+    let (routeParams1, swapParams1) = get_swap_parameters(SwapType::strk_usdt);
+
+    call_fibrous_swap(autoSwappr_dispatcher, routeParams1, swapParams1);
+
+    let post_swap_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    assert_eq!(
+        post_swap_amounts.strk,
+        previous_amounts.strk - AMOUNT_TO_SWAP_STRK,
+        "First swap should decrease STRK balance"
+    );
+
+    approve_amount(
+        STRK_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        0
+    );
+
+    let (routeParams2, swapParams2) = get_swap_parameters(SwapType::strk_usdt);
+
+    call_fibrous_swap(autoSwappr_dispatcher, routeParams2, swapParams2);
+}
+
