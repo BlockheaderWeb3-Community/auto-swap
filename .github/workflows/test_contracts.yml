@@ -40,4 +40,6 @@ jobs:
           starknet-foundry-version: "0.33.0"
 
       - name: Run tests
-        run: snforge test
+        run: |
+          export RPC_URL= ${{ secrets.RPC_URL }}
+          snforge test
