@@ -1284,7 +1284,7 @@ fn test_swap_should_fail_after_token_approval_is_revoked_avnu() {
     );
 
     let params1 = get_swap_parameters(SwapType::strk_usdt);
-    
+
     call_avnu_swap(
         autoSwappr_dispatcher,
         params1.token_from_address,
@@ -1327,6 +1327,4 @@ fn test_swap_should_fail_after_token_approval_is_revoked_avnu() {
         params2.routes
     );
 }
-
-
 

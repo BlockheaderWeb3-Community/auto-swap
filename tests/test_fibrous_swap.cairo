@@ -514,7 +514,7 @@ fn test_swap_should_fail_after_token_approval_is_revoked_fibrous() {
     );
 
     let (routeParams1, swapParams1) = get_swap_parameters(SwapType::strk_usdt);
-    
+
     call_fibrous_swap(autoSwappr_dispatcher, routeParams1, swapParams1);
 
     let post_swap_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
