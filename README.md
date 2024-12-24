@@ -27,7 +27,7 @@ AutoSwappr is built on Starknet and implements:
 
 ## Prerequisites
 
-To set up and run the project locally, ensure you have the following installed:
+To set up and run the project locally, ensure you have [the following installed](https://foundry-rs.github.io/starknet-foundry/getting-started/installation.html#install-rust-version--1801):
 
 - [**Starknet Foundry**](https://foundry-rs.github.io/starknet-foundry/index.html)
 - [**Scarb**](https://docs.swmansion.com/scarb/download.html)
@@ -103,8 +103,9 @@ We welcome contributions! Please follow these steps:
 1. Fork the repository
 2. Create your feature branch (git checkout -b revoke-allowance)
 3. Commit your changes (git commit -m 'test: revoke allowance')
-4. Push to the branch (git push origin revoke-allowance)
-5. Open a Pull Request
+4. Run `bash test_local.sh` to ensure you have a consistent environment with our workflow actions; (Please make you have successfully set `RPC_URL` with this command - `export RPC_URL=https://starknet-mainnet.public.blastapi.io/rpc/v0_7`). All tests must pass locally before proceeding to the next action
+5. Push to the branch (git push origin revoke-allowance)
+6. Open a Pull Request
 
 
 

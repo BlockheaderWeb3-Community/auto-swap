@@ -1,4 +1,4 @@
-name: Build and test AutoSwap contracts
+ame: Build and test AutoSwap contracts
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 env:
-  RPC_URL: ${{ secrets.RPC_URL }}
+  RPC_URL: ${{ vars.RPC_URL }}
 
 jobs:
   build:
@@ -26,7 +26,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    # environment: autoswappr
+    environment: autoswappr
     name: tests
     steps:
       - name: Checkout code
@@ -44,7 +44,7 @@ jobs:
 
       - name: Substitute RPC URL in Scarb.toml
         run: |
-          sed -i "s|\$RPC_URL|$RPC_URL|g" Scarb.toml
+            sed -i "s|\$RPC_URL|$RPC_URL|g" Scarb.toml
 
       - name: Run tests
         run: snforge test
