@@ -77,6 +77,8 @@ scarb build
 Run the test suite using Starknet Foundry:
 
 ```bash
+export RPC_URL=https://starknet-mainnet.public.blastapi.io/rpc/v0_7
+
 snforge test
 ```
 
