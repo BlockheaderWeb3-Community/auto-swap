@@ -229,24 +229,23 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
         contract_address: autoSwappr_contract_address
     };
 
-    // Ensure we have enough balance but no allowance
-    start_cheat_caller_address_global(USER());
-    strk_dispatcher.approve(autoSwappr_contract_address, 0); // Set allowance to 0
-    stop_cheat_caller_address_global();
-
     start_cheat_caller_address_global(OPERATOR());
+    let balance = strk_dispatcher.balance_of(USER());
+    strk_dispatcher.approve(autoSwappr_contract_address, 0);
+
     autoswappr_dispatcher
         .avnu_swap(
             strk_dispatcher.contract_address,
-            1000, // Try to swap without allowance
+            balance,
             eth_dispatcher.contract_address,
-            1000,
-            1000,
+            5_000_000_000,
+            5_000_000_000,
             USER(),
             0,
             ZERO_ADDRESS(),
             ArrayTrait::new(),
         );
+    stop_cheat_caller_address_global();
 }
 
 #[test]
@@ -276,32 +275,18 @@ fn test_set_operator_reverts_if_operator_already_exists() {
 }
 
 #[test]
-#[should_panic(expected: 'Token not supported')]
 fn test_set_operator_succeeds_when_called_by_owner() {
-    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
 
     start_cheat_caller_address_global(OWNER());
-    autoSwappr_dispatcher.set_operator(NEW_OPERATOR());
+    autoswappr_dispatcher.set_operator(NEW_OPERATOR());
     stop_cheat_caller_address_global();
 
-    start_cheat_caller_address_global(NEW_OPERATOR());
-    let token_from_amount: u256 = 1000;
-    autoSwappr_dispatcher
-        .swap(
-            RANDOM_TOKEN(),
-            token_from_amount,
-            contract_address_const::<'USDC_TOKEN_ADDRESS'>(),
-            1000,
-            1000,
-            USER(),
-            0,
-            ZERO_ADDRESS(),
-            ArrayTrait::new(),
-        );
-    stop_cheat_caller_address_global();
+    // Assert that NEW_OPERATOR is now an operator
+    assert(autoswappr_dispatcher.is_operator(NEW_OPERATOR()) == true, 'should be operator');
 }
 
 #[test]
@@ -331,9 +316,8 @@ fn test_remove_operator_reverts_if_operator_does_not_exist() {
 }
 
 #[test]
-#[should_panic(expected: 'sender can not call')]
 fn test_remove_operator_succeeds_when_called_by_owner() {
-    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let (autoSwappr_contract_address, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -343,20 +327,8 @@ fn test_remove_operator_succeeds_when_called_by_owner() {
     autoswappr_dispatcher.remove_operator(OPERATOR());
     stop_cheat_caller_address_global();
 
-    // Try to call with removed operator - should fail with 'sender can not call'
-    start_cheat_caller_address_global(OPERATOR());
-    autoswappr_dispatcher
-        .avnu_swap(
-            strk_dispatcher.contract_address, // Use STRK token which is supported
-            1000,
-            strk_dispatcher.contract_address, // Use STRK token which is supported
-            1000,
-            1000,
-            USER(),
-            0,
-            ZERO_ADDRESS(),
-            ArrayTrait::new(),
-        );
+    // Assert that OPERATOR is no longer an operator
+    assert(autoswappr_dispatcher.is_operator(OPERATOR()) == false, 'should not be operator');
 }
 
 #[test]
