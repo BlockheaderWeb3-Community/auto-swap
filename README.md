@@ -74,11 +74,27 @@ scarb build
 
 ## Testing
 
-Run the test suite using Starknet Foundry:
+Before running the tests,
+1. Ensure the `RPC_URL` environment variable is set locally in your shell:
+```bash
+export RPC_URL=https://starknet-mainnet.public.blastapi.io/rpc/v0_7
+```
 
+2. Then save and reload your shell:
+```bash
+source ~/.zshrc
+```
+
+3. After setting the variable, verify it in your shell; this should output your rpc url in your terminal:
+```bash
+echo $RPC_URL
+```
+
+4. Proceed to run snforge test:
 ```bash
 snforge test
 ```
+
 
 ## Contributing
 
