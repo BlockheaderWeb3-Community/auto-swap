@@ -1,4 +1,4 @@
-ame: Build and test AutoSwap contracts
+name: Build and test AutoSwap contracts
 
 on:
   push:
