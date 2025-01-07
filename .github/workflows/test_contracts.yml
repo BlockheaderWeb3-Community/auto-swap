@@ -44,7 +44,12 @@ jobs:
 
       - name: Substitute RPC URL in Scarb.toml
         run: |
+          if [ -z "$RPC_URL" ]; then
+            echo "RPC_URL is not defined. Using blast."
+            sed -i "s|\$RPC_URL|https://starknet-mainnet.public.blastapi.io/rpc/v0_7|g" Scarb.toml
+          else
             sed -i "s|\$RPC_URL|$RPC_URL|g" Scarb.toml
+          fi
 
       - name: Run tests
         run: snforge test
