@@ -92,8 +92,6 @@ echo $RPC_URL
 
 4. Proceed to run snforge test:
 ```bash
-export RPC_URL=https://starknet-mainnet.public.blastapi.io/rpc/v0_7
-
 snforge test
 ```
 
