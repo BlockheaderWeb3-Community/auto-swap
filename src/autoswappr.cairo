@@ -134,7 +134,6 @@ pub mod AutoSwappr {
         self.eth_token.write(_eth_token);
         self.fibrous_exchange_address.write(fibrous_exchange_address);
         self.avnu_exchange_address.write(avnu_exchange_address);
-        self.fibrous_exchange_address.write(fibrous_exchange_address);
         self.oracle_address.write(oracle_address);
         self.ownable.initializer(owner);
         self.supported_assets.entry(_strk_token).write(true);
