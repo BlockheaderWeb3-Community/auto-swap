@@ -293,6 +293,11 @@ pub mod AutoSwappr {
                     }
                 );
         }
+        fn collect_fees(
+            ref self: ContractState, token_to_received: u256, token_to_address: ContractAddress
+        ) -> u256 {
+            self._collect_fees(token_to_received, token_to_address)
+        }
 
 
         fn contract_parameters(self: @ContractState) -> ContractInfo {
@@ -369,7 +374,7 @@ pub mod AutoSwappr {
             return (output.price, output.decimals);
         }
 
-        fn collect_fees(
+        fn _collect_fees(
             ref self: ContractState, token_to_received: u256, token_to_address: ContractAddress
         ) -> u256 {
             let token_to_contract = IERC20Dispatcher { contract_address: token_to_address };
