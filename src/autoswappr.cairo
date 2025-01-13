@@ -207,8 +207,7 @@ pub mod AutoSwappr {
 
             let new_contract_token_to_balance = token_to_contract.balance_of(this_contract);
             let mut token_to_received = new_contract_token_to_balance - contract_token_to_balance;
-            // transfer token_to_received to get_caller_address();
-            token_to_contract.transfer(get_caller_address(), token_to_received);
+
             // collect fees
             let token_to_amount_after_fees = self.collect_fees(token_to_received, token_to_address);
             token_to_contract.transfer(beneficiary, token_to_amount_after_fees);
