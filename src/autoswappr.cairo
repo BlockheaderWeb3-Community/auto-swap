@@ -32,6 +32,8 @@ pub mod AutoSwappr {
 
     const ETH_KEY: felt252 = 'ETH/USD';
     const STRK_KEY: felt252 = 'STRK/USD';
+    const PROTOCOL_FEE_DEDUCTION: u256 = 50;
+    const STARKNET_DECIMAL_POINT: u256 = 1_000_000_u256;
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
@@ -205,7 +207,11 @@ pub mod AutoSwappr {
 
             let new_contract_token_to_balance = token_to_contract.balance_of(this_contract);
             let mut token_to_received = new_contract_token_to_balance - contract_token_to_balance;
-            token_to_contract.transfer(beneficiary, token_to_received);
+
+            // collect fees
+            let token_to_amount_after_fees = self.collect_fees(token_to_received, token_to_address);
+            token_to_contract
+                .transfer(beneficiary, token_to_amount_after_fees / STARKNET_DECIMAL_POINT);
 
             self
                 .emit(
@@ -288,6 +294,11 @@ pub mod AutoSwappr {
                     }
                 );
         }
+        fn collect_fees(
+            ref self: ContractState, token_to_received: u256, token_to_address: ContractAddress
+        ) -> u256 {
+            self._collect_fees(token_to_received, token_to_address)
+        }
 
 
         fn contract_parameters(self: @ContractState) -> ContractInfo {
@@ -364,7 +375,27 @@ pub mod AutoSwappr {
             return (output.price, output.decimals);
         }
 
-        fn collect_fees(ref self: ContractState) {}
+        fn _collect_fees(
+            ref self: ContractState, token_to_received: u256, token_to_address: ContractAddress
+        ) -> u256 {
+            let token_to_contract = IERC20Dispatcher { contract_address: token_to_address };
+
+            let fifty_cents = STARKNET_DECIMAL_POINT / 2;
+            let token_to_received_decimal = token_to_received * STARKNET_DECIMAL_POINT;
+            let token_to_received_after_protocol_fee = token_to_received_decimal - fifty_cents;
+
+            let fees_collector = self.fees_collector.read();
+
+            // // caller send protocol fee to collect fee contracts
+            // // println!("fee value: {:?}", (fifty_cents/STARKNET_DECIMAL_POINT));
+            token_to_contract.transfer(fees_collector, (fifty_cents / STARKNET_DECIMAL_POINT));
+
+            println!("result before removing decimal: {:?}", token_to_received_after_protocol_fee);
+            // println!("result after removing decimal: {:?}", token_to_received_after_protocol_fee
+            // / STARKNET_DECIMAL_POINT);
+
+            token_to_received_after_protocol_fee
+        }
 
         // @notice Returns the zero address constant
         fn zero_address(self: @ContractState) -> ContractAddress {

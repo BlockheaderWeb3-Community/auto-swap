@@ -126,6 +126,8 @@ const AMOUNT_TO_SWAP_ETH: u256 = 200000000000000; // 0.0002 ETH
 const SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN: u256 = 1000;
 const ROUTES_PERCENT: u128 = 1000000000000;
 const INTEGRATOR_FEE_AMOUNT: u128 = 0;
+const PROTOCOL_FEE: u256 = (50 / 100);
+const STARKNET_DECIMAL_POINT: u256 = 1_000_000_u256;
 
 
 // *************************************************************************
@@ -353,6 +355,12 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
     params
 }
 
+fn calculate_fee(token_to_received: u256) -> u256 {
+    let fifty_cents = STARKNET_DECIMAL_POINT / 2;
+    let token_to_received_decimal = token_to_received * STARKNET_DECIMAL_POINT;
+    let token_to_received_after_protocol_fee = token_to_received_decimal - fifty_cents;
+    token_to_received_after_protocol_fee
+}
 
 #[derive(Drop, Serde, Debug)]
 struct AVNUParams {
@@ -481,6 +489,68 @@ fn test_avnu_swap_strk_to_usdt() {
         "Exchange address STRK balance should increase"
     );
 }
+
+#[test]
+#[fork("MAINNET", block_number: 996491)]
+fn test_avnu_swap_collect_fee() {
+    let autoSwappr_dispatcher = __setup__();
+
+    let params = get_swap_parameters(SwapType::strk_usdt);
+
+    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, ADDRESS_WITH_FUNDS());
+    let return_amount_after_fee = autoSwappr_dispatcher.collect_fees(50, params.token_to_address);
+
+    let expected_result = calculate_fee(50);
+    assert_eq!(
+        return_amount_after_fee * STARKNET_DECIMAL_POINT,
+        expected_result * STARKNET_DECIMAL_POINT,
+        "Balance of from token should decrease"
+    );
+
+    stop_cheat_caller_address(autoSwappr_dispatcher.contract_address);
+}
+
+// #[test]
+// #[fork("MAINNET", block_number: 996491)]
+// fn test_avnu_swap_collector_balance() {
+//     let autoSwappr_dispatcher = __setup__();
+
+//     approve_amount(
+//         STRK_TOKEN().contract_address,
+//         ADDRESS_WITH_FUNDS(),
+//         autoSwappr_dispatcher.contract_address,
+//         AMOUNT_TO_SWAP_STRK
+//     );
+
+//     let params = get_swap_parameters(SwapType::strk_usdt);
+
+//     call_avnu_swap(
+//         autoSwappr_dispatcher,
+//         params.token_from_address,
+//         params.token_from_amount,
+//         params.token_to_address,
+//         params.token_to_amount,
+//         params.token_to_min_amount,
+//         params.beneficiary,
+//         params.integrator_fee_amount_bps,
+//         params.integrator_fee_recipient,
+//         params.routes
+//     );
+//     let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+//     let new_exchange_amount_strk = get_exchange_amount(STRK_TOKEN(), EXCHANGE_STRK_USDT_POOL());
+//     let new_exchange_amount_usdt = get_exchange_amount(USDT_TOKEN(), EXCHANGE_STRK_USDT_POOL());
+//     let fees_collector_balance = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
+//     println!(
+//         "result of protocol fee balance: {:?}", fees_collector_balance.usdt *
+//         STARKNET_DECIMAL_POINT
+//     );
+//     let expected_balance = STARKNET_DECIMAL_POINT / 2;
+//     assert_ge!(
+//         fees_collector_balance.usdt * STARKNET_DECIMAL_POINT,
+//         expected_balance,
+//         "Incorrect collector fee balance"
+//     );
+// }
 
 #[test]
 #[fork("MAINNET", block_number: 996957)]
