@@ -45,14 +45,14 @@ pub mod AutoSwappr {
     // @dev Includes mappings for supported assets and critical contract addresses
     #[storage]
     struct Storage {
-        strk_token: ContractAddress,
-        eth_token: ContractAddress,
+        // strk_token: ContractAddress,
+        // eth_token: ContractAddress,
         fees_collector: ContractAddress,
-        fee_amount_bps: u8,    // 50 = 0.5$ fee
+        fee_amount_bps: u8, // 50 = 0.5$ fee
         avnu_exchange_address: ContractAddress,
         fibrous_exchange_address: ContractAddress,
         oracle_address: ContractAddress,
-        supported_assets: Map<ContractAddress, bool>,
+        supported_assets_to_feed_id: Map<ContractAddress, felt252>,
         autoswappr_addresses: Map<ContractAddress, bool>,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
@@ -110,21 +110,35 @@ pub mod AutoSwappr {
         avnu_exchange_address: ContractAddress,
         fibrous_exchange_address: ContractAddress,
         oracle_address: ContractAddress,
-        _strk_token: ContractAddress,
-        _eth_token: ContractAddress,
+        // _strk_token: ContractAddress,
+        // _eth_token: ContractAddress,
+        supported_assets: Array<ContractAddress>,
+        supported_assets_priceFeeds_ids: Array<felt252>,
         owner: ContractAddress,
     ) {
+        assert(
+            !supported_assets.is_empty()
+                && supported_assets.len() == supported_assets_priceFeeds_ids.len(),
+            Errors::INVALID_INPUT
+        );
+
+        for i in 0
+            ..supported_assets
+                .len() {
+                    self
+                        .supported_assets_to_feed_id
+                        .write(*supported_assets[i], *supported_assets_priceFeeds_ids[i]);
+                };
         self.fees_collector.write(fees_collector);
         self.fee_amount_bps.write(fee_amount_bps);
-        self.strk_token.write(_strk_token);
-        self.eth_token.write(_eth_token);
+        // self.strk_token.write(_strk_token);
+        // self.eth_token.write(_eth_token);
         self.fibrous_exchange_address.write(fibrous_exchange_address);
         self.avnu_exchange_address.write(avnu_exchange_address);
-        self.fibrous_exchange_address.write(fibrous_exchange_address);
         self.oracle_address.write(oracle_address);
         self.ownable.initializer(owner);
-        self.supported_assets.entry(_strk_token).write(true);
-        self.supported_assets.entry(_eth_token).write(true);
+        // self.supported_assets.entry(_strk_token).write(true);
+    // self.supported_assets.entry(_eth_token).write(true);
     }
 
     #[abi(embed_v0)]
@@ -192,7 +206,8 @@ pub mod AutoSwappr {
 
             let new_contract_token_to_balance = token_to_contract.balance_of(this_contract);
             let token_to_received = new_contract_token_to_balance - contract_token_to_balance;
-            let updated_token_to_received = self._collect_fees(token_to_received, token_to_contract);
+            let updated_token_to_received = self
+                ._collect_fees(token_to_received, token_to_contract);
             token_to_contract.transfer(beneficiary, updated_token_to_received);
 
             self
@@ -208,36 +223,42 @@ pub mod AutoSwappr {
         }
 
         fn fibrous_swap(
-            ref self: ContractState, routeParams: RouteParams, swapParams: Array<SwapParams>, beneficiary: ContractAddress
+            ref self: ContractState,
+            routeParams: RouteParams,
+            swapParams: Array<SwapParams>,
+            beneficiary: ContractAddress
         ) {
             let caller_address = get_caller_address();
             let contract_address = get_contract_address();
 
             // assertions
+            assert(self.autoswappr_addresses.entry(caller_address).read(), Errors::INVALID_SENDER,);
             assert(
-                self.autoswappr_addresses.entry(caller_address).read(), Errors::INVALID_SENDER,
-            );
-            assert(
-                self.supported_assets.entry(routeParams.token_in).read(), Errors::UNSUPPORTED_TOKEN,
+                self.check_if_token_from_is_supported(routeParams.token_in),
+                Errors::UNSUPPORTED_TOKEN,
             );
             assert(!routeParams.amount_in.is_zero(), Errors::ZERO_AMOUNT);
 
             let token_in_contract = ERC20ABIDispatcher { contract_address: routeParams.token_in };
             let token_out_contract = ERC20ABIDispatcher { contract_address: routeParams.token_out };
             assert(
-                token_in_contract.allowance(caller_address, contract_address) >= routeParams.amount_in,
+                token_in_contract
+                    .allowance(caller_address, contract_address) >= routeParams
+                    .amount_in,
                 Errors::INSUFFICIENT_ALLOWANCE,
             );
 
             // Approve commission taking from fibrous
-            token_in_contract.transfer_from(caller_address, contract_address, routeParams.amount_in);
+            token_in_contract
+                .transfer_from(caller_address, contract_address, routeParams.amount_in);
             token_in_contract.approve(self.fibrous_exchange_address.read(), routeParams.amount_in);
             let contract_token_out_balance = token_out_contract.balance_of(contract_address);
             self._fibrous_swap(routeParams.clone(), swapParams,);
 
             let new_contract_token_out_balance = token_out_contract.balance_of(contract_address);
             let token_out_received = new_contract_token_out_balance - contract_token_out_balance;
-            let updated_token_out_received = self._collect_fees(token_out_received, token_out_contract);
+            let updated_token_out_received = self
+                ._collect_fees(token_out_received, token_out_contract);
             token_out_contract.transfer(beneficiary, updated_token_out_received);
 
             self
@@ -252,17 +273,26 @@ pub mod AutoSwappr {
                 );
         }
 
-        fn get_strk_usd_price(self: @ContractState) -> (u128, u32) {
-            // let (price, decimals) = self.get_asset_price_median(DataType::SpotEntry(STRK_KEY));
-            // price / (fast_power(10_u32, decimals)).into()
-            // This above code will return 0 because u128 cannot hold decimals and
-            // the current strk price is around 0.4
-            self.get_asset_price_median(DataType::SpotEntry(STRK_KEY))
-        }
+        // fn get_strk_usd_price(self: @ContractState) -> (u128, u32) {
+        //     // let (price, decimals) =
+        //     self.get_asset_price_median(DataType::SpotEntry(STRK_KEY));
+        //     // price / (fast_power(10_u32, decimals)).into()
+        //     // This above code will return 0 because u128 cannot hold decimals and
+        //     // the current strk price is around 0.4
+        //     self.get_asset_price_median(DataType::SpotEntry(STRK_KEY))
+        // }
 
-        fn get_eth_usd_price(self: @ContractState) -> u128 {
-            let (price, decimals) = self.get_asset_price_median(DataType::SpotEntry(ETH_KEY));
-            price / (fast_power(10_u32, decimals)).into()
+        // fn get_eth_usd_price(self: @ContractState) -> u128 {
+        //     let (price, decimals) = self.get_asset_price_median(DataType::SpotEntry(ETH_KEY));
+        //     price / (fast_power(10_u32, decimals)).into()
+        // }
+
+        fn get_token_price_in_usd(
+            self: @ContractState, token: ContractAddress, token_amount: u256
+        ) -> u256 {
+            let feed_id = self.supported_assets_to_feed_id.read(token);
+            let (price, decimals) = self.get_asset_price_median(DataType::SpotEntry(feed_id));
+            price.into() * token_amount / fast_power(10_u32, decimals).into()
         }
 
         fn set_operator(ref self: ContractState, address: ContractAddress) {
@@ -282,14 +312,22 @@ pub mod AutoSwappr {
             self.autoswappr_addresses.entry(address).write(false);
         }
 
+         fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
+            self.autoswappr_addresses.read(address)
+        }
+
+        fn check_if_token_from_is_supported(
+            self: @ContractState, token_from: ContractAddress
+        ) -> bool {
+            !(self.supported_assets_to_feed_id.read(token_from) == '')
+        }
 
         fn contract_parameters(self: @ContractState) -> ContractInfo {
             ContractInfo {
                 fees_collector: self.fees_collector.read(),
                 fibrous_exchange_address: self.fibrous_exchange_address.read(),
                 avnu_exchange_address: self.avnu_exchange_address.read(),
-                strk_token: self.strk_token.read(),
-                eth_token: self.eth_token.read(),
+                oracle_address: self.oracle_address.read(),
                 owner: self.ownable.owner()
             }
         }
@@ -297,18 +335,11 @@ pub mod AutoSwappr {
         // @notice Checks if an account is an operator
         // @param address Account address to check
         // @return bool true if the account is an operator, false otherwise
-        fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
-            self.autoswappr_addresses.read(address)
-        }
+       
     }
 
     #[generate_trait]
     impl InternalImpl of InternalTrait {
-        fn check_if_token_from_is_supported(
-            self: @ContractState, token_from: ContractAddress
-        ) -> bool {
-            self.supported_assets.entry(token_from).read()
-        }
 
         fn _avnu_swap(
             ref self: ContractState,
@@ -357,13 +388,18 @@ pub mod AutoSwappr {
             return (output.price, output.decimals);
         }
 
-        fn _collect_fees(ref self: ContractState, token_to_received: u256, token_to_contract: ERC20ABIDispatcher) -> u256 {
+        fn _collect_fees(
+            ref self: ContractState, token_to_received: u256, token_to_contract: ERC20ABIDispatcher
+        ) -> u256 {
             let token_to_decimals = token_to_contract.decimals();
             assert(token_to_decimals > 0, Errors::INVALID_DECIMALS);
-            let fee: u256 = (self.fee_amount_bps.read() * fast_power(10_u8, token_to_decimals) / 100).into();
+            let fee: u256 = (self.fee_amount_bps.read()
+                * fast_power(10_u8, token_to_decimals)
+                / 100)
+                .into();
             token_to_contract.transfer(self.fees_collector.read(), fee);
             token_to_received - fee
-            }
+        }
 
         // @notice Returns the zero address constant
         fn zero_address(self: @ContractState) -> ContractAddress {

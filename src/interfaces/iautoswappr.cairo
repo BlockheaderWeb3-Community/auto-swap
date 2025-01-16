@@ -7,8 +7,7 @@ pub struct ContractInfo {
     pub fees_collector: ContractAddress,
     pub avnu_exchange_address: ContractAddress,
     pub fibrous_exchange_address: ContractAddress,
-    pub strk_token: ContractAddress,
-    pub eth_token: ContractAddress,
+    pub oracle_address: ContractAddress,
     pub owner: ContractAddress
 }
 
@@ -27,14 +26,17 @@ pub trait IAutoSwappr<TContractState> {
         routes: Array<Route>,
     );
     fn fibrous_swap(
-        ref self: TContractState, routeParams: RouteParams, swapParams: Array<SwapParams>, beneficiary: ContractAddress,
+        ref self: TContractState,
+        routeParams: RouteParams,
+        swapParams: Array<SwapParams>,
+        beneficiary: ContractAddress,
     );
 
     fn contract_parameters(self: @TContractState) -> ContractInfo;
     fn set_operator(ref self: TContractState, address: ContractAddress);
     fn remove_operator(ref self: TContractState, address: ContractAddress);
     fn is_operator(self: @TContractState, address: ContractAddress) -> bool;
-    fn get_strk_usd_price(self: @TContractState) -> (u128, u32);
-    fn get_eth_usd_price(self: @TContractState) -> u128;
-}
+    fn get_token_price_in_usd(self: @TContractState, token: ContractAddress, token_amount: u256) -> u256;
+    fn check_if_token_from_is_supported(self: @TContractState, token_from: ContractAddress) -> bool;
+    }
 
