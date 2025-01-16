@@ -27,7 +27,7 @@ pub trait IAutoSwappr<TContractState> {
         routes: Array<Route>,
     );
     fn fibrous_swap(
-        ref self: TContractState, routeParams: RouteParams, swapParams: Array<SwapParams>,
+        ref self: TContractState, routeParams: RouteParams, swapParams: Array<SwapParams>, beneficiary: ContractAddress,
     );
 
     fn contract_parameters(self: @TContractState) -> ContractInfo;
@@ -35,6 +35,6 @@ pub trait IAutoSwappr<TContractState> {
     fn remove_operator(ref self: TContractState, address: ContractAddress);
     fn is_operator(self: @TContractState, address: ContractAddress) -> bool;
     fn get_strk_usd_price(self: @TContractState) -> (u128, u32);
-    fn get_eth_usd_price(self: @TContractState) -> (u128, u32);
+    fn get_eth_usd_price(self: @TContractState) -> u128;
 }
 

@@ -14,6 +14,8 @@ use auto_swappr::interfaces::iautoswappr::{
 };
 use auto_swappr::base::types::{Route};
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+use alexandria_math::fast_power::fast_power;
+
 
 pub fn USER() -> ContractAddress {
     contract_address_const::<'USER'>()
@@ -195,18 +197,18 @@ fn test_is_operator() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_tag: latest)]
 fn test_contract_fetches_eth_usd_price_correctly() {
     let (autoSwappr_contract_address, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
-    let (eth_usd_price, decimals) = autoswappr_dispatcher.get_eth_usd_price();
-    println!("The eth/usd price is {} with {} decimals", eth_usd_price, decimals);
+    let eth_usd_price = autoswappr_dispatcher.get_eth_usd_price();
+    println!("The eth/usd price is {}", eth_usd_price);
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_tag: latest)]
 fn test_contract_fetches_strk_usd_price_correctly() {
     let (autoSwappr_contract_address, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
