@@ -33,6 +33,7 @@ pub mod AutoSwappr {
     const ETH_KEY: felt252 = 'ETH/USD';
     const STRK_KEY: felt252 = 'STRK/USD';
     const PROTOCOL_FEE_DEDUCTION: u256 = 50;
+    const STARKNET_DECIMAL_POINT: u256 = 1_000_000_u256;
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
@@ -210,7 +211,8 @@ pub mod AutoSwappr {
 
             // collect fees
             let token_to_amount_after_fees = self.collect_fees(token_to_received, token_to_address);
-            token_to_contract.transfer(beneficiary, token_to_amount_after_fees);
+            token_to_contract
+                .transfer(beneficiary, token_to_amount_after_fees / STARKNET_DECIMAL_POINT);
 
             self
                 .emit(
@@ -379,12 +381,19 @@ pub mod AutoSwappr {
         ) -> u256 {
             let token_to_contract = IERC20Dispatcher { contract_address: token_to_address };
 
-            let mut token_to_received_after_protocol_fee = token_to_received
-                - (PROTOCOL_FEE_DEDUCTION / 100);
+            let fifty_cents = STARKNET_DECIMAL_POINT / 2;
+            let token_to_received_decimal = token_to_received * STARKNET_DECIMAL_POINT;
+            let token_to_received_after_protocol_fee = token_to_received_decimal - fifty_cents;
+
             let fees_collector = self.fees_collector.read();
 
-            // caller send protocol fee to collect fee contracts
-            token_to_contract.transfer(fees_collector, (PROTOCOL_FEE_DEDUCTION / 100));
+            // // caller send protocol fee to collect fee contracts
+            // // println!("fee value: {:?}", (fifty_cents/STARKNET_DECIMAL_POINT));
+            token_to_contract.transfer(fees_collector, (fifty_cents / STARKNET_DECIMAL_POINT));
+
+            println!("result before removing decimal: {:?}", token_to_received_after_protocol_fee);
+            // println!("result after removing decimal: {:?}", token_to_received_after_protocol_fee
+            // / STARKNET_DECIMAL_POINT);
 
             token_to_received_after_protocol_fee
         }
