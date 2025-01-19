@@ -28,9 +28,6 @@ pub mod AutoSwappr {
     use core::num::traits::Zero;
     use alexandria_math::fast_power::fast_power;
 
-    const ETH_KEY: felt252 = 'ETH/USD';
-    const STRK_KEY: felt252 = 'STRK/USD';
-
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
 
@@ -45,8 +42,6 @@ pub mod AutoSwappr {
     // @dev Includes mappings for supported assets and critical contract addresses
     #[storage]
     struct Storage {
-        // strk_token: ContractAddress,
-        // eth_token: ContractAddress,
         fees_collector: ContractAddress,
         fee_amount_bps: u8, // 50 = 0.5$ fee
         avnu_exchange_address: ContractAddress,
@@ -118,9 +113,7 @@ pub mod AutoSwappr {
     ) {
         assert(
             !supported_assets.is_empty()
-                && supported_assets.len() == supported_assets_priceFeeds_ids.len(),
-            Errors::INVALID_INPUT
-        );
+                && supported_assets.len() == supported_assets_priceFeeds_ids.len(), Errors::INVALID_INPUT);
 
         for i in 0
             ..supported_assets
@@ -140,6 +133,8 @@ pub mod AutoSwappr {
         // self.supported_assets.entry(_strk_token).write(true);
     // self.supported_assets.entry(_eth_token).write(true);
     }
+
+    
 
     #[abi(embed_v0)]
     impl UpgradeableImpl of IUpgradeable<ContractState> {
@@ -203,7 +198,6 @@ pub mod AutoSwappr {
                     routes
                 );
             assert(swap, Errors::SWAP_FAILED);
-
             let new_contract_token_to_balance = token_to_contract.balance_of(this_contract);
             let token_to_received = new_contract_token_to_balance - contract_token_to_balance;
             let updated_token_to_received = self
@@ -287,7 +281,7 @@ pub mod AutoSwappr {
         //     price / (fast_power(10_u32, decimals)).into()
         // }
 
-        fn get_token_price_in_usd(
+        fn get_token_amount_in_usd(
             self: @ContractState, token: ContractAddress, token_amount: u256
         ) -> u256 {
             let feed_id = self.supported_assets_to_feed_id.read(token);
@@ -391,10 +385,10 @@ pub mod AutoSwappr {
         fn _collect_fees(
             ref self: ContractState, token_to_received: u256, token_to_contract: ERC20ABIDispatcher
         ) -> u256 {
-            let token_to_decimals = token_to_contract.decimals();
+            let token_to_decimals: u128 = token_to_contract.decimals().into();
             assert(token_to_decimals > 0, Errors::INVALID_DECIMALS);
-            let fee: u256 = (self.fee_amount_bps.read()
-                * fast_power(10_u8, token_to_decimals)
+            let fee: u256 = (self.fee_amount_bps.read().into()
+                * fast_power(10_u128, token_to_decimals)
                 / 100)
                 .into();
             token_to_contract.transfer(self.fees_collector.read(), fee);

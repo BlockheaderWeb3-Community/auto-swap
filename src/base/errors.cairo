@@ -23,5 +23,5 @@ pub mod Errors {
     pub const NON_EXISTING_ADDRESS: felt252 = 'address does not exist';
     pub const INVALID_SENDER: felt252 = 'sender can not call';
     pub const INVALID_DECIMALS: felt252 = 'Token has invalid decimal value';
-    pub const INVALID_INPUT: felt252 = 'Invalid input length';
+    pub const INVALID_INPUT: felt252 = 'Invalid array length input';
 }

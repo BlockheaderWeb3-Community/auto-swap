@@ -120,12 +120,15 @@ pub fn ORACLE_ADDRESS() -> ContractAddress {
 }
 
 
-const AMOUNT_TO_SWAP_STRK: u256 = 1000000000000000000; // 1 STRK
+const AMOUNT_TO_SWAP_STRK: u256 = 2000000000000000000; // 2 STRK. used 2 so we can enough to take fee from
 const AMOUNT_TO_SWAP_ETH: u256 = 200000000000000; // 0.0002 ETH 
 
 const SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN: u256 = 1000;
 const ROUTES_PERCENT: u128 = 1000000000000;
 const INTEGRATOR_FEE_AMOUNT: u128 = 0;
+const FEE_AMOUNT_BPS: u8 = 50; // $0.5 fee
+const FEE_AMOUNT: u256 = 50 * 1_000_000 / 100; // $0.5 with 6 decimals
+
 
 
 // *************************************************************************
@@ -229,8 +232,8 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                     token_from_address: STRK_TOKEN_ADDRESS(),
                     token_from_amount: AMOUNT_TO_SWAP_STRK,
                     token_to_address: USDT_TOKEN_ADDRESS(),
-                    token_to_amount: 510000,
-                    token_to_min_amount: 510000
+                    token_to_amount: 1020000,
+                    token_to_min_amount: 1020000
                         - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
                     beneficiary: ADDRESS_WITH_FUNDS(),
                     integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
@@ -256,8 +259,8 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                     token_from_address: STRK_TOKEN_ADDRESS(),
                     token_from_amount: AMOUNT_TO_SWAP_STRK,
                     token_to_address: USDC_TOKEN_ADDRESS(),
-                    token_to_amount: 465080,
-                    token_to_min_amount: 465080
+                    token_to_amount: 465080 * 2,
+                    token_to_min_amount: 465080 * 2
                         - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
                     beneficiary: ADDRESS_WITH_FUNDS(),
                     integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
@@ -391,11 +394,12 @@ fn __setup__() -> IAutoSwapprDispatcher {
 
     let mut auto_swappr_constructor_calldata: Array<felt252> = array![
         FEE_COLLECTOR,
+        FEE_AMOUNT_BPS.into(),
         AVNU_EXCHANGE_ADDRESS().into(),
         FIBROUS_EXCHANGE_ADDRESS().into(),
         ORACLE_ADDRESS().into(),
-        STRK_TOKEN_ADDRESS().into(),
-        ETH_TOKEN_ADDRESS().into(),
+        2, STRK_TOKEN_ADDRESS().into(), ETH_TOKEN_ADDRESS().into(),
+        2, 'ETH/USD', 'STRK/USD',
         OWNER,
     ];
 
@@ -420,6 +424,7 @@ fn test_avnu_swap_strk_to_usdt() {
     let autoSwappr_dispatcher = __setup__();
 
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let previous_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
     let previous_exchange_amount_strk = get_exchange_amount(
         STRK_TOKEN(), EXCHANGE_STRK_USDT_POOL()
     );
@@ -435,7 +440,6 @@ fn test_avnu_swap_strk_to_usdt() {
     );
 
     let params = get_swap_parameters(SwapType::strk_usdt);
-
     call_avnu_swap(
         autoSwappr_dispatcher,
         params.token_from_address,
@@ -448,9 +452,11 @@ fn test_avnu_swap_strk_to_usdt() {
         params.integrator_fee_recipient,
         params.routes
     );
+
     let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
     let new_exchange_amount_strk = get_exchange_amount(STRK_TOKEN(), EXCHANGE_STRK_USDT_POOL());
     let new_exchange_amount_usdt = get_exchange_amount(USDT_TOKEN(), EXCHANGE_STRK_USDT_POOL());
+    let new_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
 
     // assertions
     assert_eq!(
@@ -464,7 +470,7 @@ fn test_avnu_swap_strk_to_usdt() {
     assert_ge!(
         new_amounts.usdt,
         previous_amounts.usdt
-            + (params.token_to_min_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+            + params.token_to_min_amount - FEE_AMOUNT,
         "Balance of to token should increase"
     );
 
@@ -480,6 +486,13 @@ fn test_avnu_swap_strk_to_usdt() {
         previous_exchange_amount_strk + AMOUNT_TO_SWAP_STRK,
         "Exchange address STRK balance should increase"
     );
+
+    // fee collector assertion
+    assert_eq!(
+        new_fee_collector_amounts.usdt,
+        previous_fee_collector_amounts.usdt + FEE_AMOUNT,
+        "Fee collector USDT balance should increase by the fee amount"
+    );
 }
 
 #[test]
@@ -488,12 +501,16 @@ fn test_avnu_swap_strk_to_usdc() {
     let autoSwappr_dispatcher = __setup__();
 
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let previous_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
+
     let previous_exchange_amount_strk = get_exchange_amount(
         STRK_TOKEN(), EXCHANGE_STRK_USDC_POOL()
     );
     let previous_exchange_amount_usdc = get_exchange_amount(
         USDC_TOKEN(), EXCHANGE_STRK_USDC_POOL()
     );
+    let AMOUNT_TO_SWAP_STRK = AMOUNT_TO_SWAP_STRK; //so there is enough to take the fee
+
 
     approve_amount(
         STRK_TOKEN().contract_address,
@@ -519,6 +536,7 @@ fn test_avnu_swap_strk_to_usdc() {
     let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
     let new_exchange_amount_strk = get_exchange_amount(STRK_TOKEN(), EXCHANGE_STRK_USDC_POOL());
     let new_exchange_amount_usdc = get_exchange_amount(USDC_TOKEN(), EXCHANGE_STRK_USDC_POOL());
+    let new_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
 
     // assertions
     assert_eq!(
@@ -530,7 +548,7 @@ fn test_avnu_swap_strk_to_usdc() {
     assert_ge!(
         new_amounts.usdc,
         previous_amounts.usdc
-            + (params.token_to_min_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+            + params.token_to_min_amount - FEE_AMOUNT,
         "Balance of to token should increase"
     );
 
@@ -546,6 +564,13 @@ fn test_avnu_swap_strk_to_usdc() {
         previous_exchange_amount_strk + AMOUNT_TO_SWAP_STRK,
         "Exchange address STRK balance should increase"
     );
+
+    // fee collector assertion
+    assert_eq!(
+        new_fee_collector_amounts.usdc,
+        previous_fee_collector_amounts.usdc + FEE_AMOUNT,
+        "Fee collector USDT balance should increase by the fee amount"
+    );
 }
 
 #[test]
@@ -554,6 +579,7 @@ fn test_avnu_swap_eth_to_usdt() {
     let autoSwappr_dispatcher = __setup__();
 
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let previous_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
     let previous_exchange_amount_eth = get_exchange_amount(ETH_TOKEN(), EXCHANGE_ETH_USDT_EKUBO());
     let previous_exchange_amount_usdt = get_exchange_amount(USDT_TOKEN(), EXCHANGE_ETH_USDT_POOL());
 
@@ -579,7 +605,7 @@ fn test_avnu_swap_eth_to_usdt() {
         params.routes
     );
     let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
-
+    let new_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
     let new_exchange_amount_eth = get_exchange_amount(ETH_TOKEN(), EXCHANGE_ETH_USDT_EKUBO());
     let new_exchange_amount_usdt = get_exchange_amount(USDT_TOKEN(), EXCHANGE_ETH_USDT_POOL());
 
@@ -593,7 +619,7 @@ fn test_avnu_swap_eth_to_usdt() {
     assert_ge!(
         new_amounts.usdt,
         previous_amounts.usdt
-            + (params.token_to_min_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+            + params.token_to_min_amount - FEE_AMOUNT,
         "Balance of to token should increase"
     );
 
@@ -612,6 +638,13 @@ fn test_avnu_swap_eth_to_usdt() {
         previous_exchange_amount_eth + AMOUNT_TO_SWAP_ETH,
         "Exchange address ETH balance should increase"
     );
+
+    // fee collector assertion
+    assert_eq!(
+        new_fee_collector_amounts.usdt,
+        previous_fee_collector_amounts.usdt + FEE_AMOUNT,
+        "Fee collector USDT balance should increase by the fee amount"
+    );
 }
 
 #[test]
@@ -621,6 +654,7 @@ fn test_avnu_swap_eth_to_usdc() {
     let autoSwappr_dispatcher = __setup__();
 
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let previous_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
     let previous_exchange_amount_eth = get_exchange_amount(ETH_TOKEN(), EXCHANGE_ETH_USDC());
     let previous_exchange_amount_usdc = get_exchange_amount(USDC_TOKEN(), EXCHANGE_ETH_USDC());
 
@@ -648,6 +682,7 @@ fn test_avnu_swap_eth_to_usdc() {
     let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
     let new_exchange_amount_eth = get_exchange_amount(ETH_TOKEN(), EXCHANGE_ETH_USDC());
     let new_exchange_amount_usdc = get_exchange_amount(USDC_TOKEN(), EXCHANGE_ETH_USDC());
+    let new_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
 
     // assertion
     assert_eq!(
@@ -659,7 +694,7 @@ fn test_avnu_swap_eth_to_usdc() {
     assert_ge!(
         new_amounts.usdc,
         previous_amounts.usdc
-            + (params.token_to_min_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+            + params.token_to_min_amount - FEE_AMOUNT,
         "Balance of to token should increase"
     );
 
@@ -674,6 +709,13 @@ fn test_avnu_swap_eth_to_usdc() {
         new_exchange_amount_eth,
         previous_exchange_amount_eth + AMOUNT_TO_SWAP_ETH,
         "Exchange address ETH balance should increase"
+    );
+
+    // fee collector assertion
+    assert_eq!(
+        new_fee_collector_amounts.usdc,
+        previous_fee_collector_amounts.usdc + FEE_AMOUNT,
+        "Fee collector USDT balance should increase by the fee amount"
     );
 }
 
@@ -691,7 +733,7 @@ fn test_multi_swaps() {
     // In the block used for the test, the value of the STRK token is less than the on returned from
     // get_swap_parameters so we replace it with the next value (this is an specific case for this
     // test, so it's better to handle it locally)
-    let strk_to_stable_min_amount = 420000;
+    let strk_to_stable_min_amount = 420000 * 2;  // We are using 2 strk so we can take the fee from it
     let eth_to_stable_min_amount = 595791;
 
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
@@ -724,7 +766,7 @@ fn test_multi_swaps() {
     );
     assert_ge!(
         amounts_after_strk_to_usdt.usdt,
-        previous_amounts.usdt + strk_to_stable_min_amount,
+        previous_amounts.usdt + strk_to_stable_min_amount - FEE_AMOUNT,
         "(amounts_after_strk_to_usdt) USDT Balance of to token should increase"
     );
     // // strk to usdc
@@ -755,7 +797,7 @@ fn test_multi_swaps() {
     );
     assert_ge!(
         amounts_after_strk_to_usdc.usdc,
-        amounts_after_strk_to_usdt.usdc + strk_to_stable_min_amount,
+        amounts_after_strk_to_usdt.usdc + strk_to_stable_min_amount - FEE_AMOUNT,
         "(amounts_after_strk_to_usdc) USDC Balance of to token should increase"
     );
     // eth to usdt
@@ -786,7 +828,7 @@ fn test_multi_swaps() {
     );
     assert_ge!(
         amounts_after_eth_to_usdt.usdt,
-        amounts_after_strk_to_usdc.usdt + eth_to_stable_min_amount,
+        amounts_after_strk_to_usdc.usdt + eth_to_stable_min_amount - FEE_AMOUNT,
         "(amounts_after_eth_to_usdt) USDT Balance of to token should increase"
     );
     // eth to usdc
@@ -817,7 +859,7 @@ fn test_multi_swaps() {
     );
     assert_ge!(
         amounts_after_eth_to_usdc.usdc,
-        amounts_after_eth_to_usdt.usdc + eth_to_stable_min_amount,
+        amounts_after_eth_to_usdt.usdc + eth_to_stable_min_amount - FEE_AMOUNT,
         "(amounts_after_eth_to_usdc) USDC Balance of to token should increase"
     );
 
@@ -842,7 +884,7 @@ fn test_multi_swaps() {
         final_amounts.usdt,
         previous_amounts.usdt
             + (strk_to_stable_min_amount
-                + eth_to_stable_min_amount), // should increase the sum of strk and eth swaps to usdt
+                + eth_to_stable_min_amount) - FEE_AMOUNT * 2, // should increase the sum of strk and eth swaps to usdt
         "USDT Balance of to token should increase"
     );
 
@@ -850,8 +892,21 @@ fn test_multi_swaps() {
         final_amounts.usdc,
         previous_amounts.usdc
             + (eth_to_stable_min_amount
-                + strk_to_stable_min_amount), // should increase the sum of strk and eth swaps to usdc
+                + strk_to_stable_min_amount) - FEE_AMOUNT * 2, // should increase the sum of strk and eth swaps to usdc
         "USDC Balance of to token should increase"
+    );
+
+    // fee collector assertion
+    let final_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
+    assert_eq!(
+        final_fee_collector_amounts.usdt,
+        FEE_AMOUNT * 2, // times 2 because we swapped to usdt twice one from STRK and one from ETH
+        "Fee collector USDT balance should increase by the fee amount"
+    );
+    assert_eq!(
+        final_fee_collector_amounts.usdc,
+        FEE_AMOUNT * 2, // times 2 because we swapped to usdc twice one from STRK and one from ETH
+        "Fee collector USDC balance should increase by the fee amount"
     );
 }
 
@@ -1032,6 +1087,8 @@ fn test_avnu_swap_event_emission() {
     );
 
     let params = get_swap_parameters(SwapType::strk_usdt);
+    let amounts_before_strk_to_usdt = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
 
     call_avnu_swap(
         autoSwappr_dispatcher,
@@ -1045,6 +1102,8 @@ fn test_avnu_swap_event_emission() {
         params.integrator_fee_recipient,
         params.routes
     );
+    let amounts_after_strk_to_usdt = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
 
     // events assertion
     spy
@@ -1057,7 +1116,7 @@ fn test_avnu_swap_event_emission() {
                             token_from_address: params.token_from_address,
                             token_from_amount: params.token_from_amount,
                             token_to_address: params.token_to_address,
-                            token_to_amount: params.token_to_amount,
+                            token_to_amount: amounts_after_strk_to_usdt.usdt - amounts_before_strk_to_usdt.usdt + FEE_AMOUNT,
                             beneficiary: params.beneficiary,
                         }
                     )
@@ -1077,6 +1136,7 @@ fn test_multi_swaps_event_emission() {
     let params_strk_to_usdc = get_swap_parameters(SwapType::strk_usdc);
     let params_eth_to_usdt = get_swap_parameters(SwapType::eth_usdt);
     let params_eth_to_usdc = get_swap_parameters(SwapType::eth_usdc);
+    let amounts_before_strk_to_usdt = get_wallet_amounts(ADDRESS_WITH_FUNDS());
 
     let strk_to_stable_min_amount = 420000;
     let eth_to_stable_min_amount = 595791;
@@ -1101,6 +1161,7 @@ fn test_multi_swaps_event_emission() {
         params_strk_to_usdt.integrator_fee_recipient,
         params_strk_to_usdt.routes
     );
+    let amounts_after_strk_to_usdt = get_wallet_amounts(ADDRESS_WITH_FUNDS());
 
     // strk to usdc
     approve_amount(
@@ -1122,6 +1183,7 @@ fn test_multi_swaps_event_emission() {
         params_strk_to_usdc.integrator_fee_recipient,
         params_strk_to_usdc.routes
     );
+    let amounts_after_strk_to_usdc = get_wallet_amounts(ADDRESS_WITH_FUNDS());
 
     // eth to usdt
     approve_amount(
@@ -1143,6 +1205,7 @@ fn test_multi_swaps_event_emission() {
         params_eth_to_usdt.integrator_fee_recipient,
         params_eth_to_usdt.routes
     );
+    let amounts_after_eth_to_usdt = get_wallet_amounts(ADDRESS_WITH_FUNDS());
 
     // eth to usdc
     approve_amount(
@@ -1164,6 +1227,7 @@ fn test_multi_swaps_event_emission() {
         params_eth_to_usdc.integrator_fee_recipient,
         params_eth_to_usdc.routes
     );
+    let amounts_after_eth_to_usdc = get_wallet_amounts(ADDRESS_WITH_FUNDS());
 
     // events assertions
     spy
@@ -1176,7 +1240,7 @@ fn test_multi_swaps_event_emission() {
                             token_from_address: params_strk_to_usdt.token_from_address,
                             token_from_amount: params_strk_to_usdt.token_from_amount,
                             token_to_address: params_strk_to_usdt.token_to_address,
-                            token_to_amount: params_strk_to_usdt.token_to_amount,
+                            token_to_amount: amounts_after_strk_to_usdt.usdt - amounts_before_strk_to_usdt.usdt + FEE_AMOUNT,
                             beneficiary: params_strk_to_usdt.beneficiary,
                         }
                     )
@@ -1188,7 +1252,7 @@ fn test_multi_swaps_event_emission() {
                             token_from_address: params_strk_to_usdc.token_from_address,
                             token_from_amount: params_strk_to_usdc.token_from_amount,
                             token_to_address: params_strk_to_usdc.token_to_address,
-                            token_to_amount: params_strk_to_usdc.token_to_amount,
+                            token_to_amount: amounts_after_strk_to_usdc.usdc - amounts_after_strk_to_usdt.usdc + FEE_AMOUNT,
                             beneficiary: params_strk_to_usdc.beneficiary,
                         }
                     )
@@ -1200,7 +1264,7 @@ fn test_multi_swaps_event_emission() {
                             token_from_address: params_eth_to_usdt.token_from_address,
                             token_from_amount: params_eth_to_usdt.token_from_amount,
                             token_to_address: params_eth_to_usdt.token_to_address,
-                            token_to_amount: params_eth_to_usdt.token_to_amount,
+                            token_to_amount: amounts_after_eth_to_usdt.usdt - amounts_after_strk_to_usdc.usdt + FEE_AMOUNT,
                             beneficiary: params_eth_to_usdt.beneficiary,
                         }
                     )
@@ -1212,7 +1276,7 @@ fn test_multi_swaps_event_emission() {
                             token_from_address: params_eth_to_usdc.token_from_address,
                             token_from_amount: params_eth_to_usdc.token_from_amount,
                             token_to_address: params_eth_to_usdc.token_to_address,
-                            token_to_amount: params_eth_to_usdc.token_to_amount,
+                            token_to_amount: amounts_after_eth_to_usdc.usdc - amounts_after_eth_to_usdt.usdc + FEE_AMOUNT,
                             beneficiary: params_eth_to_usdc.beneficiary,
                         }
                     )

@@ -14,7 +14,6 @@ use auto_swappr::interfaces::iautoswappr::{
 };
 use auto_swappr::base::types::{Route};
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
-use alexandria_math::fast_power::fast_power;
 
 
 pub fn USER() -> ContractAddress {
@@ -40,6 +39,8 @@ pub fn OPERATOR() -> ContractAddress {
 pub fn ORACLE_ADDRESS() -> ContractAddress {
     contract_address_const::<0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b>()
 }
+
+const FEE_AMOUNT_BPS: u8 = 50; // $0.5 fee
 
 // *************************************************************************
 //                              SETUP
@@ -76,14 +77,22 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     let eth_dispatcher = IERC20Dispatcher { contract_address: eth_contract_address };
 
     // deploy AutoSwappr
+    let autoSwappr_contract_address = deploy_autoSwappr(array![eth_contract_address, strk_contract_address],  array!['ETH/USD', 'STRK/USD']); 
+    
+    return (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher);
+}
+
+fn deploy_autoSwappr( supported_assets: Array<ContractAddress>,
+        supported_assets_priceFeeds_ids: Array<felt252>) -> ContractAddress {
     let autoswappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
     let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
     FEE_COLLECTOR_ADDR().serialize(ref autoSwappr_constructor_calldata);
+    FEE_AMOUNT_BPS.serialize(ref autoSwappr_constructor_calldata);
     AVNU_ADDR().serialize(ref autoSwappr_constructor_calldata);
     FIBROUS_ADDR().serialize(ref autoSwappr_constructor_calldata);
     ORACLE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    strk_contract_address.serialize(ref autoSwappr_constructor_calldata);
-    eth_contract_address.serialize(ref autoSwappr_constructor_calldata);
+    supported_assets.serialize(ref autoSwappr_constructor_calldata);
+    supported_assets_priceFeeds_ids.serialize(ref autoSwappr_constructor_calldata);
     OWNER().serialize(ref autoSwappr_constructor_calldata);
     let (autoSwappr_contract_address, _) = autoswappr_class_hash
         .deploy(@autoSwappr_constructor_calldata)
@@ -93,12 +102,28 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     };
     start_cheat_caller_address_global(OWNER());
     autoswappr_dispatcher.set_operator(OPERATOR());
-    return (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher);
+    autoSwappr_contract_address
+}
+
+#[test]
+#[should_panic]
+fn test_constructor_reverts_if_supported_assets_array_is_empty() {
+    deploy_autoSwappr(array![], array!['ETH/USD', 'STRK/USD']);
+}
+
+#[test]
+#[should_panic]
+fn test_constructor_reverts_if_supported_assets_array_length_doesnt_match_priceFeedId_array_length() {
+    let eth_contract_address: ContractAddress = contract_address_const::<'ETH_TOKEN_ADDRESS'>();
+    let strk_contract_address: ContractAddress = contract_address_const::<'STRK_TOKEN_ADDRESS'>();
+    let wbtc_contract_address: ContractAddress = contract_address_const::<'WBTC_TOKEN_ADDRESS'>();
+    let supported_assets = array![eth_contract_address, strk_contract_address, wbtc_contract_address];
+    deploy_autoSwappr(supported_assets, array!['ETH/USD', 'STRK/USD']); 
 }
 
 #[test]
 fn test_constructor_initializes_correctly() {
-    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let (autoSwappr_contract_address, _, _,) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -106,8 +131,7 @@ fn test_constructor_initializes_correctly() {
         fees_collector: FEE_COLLECTOR_ADDR(),
         fibrous_exchange_address: FIBROUS_ADDR(),
         avnu_exchange_address: AVNU_ADDR(),
-        strk_token: strk_dispatcher.contract_address,
-        eth_token: eth_dispatcher.contract_address,
+        oracle_address: ORACLE_ADDRESS(),
         owner: OWNER()
     };
     let actual_contract_params = autoswappr_dispatcher.contract_parameters();
@@ -199,21 +223,24 @@ fn test_is_operator() {
 #[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_tag: latest)]
 fn test_contract_fetches_eth_usd_price_correctly() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
+    let (autoSwappr_contract_address, _, eth_dispatcher) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
-    let eth_usd_price = autoswappr_dispatcher.get_eth_usd_price();
-    println!("The eth/usd price is {}", eth_usd_price);
+    let eth_amount = 10; // 1 ether
+    let usd_amount = autoswappr_dispatcher.get_token_amount_in_usd(eth_dispatcher.contract_address, eth_amount);
+    println!("{} eth in usd using pragma oracle is {}", eth_amount, usd_amount);
 }
 
 #[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_tag: latest)]
 fn test_contract_fetches_strk_usd_price_correctly() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
-    let (strk_usd_price, decimals) = autoswappr_dispatcher.get_strk_usd_price();
-    println!("The strk/usd price is {} with {} decimals", strk_usd_price, decimals);
+    let strk_amount = 1000; // 100 strk
+
+    let usd_amount = autoswappr_dispatcher.get_token_amount_in_usd(strk_dispatcher.contract_address, strk_amount);
+    println!("{} strk in usd using pragma oracle is {}", strk_amount, usd_amount);
 }
