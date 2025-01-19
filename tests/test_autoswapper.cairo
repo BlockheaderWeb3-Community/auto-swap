@@ -77,13 +77,16 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     let eth_dispatcher = IERC20Dispatcher { contract_address: eth_contract_address };
 
     // deploy AutoSwappr
-    let autoSwappr_contract_address = deploy_autoSwappr(array![eth_contract_address, strk_contract_address],  array!['ETH/USD', 'STRK/USD']); 
-    
+    let autoSwappr_contract_address = deploy_autoSwappr(
+        array![eth_contract_address, strk_contract_address], array!['ETH/USD', 'STRK/USD']
+    );
+
     return (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher);
 }
 
-fn deploy_autoSwappr( supported_assets: Array<ContractAddress>,
-        supported_assets_priceFeeds_ids: Array<felt252>) -> ContractAddress {
+fn deploy_autoSwappr(
+    supported_assets: Array<ContractAddress>, supported_assets_priceFeeds_ids: Array<felt252>
+) -> ContractAddress {
     let autoswappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
     let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
     FEE_COLLECTOR_ADDR().serialize(ref autoSwappr_constructor_calldata);
@@ -117,8 +120,10 @@ fn test_constructor_reverts_if_supported_assets_array_length_doesnt_match_priceF
     let eth_contract_address: ContractAddress = contract_address_const::<'ETH_TOKEN_ADDRESS'>();
     let strk_contract_address: ContractAddress = contract_address_const::<'STRK_TOKEN_ADDRESS'>();
     let wbtc_contract_address: ContractAddress = contract_address_const::<'WBTC_TOKEN_ADDRESS'>();
-    let supported_assets = array![eth_contract_address, strk_contract_address, wbtc_contract_address];
-    deploy_autoSwappr(supported_assets, array!['ETH/USD', 'STRK/USD']); 
+    let supported_assets = array![
+        eth_contract_address, strk_contract_address, wbtc_contract_address
+    ];
+    deploy_autoSwappr(supported_assets, array!['ETH/USD', 'STRK/USD']);
 }
 
 #[test]
@@ -143,7 +148,7 @@ fn test_constructor_initializes_correctly() {
 fn test_swap_reverts_if_token_from_amount_is_zero() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone()
+        contract_address: autoSwappr_contract_address
     };
     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
     let token_from_amount: u256 = 0;
@@ -175,7 +180,7 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
 fn test_swap_reverts_if_token_is_not_supported() {
     let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone()
+        contract_address: autoSwappr_contract_address
     };
     let token_from_address: ContractAddress = contract_address_const::<'RANDOM_TOKEN_ADDRESS'>();
     let token_from_amount: u256 = strk_dispatcher.balance_of(USER());
@@ -207,7 +212,7 @@ fn test_is_operator() {
     let (autoSwappr_contract_address, _, _) = __setup__();
 
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address.clone()
+        contract_address: autoSwappr_contract_address
     };
 
     start_cheat_caller_address_global(OWNER());
@@ -220,6 +225,138 @@ fn test_is_operator() {
     stop_cheat_caller_address_global();
 }
 
+/////////////////////////////////////////////
+// Test support_new_token_from,
+// remove_token_from,
+// get_token_from_status_and_value
+/////////////////////////////////////////////
+
+#[test]
+fn test_get_token_from_status_and_value() {
+    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    let unsupported_token_address: ContractAddress = contract_address_const::<
+        'UNSUPPORTED_TOKEN_ADDRESS'
+    >();
+    let (strk_status, strk_feed_id) = autoswappr_dispatcher
+        .get_token_from_status_and_value(strk_dispatcher.contract_address);
+    let (eth_status, eth_feed_id) = autoswappr_dispatcher
+        .get_token_from_status_and_value(eth_dispatcher.contract_address);
+    let (unsupported_token_status, unsupported_token_feed_id) = autoswappr_dispatcher
+        .get_token_from_status_and_value(unsupported_token_address);
+
+    assert(strk_status == true, 'strk token is not supported');
+    assert(strk_feed_id == 'STRK/USD', 'strk token feed id is STRK/USD');
+
+    assert(eth_status == true, 'eth token is not supported');
+    assert(eth_feed_id == 'ETH/USD', 'eth token feed id is ETH/USD');
+
+    assert(unsupported_token_status == false, 'unsupported token is supported');
+    assert(unsupported_token_feed_id == '', 'unsupported token feed id is 0');
+}
+
+#[test]
+#[should_panic(expected: 'Caller Not Owner')]
+fn test_support_new_token_from_reverts_if_caller_is_not_owner() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    start_cheat_caller_address_global(USER());
+    autoswappr_dispatcher
+        .support_new_token_from(contract_address_const::<'USDC_TOKEN_ADDRESS'>(), 'USDC/USD');
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'Invalid function argument')]
+fn test_support_new_token_from_reverts_if_feed_id_is_invalid() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    start_cheat_caller_address_global(OWNER());
+    autoswappr_dispatcher
+        .support_new_token_from(contract_address_const::<'USDC_TOKEN_ADDRESS'>(), '');
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+#[should_panic(expected: 'address already exist')]
+fn test_support_new_token_from_reverts_if_token_is_already_supported() {
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    start_cheat_caller_address_global(OWNER());
+    autoswappr_dispatcher.support_new_token_from(strk_dispatcher.contract_address, 'STRK/USD');
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+fn test_support_new_token_from_with_valid_arguments() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    let usdc_address = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
+    start_cheat_caller_address_global(OWNER());
+    autoswappr_dispatcher.support_new_token_from(usdc_address, 'USDC/USD');
+    stop_cheat_caller_address_global();
+    let (usdc_status, usdc_feed_id) = autoswappr_dispatcher
+        .get_token_from_status_and_value(usdc_address);
+    assert(usdc_status == true, 'usdc token is not supported');
+    assert(usdc_feed_id == 'USDC/USD', 'usdc token feed id is USDC/USD');
+}
+
+//////////////////////////////////// remove_token_from ////////////
+#[test]
+#[should_panic(expected: 'Caller Not Owner')]
+fn test_remove_token_from_reverts_if_caller_is_not_owner() {
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    start_cheat_caller_address_global(USER());
+    autoswappr_dispatcher.remove_token_from(strk_dispatcher.contract_address);
+    stop_cheat_caller_address_global();
+}
+
+
+#[test]
+#[should_panic(expected: 'Token not supported')]
+fn test_remove_token_from_reverts_if_token_is_not_supported() {
+    let (autoSwappr_contract_address, _, _) = __setup__();
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    start_cheat_caller_address_global(OWNER());
+    autoswappr_dispatcher.remove_token_from(contract_address_const::<'USDC_TOKEN_ADDRESS'>());
+    stop_cheat_caller_address_global();
+}
+
+#[test]
+fn test_remove_token_from_with_valid_arguments() {
+    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let autoswappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: autoSwappr_contract_address
+    };
+    start_cheat_caller_address_global(OWNER());
+    autoswappr_dispatcher.remove_token_from(strk_dispatcher.contract_address);
+    stop_cheat_caller_address_global();
+    let (strk_status, strk_feed_id) = autoswappr_dispatcher
+        .get_token_from_status_and_value(strk_dispatcher.contract_address);
+
+    assert(strk_status == false, 'strk should not be supported');
+    assert(strk_feed_id == '', 'strk feed id should be empty');
+}
+
+//////////////////////////////////
+// Test price feed integration
+//////////////////////////////////
+
 #[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_tag: latest)]
 fn test_contract_fetches_eth_usd_price_correctly() {
@@ -227,8 +364,9 @@ fn test_contract_fetches_eth_usd_price_correctly() {
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
-    let eth_amount = 10; // 1 ether
-    let usd_amount = autoswappr_dispatcher.get_token_amount_in_usd(eth_dispatcher.contract_address, eth_amount);
+    let eth_amount = 10; // 10 ether
+    let usd_amount = autoswappr_dispatcher
+        .get_token_amount_in_usd(eth_dispatcher.contract_address, eth_amount);
     println!("{} eth in usd using pragma oracle is {}", eth_amount, usd_amount);
 }
 
@@ -239,8 +377,9 @@ fn test_contract_fetches_strk_usd_price_correctly() {
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
-    let strk_amount = 1000; // 100 strk
+    let strk_amount = 1000; // 1000 strk
 
-    let usd_amount = autoswappr_dispatcher.get_token_amount_in_usd(strk_dispatcher.contract_address, strk_amount);
+    let usd_amount = autoswappr_dispatcher
+        .get_token_amount_in_usd(strk_dispatcher.contract_address, strk_amount);
     println!("{} strk in usd using pragma oracle is {}", strk_amount, usd_amount);
 }

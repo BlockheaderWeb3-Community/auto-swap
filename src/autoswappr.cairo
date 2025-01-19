@@ -113,7 +113,9 @@ pub mod AutoSwappr {
     ) {
         assert(
             !supported_assets.is_empty()
-                && supported_assets.len() == supported_assets_priceFeeds_ids.len(), Errors::INVALID_INPUT);
+                && supported_assets.len() == supported_assets_priceFeeds_ids.len(),
+            Errors::INVALID_INPUT
+        );
 
         for i in 0
             ..supported_assets
@@ -134,7 +136,6 @@ pub mod AutoSwappr {
     // self.supported_assets.entry(_eth_token).write(true);
     }
 
-    
 
     #[abi(embed_v0)]
     impl UpgradeableImpl of IUpgradeable<ContractState> {
@@ -165,9 +166,8 @@ pub mod AutoSwappr {
             );
 
             assert(!token_from_amount.is_zero(), Errors::ZERO_AMOUNT);
-            assert(
-                self.check_if_token_from_is_supported(token_from_address), Errors::UNSUPPORTED_TOKEN
-            );
+            let (supported, _) = self.get_token_from_status_and_value(token_from_address);
+            assert(supported, Errors::UNSUPPORTED_TOKEN,);
 
             let this_contract = get_contract_address();
             let token_from_contract = ERC20ABIDispatcher { contract_address: token_from_address };
@@ -227,10 +227,8 @@ pub mod AutoSwappr {
 
             // assertions
             assert(self.autoswappr_addresses.entry(caller_address).read(), Errors::INVALID_SENDER,);
-            assert(
-                self.check_if_token_from_is_supported(routeParams.token_in),
-                Errors::UNSUPPORTED_TOKEN,
-            );
+            let (supported, _) = self.get_token_from_status_and_value(routeParams.token_in);
+            assert(supported, Errors::UNSUPPORTED_TOKEN,);
             assert(!routeParams.amount_in.is_zero(), Errors::ZERO_AMOUNT);
 
             let token_in_contract = ERC20ABIDispatcher { contract_address: routeParams.token_in };
@@ -267,20 +265,6 @@ pub mod AutoSwappr {
                 );
         }
 
-        // fn get_strk_usd_price(self: @ContractState) -> (u128, u32) {
-        //     // let (price, decimals) =
-        //     self.get_asset_price_median(DataType::SpotEntry(STRK_KEY));
-        //     // price / (fast_power(10_u32, decimals)).into()
-        //     // This above code will return 0 because u128 cannot hold decimals and
-        //     // the current strk price is around 0.4
-        //     self.get_asset_price_median(DataType::SpotEntry(STRK_KEY))
-        // }
-
-        // fn get_eth_usd_price(self: @ContractState) -> u128 {
-        //     let (price, decimals) = self.get_asset_price_median(DataType::SpotEntry(ETH_KEY));
-        //     price / (fast_power(10_u32, decimals)).into()
-        // }
-
         fn get_token_amount_in_usd(
             self: @ContractState, token: ContractAddress, token_amount: u256
         ) -> u256 {
@@ -306,14 +290,33 @@ pub mod AutoSwappr {
             self.autoswappr_addresses.entry(address).write(false);
         }
 
-         fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
+        fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
             self.autoswappr_addresses.read(address)
         }
 
-        fn check_if_token_from_is_supported(
+        fn support_new_token_from(
+            ref self: ContractState, token_from: ContractAddress, feed_id: felt252
+        ) {
+            assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
+            assert(!(feed_id == ''), Errors::INVALID_INPUT);
+            let (supported, _) = self.get_token_from_status_and_value(token_from);
+            assert(!supported, Errors::EXISTING_ADDRESS);
+            self.supported_assets_to_feed_id.write(token_from, feed_id);
+        }
+
+        fn remove_token_from(ref self: ContractState, token_from: ContractAddress) {
+            assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
+            let (supported, _) = self.get_token_from_status_and_value(token_from);
+            assert(supported, Errors::UNSUPPORTED_TOKEN);
+            self.supported_assets_to_feed_id.write(token_from, '');
+        }
+
+        fn get_token_from_status_and_value(
             self: @ContractState, token_from: ContractAddress
-        ) -> bool {
-            !(self.supported_assets_to_feed_id.read(token_from) == '')
+        ) -> (bool, felt252) {
+            let price_feed_id = self.supported_assets_to_feed_id.read(token_from);
+            let supported = !(price_feed_id == '');
+            (supported, price_feed_id)
         }
 
         fn contract_parameters(self: @ContractState) -> ContractInfo {
@@ -325,16 +328,14 @@ pub mod AutoSwappr {
                 owner: self.ownable.owner()
             }
         }
-
         // @notice Checks if an account is an operator
-        // @param address Account address to check
-        // @return bool true if the account is an operator, false otherwise
-       
+    // @param address Account address to check
+    // @return bool true if the account is an operator, false otherwise
+
     }
 
     #[generate_trait]
     impl InternalImpl of InternalTrait {
-
         fn _avnu_swap(
             ref self: ContractState,
             token_from_address: ContractAddress,

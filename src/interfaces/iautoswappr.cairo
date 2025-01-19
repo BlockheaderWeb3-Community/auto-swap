@@ -36,7 +36,15 @@ pub trait IAutoSwappr<TContractState> {
     fn set_operator(ref self: TContractState, address: ContractAddress);
     fn remove_operator(ref self: TContractState, address: ContractAddress);
     fn is_operator(self: @TContractState, address: ContractAddress) -> bool;
-    fn get_token_amount_in_usd(self: @TContractState, token: ContractAddress, token_amount: u256) -> u256;
-    fn check_if_token_from_is_supported(self: @TContractState, token_from: ContractAddress) -> bool;
-    }
+    fn support_new_token_from(
+        ref self: TContractState, token_from: ContractAddress, feed_id: felt252
+    );
+    fn remove_token_from(ref self: TContractState, token_from: ContractAddress);
+    fn get_token_amount_in_usd(
+        self: @TContractState, token: ContractAddress, token_amount: u256
+    ) -> u256;
+    fn get_token_from_status_and_value(
+        self: @TContractState, token_from: ContractAddress
+    ) -> (bool, felt252);
+}
 

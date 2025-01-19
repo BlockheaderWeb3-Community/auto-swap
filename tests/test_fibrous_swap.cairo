@@ -118,7 +118,9 @@ fn approve_amount(
     stop_cheat_caller_address(token);
 }
 
-fn get_swap_parameters(swap_type: SwapType, destination: ContractAddress) -> (RouteParams, Array<SwapParams>) {
+fn get_swap_parameters(
+    swap_type: SwapType, destination: ContractAddress
+) -> (RouteParams, Array<SwapParams>) {
     let mut routeParams = RouteParams {
         token_in: STRK_TOKEN_ADDRESS(),
         token_out: USDT_TOKEN_ADDRESS(),
@@ -250,8 +252,12 @@ fn __setup__() -> IAutoSwapprDispatcher {
         AVNU_EXCHANGE_ADDRESS().into(),
         FIBROUS_EXCHANGE_ADDRESS().into(),
         ORACLE_ADDRESS().into(),
-        2, STRK_TOKEN_ADDRESS().into(), ETH_TOKEN_ADDRESS().into(),
-        2, 'ETH/USD', 'STRK/USD',
+        2,
+        STRK_TOKEN_ADDRESS().into(),
+        ETH_TOKEN_ADDRESS().into(),
+        2,
+        'ETH/USD',
+        'STRK/USD',
         OWNER,
     ];
 
@@ -283,7 +289,9 @@ fn test_fibrous_swap_strk_to_usdt() {
     );
 
     // contract address has to be passed so it can be used as destination address for the swaps
-    let (routeParams, swapParams) = get_swap_parameters(SwapType::strk_usdt, autoSwappr_dispatcher.contract_address);
+    let (routeParams, swapParams) = get_swap_parameters(
+        SwapType::strk_usdt, autoSwappr_dispatcher.contract_address
+    );
 
     call_fibrous_swap(autoSwappr_dispatcher, routeParams, swapParams, ADDRESS_WITH_FUNDS());
 
@@ -315,7 +323,6 @@ fn test_fibrous_swap_strk_to_usdc() {
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
     let previous_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
 
-
     approve_amount(
         STRK_TOKEN().contract_address,
         ADDRESS_WITH_FUNDS(),
@@ -323,7 +330,9 @@ fn test_fibrous_swap_strk_to_usdc() {
         AMOUNT_TO_SWAP_STRK
     );
 
-    let (routeParams, swapParams) = get_swap_parameters(SwapType::strk_usdc, autoSwappr_dispatcher.contract_address);
+    let (routeParams, swapParams) = get_swap_parameters(
+        SwapType::strk_usdc, autoSwappr_dispatcher.contract_address
+    );
 
     call_fibrous_swap(autoSwappr_dispatcher, routeParams, swapParams, ADDRESS_WITH_FUNDS());
 
@@ -344,7 +353,7 @@ fn test_fibrous_swap_strk_to_usdc() {
         USDC_TOKEN().balance_of(FEE_COLLECTOR.try_into().unwrap()),
         previous_fee_collector_amounts.usdc + FEE_AMOUNT,
         "Fee collector balance should increase by fee amount"
-        );
+    );
 }
 
 #[test]
@@ -355,7 +364,6 @@ fn test_fibrous_swap_eth_to_usdt() {
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
     let previous_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
 
-
     approve_amount(
         ETH_TOKEN().contract_address,
         ADDRESS_WITH_FUNDS(),
@@ -363,7 +371,9 @@ fn test_fibrous_swap_eth_to_usdt() {
         AMOUNT_TO_SWAP_ETH
     );
 
-    let (routeParams, swapParams) = get_swap_parameters(SwapType::eth_usdt, autoSwappr_dispatcher.contract_address);
+    let (routeParams, swapParams) = get_swap_parameters(
+        SwapType::eth_usdt, autoSwappr_dispatcher.contract_address
+    );
 
     call_fibrous_swap(autoSwappr_dispatcher, routeParams, swapParams, ADDRESS_WITH_FUNDS());
 
@@ -394,7 +404,6 @@ fn test_fibrous_swap_eth_to_usdc() {
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
     let previous_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
 
-
     approve_amount(
         ETH_TOKEN().contract_address,
         ADDRESS_WITH_FUNDS(),
@@ -402,7 +411,9 @@ fn test_fibrous_swap_eth_to_usdc() {
         AMOUNT_TO_SWAP_ETH
     );
 
-    let (routeParams, swapParams) = get_swap_parameters(SwapType::eth_usdc, autoSwappr_dispatcher.contract_address);
+    let (routeParams, swapParams) = get_swap_parameters(
+        SwapType::eth_usdc, autoSwappr_dispatcher.contract_address
+    );
 
     call_fibrous_swap(autoSwappr_dispatcher, routeParams, swapParams, ADDRESS_WITH_FUNDS());
 
@@ -423,7 +434,7 @@ fn test_fibrous_swap_eth_to_usdc() {
         USDC_TOKEN().balance_of(FEE_COLLECTOR.try_into().unwrap()),
         previous_fee_collector_amounts.usdc + FEE_AMOUNT,
         "Fee collector balance should increase by fee amount"
-        );
+    );
 }
 
 #[test]
@@ -450,10 +461,19 @@ fn test_fibrous_swap_strk_to_usdt_and_eth_to_usdc() {
     let (routeParams_strk_to_usdt, swapParams_strk_to_usdt) = get_swap_parameters(
         SwapType::strk_usdt, autoSwappr_dispatcher.contract_address
     );
-    let (routeParams_eth_to_usdc, swapParams_eth_to_usdc) = get_swap_parameters(SwapType::eth_usdc, autoSwappr_dispatcher.contract_address);
+    let (routeParams_eth_to_usdc, swapParams_eth_to_usdc) = get_swap_parameters(
+        SwapType::eth_usdc, autoSwappr_dispatcher.contract_address
+    );
 
-    call_fibrous_swap(autoSwappr_dispatcher, routeParams_strk_to_usdt, swapParams_strk_to_usdt, ADDRESS_WITH_FUNDS());
-    call_fibrous_swap(autoSwappr_dispatcher, routeParams_eth_to_usdc, swapParams_eth_to_usdc, ADDRESS_WITH_FUNDS());
+    call_fibrous_swap(
+        autoSwappr_dispatcher,
+        routeParams_strk_to_usdt,
+        swapParams_strk_to_usdt,
+        ADDRESS_WITH_FUNDS()
+    );
+    call_fibrous_swap(
+        autoSwappr_dispatcher, routeParams_eth_to_usdc, swapParams_eth_to_usdc, ADDRESS_WITH_FUNDS()
+    );
 
     // asserts
     assert_eq!(
@@ -482,12 +502,12 @@ fn test_fibrous_swap_strk_to_usdt_and_eth_to_usdc() {
         USDC_TOKEN().balance_of(FEE_COLLECTOR.try_into().unwrap()),
         previous_fee_collector_amounts.usdc + FEE_AMOUNT,
         "Fee collector balance should increase by fee amount"
-        );
+    );
     assert_eq!(
         USDT_TOKEN().balance_of(FEE_COLLECTOR.try_into().unwrap()),
         previous_fee_collector_amounts.usdt + FEE_AMOUNT,
         "Fee collector balance should increase by fee amount"
-        );
+    );
 }
 
 
@@ -501,7 +521,9 @@ fn test_fibrous_swap_should_fail_for_insufficient_allowance_to_contract() {
     // approve_amount(STRK_TOKEN().contract_address, ADDRESS_WITH_FUNDS(),
     // autoSwappr_dispatcher.contract_address,  AMOUNT_TO_SWAP_STRK);
 
-    let (routeParams, swapParams) = get_swap_parameters(SwapType::strk_usdt, autoSwappr_dispatcher.contract_address);
+    let (routeParams, swapParams) = get_swap_parameters(
+        SwapType::strk_usdt, autoSwappr_dispatcher.contract_address
+    );
 
     call_fibrous_swap(autoSwappr_dispatcher, routeParams, swapParams, ADDRESS_WITH_FUNDS());
 }
