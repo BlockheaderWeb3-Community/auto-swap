@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: ["main"]
 
+env:
+  RPC_URL: ${{ vars.RPC_URL }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,6 +26,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    environment: autoswappr
     name: tests
     steps:
       - name: Checkout code
@@ -37,6 +41,15 @@ jobs:
         uses: foundry-rs/setup-snfoundry@v3
         with:
           starknet-foundry-version: "0.33.0"
+
+      - name: Substitute RPC URL in Scarb.toml
+        run: |
+          if [ -z "$RPC_URL" ]; then
+            echo "RPC_URL is not defined. Using blast."
+            sed -i "s|\$RPC_URL|https://starknet-mainnet.public.blastapi.io/rpc/v0_7|g" Scarb.toml
+          else
+            sed -i "s|\$RPC_URL|$RPC_URL|g" Scarb.toml
+          fi
 
       - name: Run tests
         run: snforge test
