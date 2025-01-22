@@ -120,6 +120,7 @@ pub fn ORACLE_ADDRESS() -> ContractAddress {
 }
 
 
+
 const AMOUNT_TO_SWAP_STRK: u256 =
     2000000000000000000; // 2 STRK. used 2 so we can enough to take fee from
 const AMOUNT_TO_SWAP_ETH: u256 = 200000000000000; // 0.0002 ETH 
@@ -423,7 +424,7 @@ fn __setup__() -> IAutoSwapprDispatcher {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+#[fork("MAINNET", block_number: 996491)]
 fn test_avnu_swap_strk_to_usdt() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -499,7 +500,7 @@ fn test_avnu_swap_strk_to_usdt() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996957)]
+#[fork("MAINNET", block_number: 996957)]
 fn test_avnu_swap_strk_to_usdc() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -575,7 +576,7 @@ fn test_avnu_swap_strk_to_usdc() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 997043)]
+#[fork("MAINNET", block_number: 997043)]
 fn test_avnu_swap_eth_to_usdt() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -648,8 +649,8 @@ fn test_avnu_swap_eth_to_usdt() {
 }
 
 #[test]
-// #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 997080)]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 1002124)]
+// #[fork("MAINNET", block_number: 997080)]
+#[fork("MAINNET", block_number: 1002124)]
 fn test_avnu_swap_eth_to_usdc() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -719,7 +720,7 @@ fn test_avnu_swap_eth_to_usdc() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 999126)]
+#[fork("MAINNET", block_number: 999126)]
 fn test_multi_swaps() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -914,7 +915,7 @@ fn test_multi_swaps() {
 //                        UNCHANGED TOKEN BALANCES AFTER SWAPS
 // *************************************************************************
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+#[fork("MAINNET", block_number: 996491)]
 fn test_unswapped_token_balances_should_remain_unchanged_for_strk_usdt_swap() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -953,7 +954,7 @@ fn test_unswapped_token_balances_should_remain_unchanged_for_strk_usdt_swap() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996957)]
+#[fork("MAINNET", block_number: 996957)]
 fn test_unswapped_token_balances_should_remain_unchanged_for_strk_usdc_swap() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -992,7 +993,7 @@ fn test_unswapped_token_balances_should_remain_unchanged_for_strk_usdc_swap() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 997043)]
+#[fork("MAINNET", block_number: 997043)]
 fn test_unswapped_token_balances_should_remain_unchanged_for_eth_usdt_swap() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -1031,7 +1032,7 @@ fn test_unswapped_token_balances_should_remain_unchanged_for_eth_usdt_swap() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 997043)]
+#[fork("MAINNET", block_number: 997043)]
 fn test_unswapped_token_balances_should_remain_unchanged_for_eth_usdc_swap() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -1074,7 +1075,7 @@ fn test_unswapped_token_balances_should_remain_unchanged_for_eth_usdc_swap() {
 //                        EVENT EMISSIONS
 // *************************************************************************
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+#[fork("MAINNET", block_number: 996491)]
 fn test_avnu_swap_event_emission() {
     let mut spy = spy_events();
     let autoSwappr_dispatcher = __setup__();
@@ -1126,7 +1127,7 @@ fn test_avnu_swap_event_emission() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 999126)]
+#[fork("MAINNET", block_number: 999126)]
 fn test_multi_swaps_event_emission() {
     let mut spy = spy_events();
     let autoSwappr_dispatcher = __setup__();
@@ -1297,7 +1298,7 @@ fn test_multi_swaps_event_emission() {
 //                        SHOULD PANIC CASES
 // *************************************************************************
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+#[fork("MAINNET", block_number: 996491)]
 #[should_panic(expected: 'Insufficient Allowance')]
 fn test_avnu_swap_should_fail_for_insufficient_allowance_to_contract() {
     let autoSwappr_dispatcher = __setup__();
@@ -1319,7 +1320,7 @@ fn test_avnu_swap_should_fail_for_insufficient_allowance_to_contract() {
 }
 
 #[test]
-#[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_number: 996491)]
+#[fork("MAINNET", block_number: 996491)]
 #[should_panic(expected: 'Token not supported')]
 fn test_fibrous_swap_should_fail_for_token_not_supported() {
     let autoSwappr_dispatcher = __setup__();
@@ -1341,3 +1342,61 @@ fn test_fibrous_swap_should_fail_for_token_not_supported() {
     );
 }
 
+#[test]
+#[fork("MAINNET", block_number: 996491)]
+#[should_panic(expected: 'Insufficient Allowance')]
+fn test_swap_should_fail_after_token_approval_is_revoked_avnu() {
+    let autoSwappr_dispatcher = __setup__();
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+
+    approve_amount(
+        STRK_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_STRK
+    );
+
+    let params1 = get_swap_parameters(SwapType::strk_usdt);
+
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params1.token_from_address,
+        params1.token_from_amount,
+        params1.token_to_address,
+        params1.token_to_amount,
+        params1.token_to_min_amount,
+        params1.beneficiary,
+        params1.integrator_fee_amount_bps,
+        params1.integrator_fee_recipient,
+        params1.routes
+    );
+
+    let post_swap_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    assert_eq!(
+        post_swap_amounts.strk,
+        previous_amounts.strk - AMOUNT_TO_SWAP_STRK,
+        "First swap should decrease STRK balance"
+    );
+
+    approve_amount(
+        STRK_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        0
+    );
+
+    let params2 = get_swap_parameters(SwapType::strk_usdt);
+
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params2.token_from_address,
+        params2.token_from_amount,
+        params2.token_to_address,
+        params2.token_to_amount,
+        params2.token_to_min_amount,
+        params2.beneficiary,
+        params2.integrator_fee_amount_bps,
+        params2.integrator_fee_recipient,
+        params2.routes
+    );
+}

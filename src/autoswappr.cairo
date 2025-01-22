@@ -12,9 +12,12 @@ pub mod AutoSwappr {
         Map, StoragePointerReadAccess, StoragePointerWriteAccess, StoragePathEntry
     };
     use crate::base::errors::Errors;
+    // use starknet::{ContractAddress, get_caller_address, get_block_timestamp,
+    // get_contract_address};
 
     use core::starknet::{
-        ContractAddress, get_caller_address, contract_address_const, get_contract_address, ClassHash
+        ContractAddress, get_caller_address, contract_address_const, get_contract_address,
+        ClassHash, get_block_timestamp
     };
 
     use openzeppelin::access::ownable::OwnableComponent;
@@ -66,7 +69,9 @@ pub mod AutoSwappr {
         UpgradeableEvent: UpgradeableComponent::Event,
         SwapSuccessful: SwapSuccessful,
         Subscribed: Subscribed,
-        Unsubscribed: Unsubscribed
+        Unsubscribed: Unsubscribed,
+        OperatorAdded: OperatorAdded,
+        OperatorRemoved: OperatorRemoved
     }
 
     #[derive(Drop, starknet::Event)]
@@ -96,6 +101,19 @@ pub mod AutoSwappr {
         pub assets: Assets,
         pub block_timestamp: u64
     }
+
+    #[derive(Copy, Drop, Debug, PartialEq, starknet::Event)]
+    pub struct OperatorAdded {
+        pub operator: ContractAddress,
+        pub time_added: u64
+    }
+
+    #[derive(Copy, Drop, Debug, PartialEq, starknet::Event)]
+    pub struct OperatorRemoved {
+        pub operator: ContractAddress,
+        pub time_removed: u64
+    }
+
 
     #[constructor]
     fn constructor(
@@ -268,20 +286,39 @@ pub mod AutoSwappr {
         }
 
         fn set_operator(ref self: ContractState, address: ContractAddress) {
-            assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
-            assert(
-                self.autoswappr_addresses.entry(address).read() == false, Errors::EXISTING_ADDRESS
-            );
-            self.autoswappr_addresses.entry(address).write(true);
+            // Check if caller is owner
+            self.ownable.assert_only_owner();
+
+            // Check if operator doesn't already exist
+            assert(!self.autoswappr_addresses.read(address), Errors::EXISTING_ADDRESS);
+
+            // Add operator
+            self.autoswappr_addresses.write(address, true);
+
+            // Emit event
+            self
+                .emit(
+                    OperatorAdded { operator: address, time_added: get_block_timestamp().into() }
+                );
         }
 
         fn remove_operator(ref self: ContractState, address: ContractAddress) {
-            assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
-            assert(
-                self.autoswappr_addresses.entry(address).read() == true,
-                Errors::NON_EXISTING_ADDRESS
-            );
-            self.autoswappr_addresses.entry(address).write(false);
+            // Check if caller is owner
+            self.ownable.assert_only_owner();
+
+            // Check if operator exists
+            assert(self.autoswappr_addresses.read(address), Errors::NON_EXISTING_ADDRESS);
+
+            // Remove operator
+            self.autoswappr_addresses.write(address, false);
+
+            // Emit event
+            self
+                .emit(
+                    OperatorRemoved {
+                        operator: address, time_removed: get_block_timestamp().into()
+                    }
+                );
         }
 
         fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
