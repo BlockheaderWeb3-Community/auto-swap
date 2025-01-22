@@ -105,8 +105,6 @@ pub mod AutoSwappr {
         avnu_exchange_address: ContractAddress,
         fibrous_exchange_address: ContractAddress,
         oracle_address: ContractAddress,
-        // _strk_token: ContractAddress,
-        // _eth_token: ContractAddress,
         supported_assets: Array<ContractAddress>,
         supported_assets_priceFeeds_ids: Array<felt252>,
         owner: ContractAddress,
@@ -126,14 +124,10 @@ pub mod AutoSwappr {
                 };
         self.fees_collector.write(fees_collector);
         self.fee_amount_bps.write(fee_amount_bps);
-        // self.strk_token.write(_strk_token);
-        // self.eth_token.write(_eth_token);
         self.fibrous_exchange_address.write(fibrous_exchange_address);
         self.avnu_exchange_address.write(avnu_exchange_address);
         self.oracle_address.write(oracle_address);
         self.ownable.initializer(owner);
-        // self.supported_assets.entry(_strk_token).write(true);
-    // self.supported_assets.entry(_eth_token).write(true);
     }
 
 
