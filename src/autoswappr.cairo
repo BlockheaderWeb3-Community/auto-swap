@@ -31,6 +31,8 @@ pub mod AutoSwappr {
     use core::num::traits::Zero;
     use alexandria_math::fast_power::fast_power;
 
+    const SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN: u256 = 100000;
+
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
 
@@ -166,7 +168,6 @@ pub mod AutoSwappr {
             token_from_amount: u256,
             token_to_address: ContractAddress,
             token_to_amount: u256,
-            token_to_min_amount: u256,
             beneficiary: ContractAddress,
             integrator_fee_amount_bps: u128,
             integrator_fee_recipient: ContractAddress,
@@ -202,7 +203,6 @@ pub mod AutoSwappr {
                     token_from_amount,
                     token_to_address,
                     token_to_amount,
-                    token_to_min_amount,
                     // beneficiary,
                     this_contract, // only caller address can be the beneficiary, in this case, the contract. 
                     integrator_fee_amount_bps,
@@ -373,13 +373,14 @@ pub mod AutoSwappr {
             token_from_amount: u256,
             token_to_address: ContractAddress,
             token_to_amount: u256,
-            token_to_min_amount: u256,
             beneficiary: ContractAddress,
             integrator_fee_amount_bps: u128,
             integrator_fee_recipient: ContractAddress,
             routes: Array<Route>,
         ) -> bool {
             let avnu = IExchangeDispatcher { contract_address: self.avnu_exchange_address.read() };
+
+            let token_to_min_amount = token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN;
 
             avnu
                 .multi_route_swap(
