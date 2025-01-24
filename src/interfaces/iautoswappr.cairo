@@ -46,5 +46,6 @@ pub trait IAutoSwappr<TContractState> {
     fn get_token_from_status_and_value(
         self: @TContractState, token_from: ContractAddress
     ) -> (bool, felt252);
+    fn set_fee_type(ref self: TContractState, fee_type: u8, percentage_fee: u16);
 }
 

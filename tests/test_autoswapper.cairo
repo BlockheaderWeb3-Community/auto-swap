@@ -57,6 +57,9 @@ pub fn ORACLE_ADDRESS() -> ContractAddress {
 
 const FEE_AMOUNT_BPS: u8 = 50; // $0.5 fee
 
+const INITIAL_FEE_TYPE: u8 = 0;
+const INITIAL_PERCENTAGE_FEE:u16 = 100;
+
 // *************************************************************************
 //                              SETUP
 // *************************************************************************
@@ -112,6 +115,8 @@ fn deploy_autoSwappr(
     supported_assets.serialize(ref autoSwappr_constructor_calldata);
     supported_assets_priceFeeds_ids.serialize(ref autoSwappr_constructor_calldata);
     OWNER().serialize(ref autoSwappr_constructor_calldata);
+    INITIAL_FEE_TYPE.serialize(ref autoSwappr_constructor_calldata);
+    INITIAL_PERCENTAGE_FEE.serialize(ref autoSwappr_constructor_calldata);
     let (autoSwappr_contract_address, _) = autoswappr_class_hash
         .deploy(@autoSwappr_constructor_calldata)
         .unwrap();

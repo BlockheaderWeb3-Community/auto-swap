@@ -77,6 +77,8 @@ const MIN_RECEIVED_ETH_TO_STABLE: u256 = 38000000; // 38 USD stable coin (USDC o
 const FEE_AMOUNT_BPS: u8 = 50; // $0.5 fee
 const FEE_AMOUNT: u256 = 50 * 1_000_000 / 100; // $0.5 with 6 decimal
 
+const INITIAL_FEE_TYPE: u8 = 0;
+const INITIAL_PERCENTAGE_FEE:u16 = 100;
 // UTILS
 fn call_fibrous_swap(
     autoSwappr_dispatcher: IAutoSwapprDispatcher,
@@ -259,6 +261,9 @@ fn __setup__() -> IAutoSwapprDispatcher {
         'ETH/USD',
         'STRK/USD',
         OWNER,
+        INITIAL_FEE_TYPE.into(),
+        INITIAL_PERCENTAGE_FEE.into(),
+
     ];
 
     let (auto_swappr_contract_address, _) = auto_swappr_class_hash

@@ -130,6 +130,8 @@ const ROUTES_PERCENT: u128 = 1000000000000;
 const INTEGRATOR_FEE_AMOUNT: u128 = 0;
 const FEE_AMOUNT_BPS: u8 = 50; // $0.5 fee
 const FEE_AMOUNT: u256 = 50 * 1_000_000 / 100; // $0.5 with 6 decimals
+const INITIAL_FEE_TYPE: u8 = 0;
+const INITIAL_PERCENTAGE_FEE:u16 = 100;
 
 
 // *************************************************************************
@@ -406,6 +408,8 @@ fn __setup__() -> IAutoSwapprDispatcher {
         'ETH/USD',
         'STRK/USD',
         OWNER,
+        INITIAL_FEE_TYPE.into(),
+        INITIAL_PERCENTAGE_FEE.into(),
     ];
 
     let (auto_swappr_contract_address, _) = auto_swappr_class_hash
