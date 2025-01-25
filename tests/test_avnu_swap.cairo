@@ -238,8 +238,6 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
         token_from_amount: AMOUNT_TO_SWAP_STRK,
         token_to_address: USDT_TOKEN_ADDRESS(),
         token_to_amount: 510000,
-        token_to_min_amount: 510000
-            - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
         beneficiary: ADDRESS_WITH_FUNDS(),
         integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
         integrator_fee_recipient: INTEGRATOR_FEE_RECIPIENT(),
@@ -264,8 +262,6 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                     token_from_amount: AMOUNT_TO_SWAP_STRK,
                     token_to_address: USDT_TOKEN_ADDRESS(),
                     token_to_amount: 379982,
-                    token_to_min_amount: 379982
-                        - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
                     beneficiary: ADDRESS_WITH_FUNDS(),
                     integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
                     integrator_fee_recipient: INTEGRATOR_FEE_RECIPIENT(),
@@ -294,8 +290,6 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                     token_from_amount: AMOUNT_TO_SWAP_STRK,
                     token_to_address: USDC_TOKEN_ADDRESS(),
                     token_to_amount: 759211,
-                    token_to_min_amount: 759211
-                        - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
                     beneficiary: ADDRESS_WITH_FUNDS(),
                     integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
                     integrator_fee_recipient: INTEGRATOR_FEE_RECIPIENT(),
@@ -317,8 +311,6 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                     token_from_amount: AMOUNT_TO_SWAP_ETH,
                     token_to_address: USDT_TOKEN_ADDRESS(),
                     token_to_amount: 1799547,
-                    token_to_min_amount: 1799547
-                        - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
                     beneficiary: ADDRESS_WITH_FUNDS(),
                     integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
                     integrator_fee_recipient: INTEGRATOR_FEE_RECIPIENT(),
@@ -342,8 +334,6 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                     token_from_amount: AMOUNT_TO_SWAP_ETH,
                     token_to_address: USDC_TOKEN_ADDRESS(),
                     token_to_amount: 1797582,
-                    token_to_min_amount: 1797582
-                        - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
                     beneficiary: ADDRESS_WITH_FUNDS(),
                     integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
                     integrator_fee_recipient: INTEGRATOR_FEE_RECIPIENT(),
@@ -396,7 +386,6 @@ struct AVNUParams {
     token_from_amount: u256,
     token_to_address: ContractAddress,
     token_to_amount: u256,
-    token_to_min_amount: u256,
     beneficiary: ContractAddress,
     integrator_fee_amount_bps: u128,
     integrator_fee_recipient: ContractAddress,
