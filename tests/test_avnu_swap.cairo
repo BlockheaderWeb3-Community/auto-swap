@@ -1,30 +1,3 @@
-// ### Changes implemented:
-
-// 1. Removed the token_to_min_amount parameter and now this value is calculated directly from the _avnu_swap internal function by substracting a fixed gap amount.
-
-// ### Observations:
-// About the routes param -> There is no way to calculate what is the best route from the contract. So it is not possible to remove the routes param from the avnu_swap function. Now, I talk with some AVNU team members and study how to AVNU web app works, so the best alternative to get the value for the routes array is the next:
-
-// AVNU provides an API that has an endpoint that allows us to fetch for the best routes to follow when performing a swap. Here are the [official docs](https://doc.avnu.fi/avnu-spot/integration/api-references/swap) and the [Swagger definition](https://starknet.api.avnu.fi/webjars/swagger-ui/index.html#/Swap/getQuotes). 
-
-// In resume, to get the routes we have to call to the endpoint https://starknet.api.avnu.fi/swap/v1/quotes with the required params, for example:
-// ![Image](https://github.com/user-attachments/assets/2b554c52-3ec6-46e7-b06a-017302ff19ff)
- 
-// This call can be made directly from the frontend, or you can create an API endpoint and from that endpoint call the AVNU API. 
-
-// If you check the AVNU site with the network open, you can see the app is constantly calling to this endpoint to get the best route. In the response there is a routes array that has all the necessary routes info. 
-
-
-// -------- https://doc.avnu.fi/avnu-spot/integration/api-references/swap
-// --- remake all test values in the same block 
-
-// remake all in the same block
-// strk - usdt https://starkscan.co/tx/0x78394b687bc87e85cbd82d8fccc48851830b987671393af47f0dc30413e7635
-// strk - usdc https://starkscan.co/tx/0xcdddfdd643f0b8233551ccc8c36b33cb9fcb92d0f0084a40689aa271ddfc6
-// eth - usdt https://starkscan.co/tx/0x3b1db7a555e918703a903b1ae55f349146efaaf727bbbcef2e2ff25d08ee8c3
-// eth - usdc https://starkscan.co/tx/0x75ca24e47ce6a72dd42635007135d8b5b7c8489309bc1043658b95d0f0cd61e
-
-
 // *************************************************************************
 //                              AVNU SWAP TEST
 // *************************************************************************
