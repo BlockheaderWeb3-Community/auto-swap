@@ -76,9 +76,7 @@ fn EXCHANGE_STRK_USDT() -> ContractAddress {
 fn EXCHANGE_STRK_USDT_POOL() -> ContractAddress {
     // Sometimes the exchange contract takes the currencies to swap from another contract, in this
     // case, the first address of the route extra params
-    contract_address_const::<
-        0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b
-    >() 
+    contract_address_const::<0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b>()
 }
 
 fn EXCHANGE_STRK_USDC() -> ContractAddress {
@@ -126,11 +124,10 @@ pub fn ORACLE_ADDRESS() -> ContractAddress {
 }
 
 
-
 const AMOUNT_TO_SWAP_STRK: u256 =
     2000000000000000000; // 2 STRK. used 2 so we can enough to take fee from
-// const AMOUNT_TO_SWAP_ETH: u256 = 200000000000000; // 0.0002 ETH 
-const AMOUNT_TO_SWAP_ETH: u256 = 530000000000000;  
+// const AMOUNT_TO_SWAP_ETH: u256 = 200000000000000; // 0.0002 ETH
+const AMOUNT_TO_SWAP_ETH: u256 = 530000000000000;
 
 const SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN: u256 = 100000;
 const ROUTES_PERCENT: u128 = 1000000000000;
@@ -293,9 +290,7 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                             token_to: USDT_TOKEN_ADDRESS(),
                             exchange_address: EXCHANGE_ETH_USDT_SITH(),
                             percent: ROUTES_PERCENT,
-                            additional_swap_params: array![
-                                0,
-                            ],
+                            additional_swap_params: array![0,],
                         },
                     ]
                 };
@@ -317,7 +312,7 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                             >(), // ETH
                             token_to: contract_address_const::<
                                 0x124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49
-                            >(), 
+                            >(),
                             exchange_address: EXCHANGE_ETH_USDT_EKUBO(),
                             percent: ROUTES_PERCENT,
                             additional_swap_params: array![
@@ -334,9 +329,11 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                                 0x124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49
                             >(), // ETH
                             token_to: contract_address_const::<
-                                0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8                            
-                            >(), 
-                            exchange_address: contract_address_const::<0x359550b990167afd6635fa574f3bdadd83cb51850e1d00061fe693158c23f80>(),
+                                0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8
+                            >(),
+                            exchange_address: contract_address_const::<
+                                0x359550b990167afd6635fa574f3bdadd83cb51850e1d00061fe693158c23f80
+                            >(),
                             percent: ROUTES_PERCENT,
                             additional_swap_params: array![
                                 0x3bddc1a27c791620183954d2cc95bab2d19b5258946b93ce14115e46f7adc7c,
@@ -418,7 +415,7 @@ fn __setup__() -> IAutoSwapprDispatcher {
 }
 
 #[test]
-#[fork("MAINNET", block_number:1094848 )]
+#[fork("MAINNET", block_number: 1094848)]
 fn test_avnu_swap_strk_to_usdt() {
     let autoSwappr_dispatcher = __setup__();
 
@@ -467,14 +464,17 @@ fn test_avnu_swap_strk_to_usdt() {
 
     assert_ge!(
         new_amounts.usdt,
-        previous_amounts.usdt + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN) - FEE_AMOUNT,
+        previous_amounts.usdt
+            + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            - FEE_AMOUNT,
         "Balance of to token should increase"
     );
 
     // assertions for the exchange
     assert_le!(
         new_exchange_amount_usdt,
-        previous_exchange_amount_usdt - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+        previous_exchange_amount_usdt
+            - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
         "Exchange address USDT balance should decrease"
     );
 
@@ -542,14 +542,17 @@ fn test_avnu_swap_strk_to_usdc() {
 
     assert_ge!(
         new_amounts.usdc,
-        previous_amounts.usdc + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN) - FEE_AMOUNT,
+        previous_amounts.usdc
+            + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            - FEE_AMOUNT,
         "Balance of to token should increase"
     );
 
     // assertions for the exchange
     assert_le!(
         new_exchange_amount_usdc,
-        previous_exchange_amount_usdc - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+        previous_exchange_amount_usdc
+            - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
         "Exchange address USDC balance should decrease"
     );
 
@@ -611,14 +614,17 @@ fn test_avnu_swap_eth_to_usdt() {
 
     assert_ge!(
         new_amounts.usdt,
-        previous_amounts.usdt + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN) - FEE_AMOUNT, 
+        previous_amounts.usdt
+            + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            - FEE_AMOUNT,
         "Balance of to token should increase"
     );
 
     // avnu post-swap assertions
     assert_le!(
         new_exchange_amount_usdt,
-        previous_exchange_amount_usdt - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+        previous_exchange_amount_usdt
+            - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
         "Exchange address USDT balance should decrease"
     );
 
@@ -644,7 +650,9 @@ fn test_avnu_swap_eth_to_usdc() {
     let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
     let previous_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
     let previous_exchange_amount_eth = get_exchange_amount(ETH_TOKEN(), EXCHANGE_STRK_USDT_POOL());
-    let previous_exchange_amount_usdc = get_exchange_amount(USDC_TOKEN(), EXCHANGE_ETH_USDC_INTERMEDIARY());
+    let previous_exchange_amount_usdc = get_exchange_amount(
+        USDC_TOKEN(), EXCHANGE_ETH_USDC_INTERMEDIARY()
+    );
 
     approve_amount(
         ETH_TOKEN().contract_address,
@@ -668,7 +676,9 @@ fn test_avnu_swap_eth_to_usdc() {
     );
     let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
     let new_exchange_amount_eth = get_exchange_amount(ETH_TOKEN(), EXCHANGE_STRK_USDT_POOL());
-    let new_exchange_amount_usdc = get_exchange_amount(USDC_TOKEN(), EXCHANGE_ETH_USDC_INTERMEDIARY());
+    let new_exchange_amount_usdc = get_exchange_amount(
+        USDC_TOKEN(), EXCHANGE_ETH_USDC_INTERMEDIARY()
+    );
     let new_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
 
     // assertion
@@ -680,14 +690,17 @@ fn test_avnu_swap_eth_to_usdc() {
 
     assert_ge!(
         new_amounts.usdc,
-        previous_amounts.usdc + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN) - FEE_AMOUNT,
+        previous_amounts.usdc
+            + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            - FEE_AMOUNT,
         "Balance of to token should increase"
     );
 
     // avnu post-swap assertions
     assert_le!(
         new_exchange_amount_usdc,
-        previous_exchange_amount_usdc - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+        previous_exchange_amount_usdc
+            - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
         "Exchange address USDC balance should decrease"
     );
 
@@ -744,7 +757,9 @@ fn test_multi_swaps() {
     );
     assert_ge!(
         amounts_after_strk_to_usdt.usdt,
-        previous_amounts.usdt + (params_strk_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN) - FEE_AMOUNT,
+        previous_amounts.usdt
+            + (params_strk_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            - FEE_AMOUNT,
         "(amounts_after_strk_to_usdt) USDT Balance of to token should increase"
     );
     // // strk to usdc
@@ -773,7 +788,9 @@ fn test_multi_swaps() {
     );
     assert_ge!(
         amounts_after_strk_to_usdc.usdc,
-        amounts_after_strk_to_usdt.usdc + (params_strk_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN) - FEE_AMOUNT,
+        amounts_after_strk_to_usdt.usdc
+            + (params_strk_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            - FEE_AMOUNT,
         "(amounts_after_strk_to_usdc) USDC Balance of to token should increase"
     );
     // eth to usdt
@@ -802,7 +819,9 @@ fn test_multi_swaps() {
     );
     assert_ge!(
         amounts_after_eth_to_usdt.usdt,
-        amounts_after_strk_to_usdc.usdt + (params_eth_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN) - FEE_AMOUNT,
+        amounts_after_strk_to_usdc.usdt
+            + (params_eth_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            - FEE_AMOUNT,
         "(amounts_after_eth_to_usdt) USDT Balance of to token should increase"
     );
     // eth to usdc
@@ -831,7 +850,9 @@ fn test_multi_swaps() {
     );
     assert_ge!(
         amounts_after_eth_to_usdc.usdc,
-        amounts_after_eth_to_usdt.usdc + (params_eth_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN) - FEE_AMOUNT,
+        amounts_after_eth_to_usdt.usdc
+            + (params_eth_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            - FEE_AMOUNT,
         "(amounts_after_eth_to_usdc) USDC Balance of to token should increase"
     );
 
@@ -855,7 +876,8 @@ fn test_multi_swaps() {
     assert_ge!(
         final_amounts.usdt,
         previous_amounts.usdt
-            + ((params_strk_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN) + (params_eth_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN))
+            + ((params_strk_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+                + (params_eth_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN))
             - FEE_AMOUNT * 2, // should increase the sum of strk and eth swaps to usdt
         "USDT Balance of to token should increase"
     );
@@ -863,7 +885,8 @@ fn test_multi_swaps() {
     assert_ge!(
         final_amounts.usdc,
         previous_amounts.usdc
-            + ((params_eth_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN) + (params_strk_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN))
+            + ((params_eth_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+                + (params_strk_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN))
             - FEE_AMOUNT * 2, // should increase the sum of strk and eth swaps to usdc
         "USDC Balance of to token should increase"
     );

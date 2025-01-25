@@ -579,7 +579,9 @@ fn test_swap_should_fail_after_token_approval_is_revoked_fibrous() {
         AMOUNT_TO_SWAP_STRK
     );
 
-    let (routeParams1, swapParams1) = get_swap_parameters(SwapType::strk_usdt, autoSwappr_dispatcher.contract_address);
+    let (routeParams1, swapParams1) = get_swap_parameters(
+        SwapType::strk_usdt, autoSwappr_dispatcher.contract_address
+    );
 
     call_fibrous_swap(autoSwappr_dispatcher, routeParams1, swapParams1, ADDRESS_WITH_FUNDS());
 
@@ -597,7 +599,9 @@ fn test_swap_should_fail_after_token_approval_is_revoked_fibrous() {
         0
     );
 
-    let (routeParams2, swapParams2) = get_swap_parameters(SwapType::strk_usdt, autoSwappr_dispatcher.contract_address);
+    let (routeParams2, swapParams2) = get_swap_parameters(
+        SwapType::strk_usdt, autoSwappr_dispatcher.contract_address
+    );
 
     call_fibrous_swap(autoSwappr_dispatcher, routeParams2, swapParams2, ADDRESS_WITH_FUNDS());
 }

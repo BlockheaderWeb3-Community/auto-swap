@@ -437,7 +437,6 @@ fn test_is_operator() {
 /////////////////////////////////////////////
 
 #[test]
-
 fn test_get_token_from_status_and_value() {
     let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
