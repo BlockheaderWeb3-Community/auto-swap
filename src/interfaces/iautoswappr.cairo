@@ -5,10 +5,12 @@ use crate::base::types::{RouteParams, SwapParams};
 #[derive(Copy, Debug, Drop, PartialEq, Serde)]
 pub struct ContractInfo {
     pub fees_collector: ContractAddress,
-    pub avnu_exchange_address: ContractAddress,
     pub fibrous_exchange_address: ContractAddress,
+    pub avnu_exchange_address: ContractAddress,
     pub oracle_address: ContractAddress,
-    pub owner: ContractAddress
+    pub owner: ContractAddress,
+    pub fee_type: u8,
+    pub percentage_fee: u16
 }
 
 #[starknet::interface]
