@@ -120,7 +120,7 @@ pub mod AutoSwappr {
     #[derive(Copy, Drop, Debug, PartialEq, starknet::Event)]
     pub struct FeeTypeChanged {
         pub new_fee_type: u8,
-        pub new_percentage_fee: u8,
+        pub new_percentage_fee: u16,
     }
 
 
@@ -369,7 +369,9 @@ pub mod AutoSwappr {
                 fibrous_exchange_address: self.fibrous_exchange_address.read(),
                 avnu_exchange_address: self.avnu_exchange_address.read(),
                 oracle_address: self.oracle_address.read(),
-                owner: self.ownable.owner()
+                owner: self.ownable.owner(),
+                fee_type: self.fee_type.read(),
+                percentage_fee: self.percentage_fee.read()
             }
         }
 
@@ -379,6 +381,7 @@ pub mod AutoSwappr {
             assert(percentage_fee <= 10000, Errors::INVALID_INPUT); // Max 100% fee
             self.fee_type.write(fee_type);
             self.percentage_fee.write(percentage_fee);
+            self.emit(FeeTypeChanged { new_fee_type: fee_type, new_percentage_fee: percentage_fee });
         }
         // @notice Checks if an account is an operator
     // @param address Account address to check
