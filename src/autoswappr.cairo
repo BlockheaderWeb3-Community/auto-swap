@@ -441,14 +441,20 @@ pub mod AutoSwappr {
         fn _collect_fees(
             ref self: ContractState, token_to_received: u256, token_to_contract: ERC20ABIDispatcher
         ) -> u256 {
+            // Retrieve the number of decimal places for the token
             let token_to_decimals: u128 = token_to_contract.decimals().into();
             assert(token_to_decimals > 0, Errors::INVALID_DECIMALS);
 
             let fee: u256 = if self.fee_type.read() == 0 {
                 // Fixed fee
+                // Calculate the fee amount in the smallest unit of the token
+                // fee_amount_bps is in basis points (bps), where 1 bps = 0.01%
+                // fast_power scales the fee based on the token's decimal places
                 (self.fee_amount_bps.read().into() * fast_power(10_u128, token_to_decimals) / 100).into()
             } else {
                 // Percentage fee
+                // percentage_fee is in basis points (bps), where 1 bps = 0.01%
+                // Hence, we divide by 10000 to convert basis points to a percentage
                 token_to_received * self.percentage_fee.read().into() / 10000
             };
 
