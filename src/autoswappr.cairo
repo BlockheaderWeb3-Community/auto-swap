@@ -1,19 +1,18 @@
 #[starknet::contract]
 // @title AutoSwappr Contract
 // @dev Implements upgradeable pattern and ownership control
+
 pub mod AutoSwappr {
     use pragma_lib::abi::{IPragmaABIDispatcher, IPragmaABIDispatcherTrait};
     use pragma_lib::types::{AggregationMode, DataType, PragmaPricesResponse};
     use crate::interfaces::iautoswappr::{IAutoSwappr, ContractInfo};
-    use crate::base::types::{Route, Assets, RouteParams, SwapParams};
+    use crate::base::types::{Route, Assets, RouteParams, SwapParams, FeeType};
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
     use starknet::storage::{
         Map, StoragePointerReadAccess, StoragePointerWriteAccess, StoragePathEntry
     };
     use crate::base::errors::Errors;
-    // use starknet::{ContractAddress, get_caller_address, get_block_timestamp,
-    // get_contract_address};
 
     use core::starknet::{
         ContractAddress, get_caller_address, contract_address_const, get_contract_address,
@@ -47,6 +46,8 @@ pub mod AutoSwappr {
     struct Storage {
         fees_collector: ContractAddress,
         fee_amount_bps: u8, // 50 = 0.5$ fee
+        fee_type: FeeType,
+        percentage_fee: u16, // Percentage fee in basis points (e.g., 100 = 1%)
         avnu_exchange_address: ContractAddress,
         fibrous_exchange_address: ContractAddress,
         oracle_address: ContractAddress,
@@ -71,7 +72,8 @@ pub mod AutoSwappr {
         Subscribed: Subscribed,
         Unsubscribed: Unsubscribed,
         OperatorAdded: OperatorAdded,
-        OperatorRemoved: OperatorRemoved
+        OperatorRemoved: OperatorRemoved,
+        FeeTypeChanged: FeeTypeChanged,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -114,6 +116,14 @@ pub mod AutoSwappr {
         pub time_removed: u64
     }
 
+    #[derive(Copy, Drop, Debug, PartialEq, starknet::Event)]
+    pub struct FeeTypeChanged {
+        pub new_fee_type: FeeType,
+        pub new_percentage_fee: u16,
+    }
+
+    const MAX_FEE_PERCENTAGE: u16 = 300; // 3% in basis points (300 basis points)
+
 
     #[constructor]
     fn constructor(
@@ -126,6 +136,8 @@ pub mod AutoSwappr {
         supported_assets: Array<ContractAddress>,
         supported_assets_priceFeeds_ids: Array<felt252>,
         owner: ContractAddress,
+        initial_fee_type: FeeType,
+        initial_percentage_fee: u16,
     ) {
         assert(
             !supported_assets.is_empty()
@@ -146,6 +158,8 @@ pub mod AutoSwappr {
         self.avnu_exchange_address.write(avnu_exchange_address);
         self.oracle_address.write(oracle_address);
         self.ownable.initializer(owner);
+        self.fee_type.write(initial_fee_type);
+        self.percentage_fee.write(initial_percentage_fee);
     }
 
 
@@ -321,9 +335,6 @@ pub mod AutoSwappr {
                 );
         }
 
-        fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
-            self.autoswappr_addresses.read(address)
-        }
 
         fn support_new_token_from(
             ref self: ContractState, token_from: ContractAddress, feed_id: felt252
@@ -356,13 +367,29 @@ pub mod AutoSwappr {
                 fibrous_exchange_address: self.fibrous_exchange_address.read(),
                 avnu_exchange_address: self.avnu_exchange_address.read(),
                 oracle_address: self.oracle_address.read(),
-                owner: self.ownable.owner()
+                owner: self.ownable.owner(),
+                fee_type: self.fee_type.read(),
+                percentage_fee: self.percentage_fee.read()
             }
         }
-        // @notice Checks if an account is an operator
-    // @param address Account address to check
-    // @return bool true if the account is an operator, false otherwise
 
+        fn set_fee_type(ref self: ContractState, fee_type: FeeType, percentage_fee: u16) {
+            self.ownable.assert_only_owner();
+            assert(percentage_fee <= MAX_FEE_PERCENTAGE, Errors::INVALID_INPUT); // Max 3% fee
+            self.fee_type.write(fee_type);
+            self.percentage_fee.write(percentage_fee);
+            self
+                .emit(
+                    FeeTypeChanged { new_fee_type: fee_type, new_percentage_fee: percentage_fee }
+                );
+        }
+        
+        // @notice Checks if an account is an operator
+        // @param address Account address to check
+        // @return bool true if the account is an operator, false otherwise
+        fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
+            self.autoswappr_addresses.read(address)
+        }
     }
 
     #[generate_trait]
@@ -417,12 +444,24 @@ pub mod AutoSwappr {
         fn _collect_fees(
             ref self: ContractState, token_to_received: u256, token_to_contract: ERC20ABIDispatcher
         ) -> u256 {
+            // Retrieve the number of decimal places for the token
             let token_to_decimals: u128 = token_to_contract.decimals().into();
             assert(token_to_decimals > 0, Errors::INVALID_DECIMALS);
-            let fee: u256 = (self.fee_amount_bps.read().into()
-                * fast_power(10_u128, token_to_decimals)
-                / 100)
-                .into();
+
+            let fee: u256 = match self.fee_type.read() {
+                FeeType::Fixed => {
+                    // Fixed fee calculation
+                    (self.fee_amount_bps.read().into()
+                        * fast_power(10_u128, token_to_decimals)
+                        / 100)
+                        .into()
+                },
+                FeeType::Percentage => {
+                    // Percentage fee calculation
+                    token_to_received * self.percentage_fee.read().into() / 10000
+                }
+            };
+
             token_to_contract.transfer(self.fees_collector.read(), fee);
             token_to_received - fee
         }

@@ -12,7 +12,7 @@ AutoSwappr is a Starknet-based DeFi solution designed for automated token swappi
 
 ### Technical Features
 
-- Upgradeable Architecture: leverages OpenZeppelin's upgradeable contract 
+- Upgradeable Architecture: leverages OpenZeppelin's upgradeable contract
 - Custom Route Configuration: built-in support for multi-token swap routes
 
 ## Architecture
@@ -55,7 +55,6 @@ To set up and run the project locally, ensure you have [the following installed]
    asdf local starknet-foundry 0.31.0
 ```
 
-
 4. Build the Project:
 
 ```bash
@@ -75,26 +74,30 @@ scarb build
 ## Testing
 
 Before running the tests,
+
 1. Ensure the `RPC_URL` environment variable is set locally in your shell:
+
 ```bash
 export RPC_URL=https://starknet-mainnet.public.blastapi.io/rpc/v0_7
 ```
 
 2. Then save and reload your shell:
+
 ```bash
 source ~/.zshrc
 ```
 
 3. After setting the variable, verify it in your shell; this should output your rpc url in your terminal:
+
 ```bash
 echo $RPC_URL
 ```
 
 4. Proceed to run snforge test:
+
 ```bash
 snforge test
 ```
-
 
 ## Contributing
 
@@ -106,8 +109,6 @@ We welcome contributions! Please follow these steps:
 4. Run `bash test_local.sh` to ensure you have a consistent environment with our workflow actions; (Please make you have successfully set `RPC_URL` with this command - `export RPC_URL=https://starknet-mainnet.public.blastapi.io/rpc/v0_7`). All tests must pass locally before proceeding to the next action
 5. Push to the branch (git push origin revoke-allowance)
 6. Open a Pull Request
-
-
 
 ## Pull Request Process
 

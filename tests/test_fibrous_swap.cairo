@@ -10,10 +10,9 @@ use snforge_std::{
 };
 
 use auto_swappr::interfaces::iautoswappr::{IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait};
-use auto_swappr::base::types::{RouteParams, SwapParams};
+use auto_swappr::base::types::{RouteParams, SwapParams, FeeType};
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
-const OWNER: felt252 = 'OWNER';
 const FEE_COLLECTOR: felt252 = 0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
 
 fn AVNU_EXCHANGE_ADDRESS() -> ContractAddress {
@@ -69,6 +68,10 @@ pub fn ORACLE_ADDRESS() -> ContractAddress {
     contract_address_const::<0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b>()
 }
 
+pub fn OWNER() -> ContractAddress {
+    contract_address_const::<'OWNER'>()
+}
+
 const AMOUNT_TO_SWAP_STRK: u256 = 1000000000000000000; // 1 STRK
 const AMOUNT_TO_SWAP_ETH: u256 = 10000000000000000; // 0.01 ETH 
 const MIN_RECEIVED_STRK_TO_STABLE: u256 = 550000; // 0.55 USD stable coin (USDC or USDT)
@@ -77,6 +80,12 @@ const MIN_RECEIVED_ETH_TO_STABLE: u256 = 38000000; // 38 USD stable coin (USDC o
 const FEE_AMOUNT_BPS: u8 = 50; // $0.5 fee
 const FEE_AMOUNT: u256 = 50 * 1_000_000 / 100; // $0.5 with 6 decimal
 
+const INITIAL_FEE_TYPE: FeeType = FeeType::Fixed;
+const INITIAL_PERCENTAGE_FEE: u16 = 100;
+const SUPPORTED_ASSETS_COUNT: u8 = 2;
+const PRICE_FEEDS_COUNT: u8 = 2;
+const ETH_USD_PRICE_FEED: felt252 = 'ETH/USD';
+const STRK_USD_PRICE_FEED: felt252 = 'STRK/USD';
 // UTILS
 fn call_fibrous_swap(
     autoSwappr_dispatcher: IAutoSwapprDispatcher,
@@ -246,29 +255,30 @@ enum SwapType {
 fn __setup__() -> IAutoSwapprDispatcher {
     let auto_swappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
 
-    let mut auto_swappr_constructor_calldata: Array<felt252> = array![
-        FEE_COLLECTOR,
-        FEE_AMOUNT_BPS.into(),
-        AVNU_EXCHANGE_ADDRESS().into(),
-        FIBROUS_EXCHANGE_ADDRESS().into(),
-        ORACLE_ADDRESS().into(),
-        2,
-        STRK_TOKEN_ADDRESS().into(),
-        ETH_TOKEN_ADDRESS().into(),
-        2,
-        'ETH/USD',
-        'STRK/USD',
-        OWNER,
-    ];
+    let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
+    FEE_COLLECTOR.serialize(ref autoSwappr_constructor_calldata);
+    FEE_AMOUNT_BPS.serialize(ref autoSwappr_constructor_calldata);
+    AVNU_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    FIBROUS_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    ORACLE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    SUPPORTED_ASSETS_COUNT.serialize(ref autoSwappr_constructor_calldata);
+    STRK_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    ETH_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    PRICE_FEEDS_COUNT.serialize(ref autoSwappr_constructor_calldata);
+    ETH_USD_PRICE_FEED.serialize(ref autoSwappr_constructor_calldata);
+    STRK_USD_PRICE_FEED.serialize(ref autoSwappr_constructor_calldata);
+    OWNER().serialize(ref autoSwappr_constructor_calldata);
+    INITIAL_FEE_TYPE.serialize(ref autoSwappr_constructor_calldata);
+    INITIAL_PERCENTAGE_FEE.serialize(ref autoSwappr_constructor_calldata);
 
     let (auto_swappr_contract_address, _) = auto_swappr_class_hash
-        .deploy(@auto_swappr_constructor_calldata)
+        .deploy(@autoSwappr_constructor_calldata)
         .unwrap();
 
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: auto_swappr_contract_address,
     };
-    start_cheat_caller_address(auto_swappr_contract_address, OWNER.try_into().unwrap());
+    start_cheat_caller_address(auto_swappr_contract_address, OWNER().try_into().unwrap());
     autoSwappr_dispatcher.set_operator(ADDRESS_WITH_FUNDS());
     stop_cheat_caller_address(auto_swappr_contract_address);
     autoSwappr_dispatcher
@@ -579,7 +589,9 @@ fn test_swap_should_fail_after_token_approval_is_revoked_fibrous() {
         AMOUNT_TO_SWAP_STRK
     );
 
-    let (routeParams1, swapParams1) = get_swap_parameters(SwapType::strk_usdt, autoSwappr_dispatcher.contract_address);
+    let (routeParams1, swapParams1) = get_swap_parameters(
+        SwapType::strk_usdt, autoSwappr_dispatcher.contract_address
+    );
 
     call_fibrous_swap(autoSwappr_dispatcher, routeParams1, swapParams1, ADDRESS_WITH_FUNDS());
 
@@ -597,7 +609,9 @@ fn test_swap_should_fail_after_token_approval_is_revoked_fibrous() {
         0
     );
 
-    let (routeParams2, swapParams2) = get_swap_parameters(SwapType::strk_usdt, autoSwappr_dispatcher.contract_address);
+    let (routeParams2, swapParams2) = get_swap_parameters(
+        SwapType::strk_usdt, autoSwappr_dispatcher.contract_address
+    );
 
     call_fibrous_swap(autoSwappr_dispatcher, routeParams2, swapParams2, ADDRESS_WITH_FUNDS());
 }

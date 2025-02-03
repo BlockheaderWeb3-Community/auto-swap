@@ -34,3 +34,9 @@ pub struct SwapParams {
     pub pool_address: ContractAddress,
     pub extra_data: Array<felt252>,
 }
+
+#[derive(Copy, Drop, Debug, PartialEq, Serde, Clone, starknet::Store)]
+pub enum FeeType {
+    Fixed,
+    Percentage
+}
