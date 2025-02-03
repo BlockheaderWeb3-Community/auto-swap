@@ -182,7 +182,6 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
             :token_from_amount,
             :token_to_address,
             :token_to_amount,
-            :token_to_min_amount,
             :beneficiary,
             :integrator_fee_amount_bps,
             :integrator_fee_recipient,
@@ -215,7 +214,6 @@ fn test_swap_reverts_if_token_is_not_supported() {
             :token_from_amount,
             :token_to_address,
             :token_to_amount,
-            :token_to_min_amount,
             :beneficiary,
             :integrator_fee_amount_bps,
             :integrator_fee_recipient,
@@ -242,7 +240,6 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
             token_from_amount,
             strk_dispatcher.contract_address,
             5_000_000_000,
-            5_000_000_000,
             USER(),
             0,
             ZERO_ADDRESS(),
@@ -267,7 +264,6 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
             strk_dispatcher.contract_address,
             balance,
             eth_dispatcher.contract_address,
-            5_000_000_000,
             5_000_000_000,
             USER(),
             0,
@@ -441,7 +437,6 @@ fn test_is_operator() {
 /////////////////////////////////////////////
 
 #[test]
-
 fn test_get_token_from_status_and_value() {
     let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
