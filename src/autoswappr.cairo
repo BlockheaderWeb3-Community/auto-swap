@@ -363,18 +363,20 @@ pub mod AutoSwappr {
 
     #[generate_trait]
     pub impl InternalImpl of InternalTrait {
-        fn get_min_amount_substract_value(self: @ContractState, token_address:ContractAddress) -> u256 {
+        fn get_min_amount_substract_value(
+            self: @ContractState, token_address: ContractAddress
+        ) -> u256 {
             let token = ERC20ABIDispatcher { contract_address: token_address };
-            assert(token.decimals()>0, '0 decimals are not allowed');
-             
+            assert(token.decimals() > 0, '0 decimals are not allowed');
+
             let mut substract_value = 0;
-            
-            if token.decimals()==1 {
+
+            if token.decimals() == 1 {
                 substract_value = SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN;
             }
-            if token.decimals()>1 {
+            if token.decimals() > 1 {
                 let mut multiplier = 1;
-                for _ in 1..(token.decimals()-1) {
+                for _ in 1..(token.decimals() - 1) {
                     multiplier = multiplier * 10;
                 };
                 substract_value = SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN * multiplier;

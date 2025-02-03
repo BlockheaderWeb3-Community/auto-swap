@@ -18,9 +18,7 @@ use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTr
 const OWNER: felt252 = 'OWNER';
 const FEE_COLLECTOR: felt252 = 0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
 
-use core::starknet::storage::{
-    StoragePointerReadAccess, StoragePointerWriteAccess
-}; 
+use core::starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
 // use super::Contract;
 //     use super::Contract::{InternalTrait, other_internal_function};
 use auto_swappr::autoswappr::AutoSwappr;
@@ -433,8 +431,14 @@ fn test_get_min_amount_substract_value() {
     let substract_value_eth = state.get_min_amount_substract_value(ETH_TOKEN_ADDRESS());
     assert_eq!(substract_value_usdt, 100000, "usdt:Substract value should be 0.1 in 6 decimals");
     assert_eq!(substract_value_usdc, 100000, "usdc:Substract value should be 0.1 in 6 decimals");
-    assert_eq!(substract_value_strk, 100000000000000000, "strk:Substract value should be 0.1 in 18 decimals");
-    assert_eq!(substract_value_eth, 100000000000000000, "eth:Substract value should be 0.1 in 18 decimals");
+    assert_eq!(
+        substract_value_strk,
+        100000000000000000,
+        "strk:Substract value should be 0.1 in 18 decimals"
+    );
+    assert_eq!(
+        substract_value_eth, 100000000000000000, "eth:Substract value should be 0.1 in 18 decimals"
+    );
 }
 
 #[test]
@@ -909,7 +913,8 @@ fn test_multi_swaps() {
         final_amounts.usdc,
         previous_amounts.usdc
             + ((params_eth_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDC)
-                + (params_strk_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDC))
+                + (params_strk_to_usdc.token_to_amount
+                    - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDC))
             - FEE_AMOUNT * 2, // should increase the sum of strk and eth swaps to usdc
         "USDC Balance of to token should increase"
     );
