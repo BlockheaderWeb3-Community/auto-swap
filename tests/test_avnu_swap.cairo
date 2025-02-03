@@ -12,10 +12,9 @@ use snforge_std::{
 
 use auto_swappr::autoswappr::AutoSwappr::{Event, SwapSuccessful};
 use auto_swappr::interfaces::iautoswappr::{IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait};
-use auto_swappr::base::types::Route;
+use auto_swappr::base::types::{Route, FeeType};
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
-const OWNER: felt252 = 'OWNER';
 const FEE_COLLECTOR: felt252 = 0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
 
 fn AVNU_EXCHANGE_ADDRESS() -> ContractAddress {
@@ -45,6 +44,10 @@ fn USDT_TOKEN_ADDRESS() -> ContractAddress {
 fn ADDRESS_WITH_FUNDS() -> ContractAddress {
     // 0.01 ETH - 8.4 STRK
     contract_address_const::<0x298a9d0d82aabfd7e2463bb5ec3590c4e86d03b2ece868d06bbe43475f2d3e6>()
+}
+
+pub fn OWNER() -> ContractAddress {
+    contract_address_const::<'OWNER'>()
 }
 
 
@@ -120,7 +123,6 @@ pub fn ORACLE_ADDRESS() -> ContractAddress {
 }
 
 
-
 const AMOUNT_TO_SWAP_STRK: u256 =
     2000000000000000000; // 2 STRK. used 2 so we can enough to take fee from
 const AMOUNT_TO_SWAP_ETH: u256 = 200000000000000; // 0.0002 ETH 
@@ -130,8 +132,12 @@ const ROUTES_PERCENT: u128 = 1000000000000;
 const INTEGRATOR_FEE_AMOUNT: u128 = 0;
 const FEE_AMOUNT_BPS: u8 = 50; // $0.5 fee
 const FEE_AMOUNT: u256 = 50 * 1_000_000 / 100; // $0.5 with 6 decimals
-const INITIAL_FEE_TYPE: u8 = 0;
-const INITIAL_PERCENTAGE_FEE:u16 = 100;
+const INITIAL_FEE_TYPE: FeeType = FeeType::Fixed;
+const INITIAL_PERCENTAGE_FEE: u16 = 100;
+const SUPPORTED_ASSETS_COUNT: u8 = 2;
+const PRICE_FEEDS_COUNT: u8 = 2;
+const ETH_USD_PRICE_FEED: felt252 = 'ETH/USD';
+const STRK_USD_PRICE_FEED: felt252 = 'STRK/USD';
 
 
 // *************************************************************************
@@ -395,32 +401,31 @@ enum SwapType {
 fn __setup__() -> IAutoSwapprDispatcher {
     let auto_swappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
 
-    let mut auto_swappr_constructor_calldata: Array<felt252> = array![
-        FEE_COLLECTOR,
-        FEE_AMOUNT_BPS.into(),
-        AVNU_EXCHANGE_ADDRESS().into(),
-        FIBROUS_EXCHANGE_ADDRESS().into(),
-        ORACLE_ADDRESS().into(),
-        2,
-        STRK_TOKEN_ADDRESS().into(),
-        ETH_TOKEN_ADDRESS().into(),
-        2,
-        'ETH/USD',
-        'STRK/USD',
-        OWNER,
-        INITIAL_FEE_TYPE.into(),
-        INITIAL_PERCENTAGE_FEE.into(),
-    ];
+    let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
+    FEE_COLLECTOR.serialize(ref autoSwappr_constructor_calldata);
+    FEE_AMOUNT_BPS.serialize(ref autoSwappr_constructor_calldata);
+    AVNU_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    FIBROUS_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    ORACLE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    SUPPORTED_ASSETS_COUNT.serialize(ref autoSwappr_constructor_calldata);
+    STRK_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    ETH_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    PRICE_FEEDS_COUNT.serialize(ref autoSwappr_constructor_calldata);
+    ETH_USD_PRICE_FEED.serialize(ref autoSwappr_constructor_calldata);
+    STRK_USD_PRICE_FEED.serialize(ref autoSwappr_constructor_calldata);
+    OWNER().serialize(ref autoSwappr_constructor_calldata);
+    INITIAL_FEE_TYPE.serialize(ref autoSwappr_constructor_calldata);
+    INITIAL_PERCENTAGE_FEE.serialize(ref autoSwappr_constructor_calldata);
 
     let (auto_swappr_contract_address, _) = auto_swappr_class_hash
-        .deploy(@auto_swappr_constructor_calldata)
+        .deploy(@autoSwappr_constructor_calldata)
         .unwrap();
 
     let autoSwappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: auto_swappr_contract_address,
     };
 
-    start_cheat_caller_address(auto_swappr_contract_address, OWNER.try_into().unwrap());
+    start_cheat_caller_address(auto_swappr_contract_address, OWNER().try_into().unwrap());
     autoSwappr_dispatcher.set_operator(ADDRESS_WITH_FUNDS());
     stop_cheat_caller_address(auto_swappr_contract_address);
 
@@ -1402,5 +1407,92 @@ fn test_swap_should_fail_after_token_approval_is_revoked_avnu() {
         params2.integrator_fee_amount_bps,
         params2.integrator_fee_recipient,
         params2.routes
+    );
+}
+
+#[test]
+#[fork("MAINNET", block_number: 996491)]
+fn test_percentage_fee_deduction_on_swap() {
+    let autoSwappr_dispatcher = __setup__();
+
+    let previous_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let previous_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
+    let previous_exchange_amount_strk = get_exchange_amount(
+        STRK_TOKEN(), EXCHANGE_STRK_USDT_POOL()
+    );
+    let previous_exchange_amount_usdt = get_exchange_amount(
+        USDT_TOKEN(), EXCHANGE_STRK_USDT_POOL()
+    );
+
+    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, OWNER().try_into().unwrap());
+    autoSwappr_dispatcher.set_fee_type(FeeType::Percentage, 200); // 200 basis points (2%)
+    stop_cheat_caller_address(autoSwappr_dispatcher.contract_address);
+
+    approve_amount(
+        STRK_TOKEN().contract_address,
+        ADDRESS_WITH_FUNDS(),
+        autoSwappr_dispatcher.contract_address,
+        AMOUNT_TO_SWAP_STRK
+    );
+
+    let params = get_swap_parameters(SwapType::strk_usdt);
+    call_avnu_swap(
+        autoSwappr_dispatcher,
+        params.token_from_address,
+        params.token_from_amount,
+        params.token_to_address,
+        params.token_to_amount,
+        params.token_to_min_amount,
+        params.beneficiary,
+        params.integrator_fee_amount_bps,
+        params.integrator_fee_recipient,
+        params.routes
+    );
+
+    let new_amounts = get_wallet_amounts(ADDRESS_WITH_FUNDS());
+    let new_exchange_amount_strk = get_exchange_amount(STRK_TOKEN(), EXCHANGE_STRK_USDT_POOL());
+    let new_exchange_amount_usdt = get_exchange_amount(USDT_TOKEN(), EXCHANGE_STRK_USDT_POOL());
+    let new_fee_collector_amounts = get_wallet_amounts(FEE_COLLECTOR.try_into().unwrap());
+
+    // assertions
+    assert_eq!(
+        new_amounts.strk,
+        previous_amounts.strk - AMOUNT_TO_SWAP_STRK,
+        "Balance of from token should decrease"
+    );
+
+    assert_eq!(new_amounts.usdc, previous_amounts.usdc, "USDC balance should remain unchanged");
+
+    assert_ge!(
+        new_amounts.usdt,
+        previous_amounts.usdt + params.token_to_min_amount - FEE_AMOUNT,
+        "Balance of to token should increase"
+    );
+
+    // assertions for the exchange
+    assert_le!(
+        new_exchange_amount_usdt,
+        previous_exchange_amount_usdt - params.token_to_min_amount,
+        "Exchange address USDT balance should decrease"
+    );
+
+    assert_eq!(
+        new_exchange_amount_strk,
+        previous_exchange_amount_strk + AMOUNT_TO_SWAP_STRK,
+        "Exchange address STRK balance should increase"
+    );
+
+    let expected_fee: u256 = params.token_to_amount * 200 / 10000; // 2% of the token_to_amount
+
+    // fee collector assertion with tolerance
+    let tolerance: u256 = 100;
+    assert!(
+        (new_fee_collector_amounts.usdt >= previous_fee_collector_amounts.usdt
+            + expected_fee
+            - tolerance)
+            && (new_fee_collector_amounts.usdt <= previous_fee_collector_amounts.usdt
+                + expected_fee
+                + tolerance),
+        "Fee collector USDT balance should increase by the fee amount within tolerance"
     );
 }

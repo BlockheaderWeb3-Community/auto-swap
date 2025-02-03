@@ -13,7 +13,7 @@ use snforge_std::{
 use auto_swappr::interfaces::iautoswappr::{
     IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait, ContractInfo
 };
-use auto_swappr::base::types::{Route};
+use auto_swappr::base::types::{Route, FeeType};
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 use auto_swappr::autoswappr::AutoSwappr::{Event, OperatorAdded, OperatorRemoved, FeeTypeChanged};
 
@@ -56,8 +56,8 @@ pub fn ORACLE_ADDRESS() -> ContractAddress {
 
 const FEE_AMOUNT_BPS: u8 = 50; // $0.5 fee
 
-const INITIAL_FEE_TYPE: u8 = 0;
-const INITIAL_PERCENTAGE_FEE:u16 = 100;
+const INITIAL_FEE_TYPE: FeeType = FeeType::Fixed;
+const INITIAL_PERCENTAGE_FEE: u16 = 100;
 
 // *************************************************************************
 //                              SETUP
@@ -447,7 +447,6 @@ fn test_is_operator() {
 /////////////////////////////////////////////
 
 #[test]
-
 fn test_get_token_from_status_and_value() {
     let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
@@ -611,22 +610,24 @@ fn test_set_fee_type_fixed_fee() {
     let mut spy = spy_events();
 
     start_cheat_caller_address_global(OWNER());
-    autoswappr_dispatcher.set_fee_type(0, 500); // 0 for fixed fee, 500 basis points (5%)
+    autoswappr_dispatcher.set_fee_type(FeeType::Fixed, 300); // 500 basis points (5%)
     stop_cheat_caller_address_global();
 
     let contract_info = autoswappr_dispatcher.contract_parameters();
-    assert(contract_info.fee_type == 0, 'Fee type should be fixed');
+    assert(contract_info.fee_type == FeeType::Fixed, 'Fee type should be fixed');
     assert(contract_info.percentage_fee == 500, 'Percentage fee should be 500');
 
     spy
-    .assert_emitted(
-        @array![
-            (
-                autoSwappr_contract_address,
-                Event::FeeTypeChanged(FeeTypeChanged { new_fee_type: 0, new_percentage_fee: 500 })
-            )
-        ]
-    );
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_contract_address,
+                    Event::FeeTypeChanged(
+                        FeeTypeChanged { new_fee_type: FeeType::Fixed, new_percentage_fee: 500 }
+                    )
+                )
+            ]
+        );
 }
 
 #[test]
@@ -640,22 +641,26 @@ fn test_set_fee_type_percentage_fee() {
     let mut spy = spy_events();
 
     start_cheat_caller_address_global(OWNER());
-    autoswappr_dispatcher.set_fee_type(1, 200); // 1 for percentage fee, 200 basis points (2%)
+    autoswappr_dispatcher.set_fee_type(FeeType::Percentage, 200); // 200 basis points (2%)
     stop_cheat_caller_address_global();
 
     let contract_info = autoswappr_dispatcher.contract_parameters();
-    assert(contract_info.fee_type == 1, 'Fee type should be percentage');
+    assert(contract_info.fee_type == FeeType::Percentage, 'Fee type should be percentage');
     assert(contract_info.percentage_fee == 200, 'Percentage fee should be 200');
 
     spy
-    .assert_emitted(
-        @array![
-            (
-                autoSwappr_contract_address,
-                Event::FeeTypeChanged(FeeTypeChanged { new_fee_type: 1, new_percentage_fee: 200 })
-            )
-        ]
-    );
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_contract_address,
+                    Event::FeeTypeChanged(
+                        FeeTypeChanged {
+                            new_fee_type: FeeType::Percentage, new_percentage_fee: 200
+                        }
+                    )
+                )
+            ]
+        );
 }
 
 #[test]
@@ -670,22 +675,7 @@ fn test_set_fee_type_not_owner() {
     start_cheat_caller_address_global(USER());
 
     // This should panic
-    autoswappr_dispatcher.set_fee_type(0, 500);
-}
-
-#[test]
-#[available_gas(2000000)]
-#[should_panic(expected: ('Invalid function argument',))]
-fn test_set_fee_type_invalid_fee_type() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
-    let autoswappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address
-    };
-
-    start_cheat_caller_address_global(OWNER());
-
-    // This should panic due to invalid fee type
-    autoswappr_dispatcher.set_fee_type(2, 500);
+    autoswappr_dispatcher.set_fee_type(FeeType::Fixed, 500);
 }
 
 #[test]
@@ -700,5 +690,5 @@ fn test_set_fee_type_invalid_percentage() {
     start_cheat_caller_address_global(OWNER());
 
     // This should panic due to invalid percentage (over 100%)
-    autoswappr_dispatcher.set_fee_type(1, 10001);
+    autoswappr_dispatcher.set_fee_type(FeeType::Percentage, 10001);
 }
