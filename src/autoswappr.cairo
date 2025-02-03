@@ -13,8 +13,6 @@ pub mod AutoSwappr {
         Map, StoragePointerReadAccess, StoragePointerWriteAccess, StoragePathEntry
     };
     use crate::base::errors::Errors;
-    // use starknet::{ContractAddress, get_caller_address, get_block_timestamp,
-    // get_contract_address};
 
     use core::starknet::{
         ContractAddress, get_caller_address, contract_address_const, get_contract_address,
@@ -337,9 +335,6 @@ pub mod AutoSwappr {
                 );
         }
 
-        fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
-            self.autoswappr_addresses.read(address)
-        }
 
         fn support_new_token_from(
             ref self: ContractState, token_from: ContractAddress, feed_id: felt252
@@ -388,10 +383,13 @@ pub mod AutoSwappr {
                     FeeTypeChanged { new_fee_type: fee_type, new_percentage_fee: percentage_fee }
                 );
         }
+        
         // @notice Checks if an account is an operator
-    // @param address Account address to check
-    // @return bool true if the account is an operator, false otherwise
-
+        // @param address Account address to check
+        // @return bool true if the account is an operator, false otherwise
+        fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
+            self.autoswappr_addresses.read(address)
+        }
     }
 
     #[generate_trait]
