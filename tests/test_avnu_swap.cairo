@@ -18,6 +18,14 @@ use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTr
 const OWNER: felt252 = 'OWNER';
 const FEE_COLLECTOR: felt252 = 0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
 
+use core::starknet::storage::{
+    StoragePointerReadAccess, StoragePointerWriteAccess
+}; 
+// use super::Contract;
+//     use super::Contract::{InternalTrait, other_internal_function};
+use auto_swappr::autoswappr::AutoSwappr;
+use auto_swappr::autoswappr::AutoSwappr::{InternalTrait};
+
 fn AVNU_EXCHANGE_ADDRESS() -> ContractAddress {
     contract_address_const::<0x04270219d365d6b017231b52e92b3fb5d7c8378b05e9abc97724537a80e93b0f>()
 }
@@ -129,7 +137,8 @@ const AMOUNT_TO_SWAP_STRK: u256 =
 // const AMOUNT_TO_SWAP_ETH: u256 = 200000000000000; // 0.0002 ETH
 const AMOUNT_TO_SWAP_ETH: u256 = 530000000000000;
 
-const SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN: u256 = 100000;
+const SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDC: u256 = 100000;
+const SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDT: u256 = 100000;
 const ROUTES_PERCENT: u128 = 1000000000000;
 const INTEGRATOR_FEE_AMOUNT: u128 = 0;
 const FEE_AMOUNT_BPS: u8 = 50; // $0.5 fee
@@ -415,6 +424,20 @@ fn __setup__() -> IAutoSwapprDispatcher {
 }
 
 #[test]
+#[fork("MAINNET", block_number: 1094855)]
+fn test_get_min_amount_substract_value() {
+    let state = AutoSwappr::contract_state_for_testing();
+    let substract_value_usdt = state.get_min_amount_substract_value(USDT_TOKEN_ADDRESS());
+    let substract_value_usdc = state.get_min_amount_substract_value(USDC_TOKEN_ADDRESS());
+    let substract_value_strk = state.get_min_amount_substract_value(STRK_TOKEN_ADDRESS());
+    let substract_value_eth = state.get_min_amount_substract_value(ETH_TOKEN_ADDRESS());
+    assert_eq!(substract_value_usdt, 100000, "usdt:Substract value should be 0.1 in 6 decimals");
+    assert_eq!(substract_value_usdc, 100000, "usdc:Substract value should be 0.1 in 6 decimals");
+    assert_eq!(substract_value_strk, 100000000000000000, "strk:Substract value should be 0.1 in 18 decimals");
+    assert_eq!(substract_value_eth, 100000000000000000, "eth:Substract value should be 0.1 in 18 decimals");
+}
+
+#[test]
 #[fork("MAINNET", block_number: 1094848)]
 fn test_avnu_swap_strk_to_usdt() {
     let autoSwappr_dispatcher = __setup__();
@@ -465,7 +488,7 @@ fn test_avnu_swap_strk_to_usdt() {
     assert_ge!(
         new_amounts.usdt,
         previous_amounts.usdt
-            + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDT)
             - FEE_AMOUNT,
         "Balance of to token should increase"
     );
@@ -474,7 +497,7 @@ fn test_avnu_swap_strk_to_usdt() {
     assert_le!(
         new_exchange_amount_usdt,
         previous_exchange_amount_usdt
-            - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+            - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDT),
         "Exchange address USDT balance should decrease"
     );
 
@@ -543,7 +566,7 @@ fn test_avnu_swap_strk_to_usdc() {
     assert_ge!(
         new_amounts.usdc,
         previous_amounts.usdc
-            + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDC)
             - FEE_AMOUNT,
         "Balance of to token should increase"
     );
@@ -552,7 +575,7 @@ fn test_avnu_swap_strk_to_usdc() {
     assert_le!(
         new_exchange_amount_usdc,
         previous_exchange_amount_usdc
-            - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+            - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDC),
         "Exchange address USDC balance should decrease"
     );
 
@@ -615,7 +638,7 @@ fn test_avnu_swap_eth_to_usdt() {
     assert_ge!(
         new_amounts.usdt,
         previous_amounts.usdt
-            + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDT)
             - FEE_AMOUNT,
         "Balance of to token should increase"
     );
@@ -624,7 +647,7 @@ fn test_avnu_swap_eth_to_usdt() {
     assert_le!(
         new_exchange_amount_usdt,
         previous_exchange_amount_usdt
-            - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+            - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDT),
         "Exchange address USDT balance should decrease"
     );
 
@@ -691,7 +714,7 @@ fn test_avnu_swap_eth_to_usdc() {
     assert_ge!(
         new_amounts.usdc,
         previous_amounts.usdc
-            + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            + (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDC)
             - FEE_AMOUNT,
         "Balance of to token should increase"
     );
@@ -700,7 +723,7 @@ fn test_avnu_swap_eth_to_usdc() {
     assert_le!(
         new_exchange_amount_usdc,
         previous_exchange_amount_usdc
-            - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN),
+            - (params.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDC),
         "Exchange address USDC balance should decrease"
     );
 
@@ -758,7 +781,7 @@ fn test_multi_swaps() {
     assert_ge!(
         amounts_after_strk_to_usdt.usdt,
         previous_amounts.usdt
-            + (params_strk_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            + (params_strk_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDT)
             - FEE_AMOUNT,
         "(amounts_after_strk_to_usdt) USDT Balance of to token should increase"
     );
@@ -789,7 +812,7 @@ fn test_multi_swaps() {
     assert_ge!(
         amounts_after_strk_to_usdc.usdc,
         amounts_after_strk_to_usdt.usdc
-            + (params_strk_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            + (params_strk_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDC)
             - FEE_AMOUNT,
         "(amounts_after_strk_to_usdc) USDC Balance of to token should increase"
     );
@@ -820,7 +843,7 @@ fn test_multi_swaps() {
     assert_ge!(
         amounts_after_eth_to_usdt.usdt,
         amounts_after_strk_to_usdc.usdt
-            + (params_eth_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            + (params_eth_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDT)
             - FEE_AMOUNT,
         "(amounts_after_eth_to_usdt) USDT Balance of to token should increase"
     );
@@ -851,7 +874,7 @@ fn test_multi_swaps() {
     assert_ge!(
         amounts_after_eth_to_usdc.usdc,
         amounts_after_eth_to_usdt.usdc
-            + (params_eth_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
+            + (params_eth_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDC)
             - FEE_AMOUNT,
         "(amounts_after_eth_to_usdc) USDC Balance of to token should increase"
     );
@@ -876,8 +899,8 @@ fn test_multi_swaps() {
     assert_ge!(
         final_amounts.usdt,
         previous_amounts.usdt
-            + ((params_strk_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
-                + (params_eth_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN))
+            + ((params_strk_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDT)
+                + (params_eth_to_usdt.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDT))
             - FEE_AMOUNT * 2, // should increase the sum of strk and eth swaps to usdt
         "USDT Balance of to token should increase"
     );
@@ -885,8 +908,8 @@ fn test_multi_swaps() {
     assert_ge!(
         final_amounts.usdc,
         previous_amounts.usdc
-            + ((params_eth_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN)
-                + (params_strk_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN))
+            + ((params_eth_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDC)
+                + (params_strk_to_usdc.token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN_USDC))
             - FEE_AMOUNT * 2, // should increase the sum of strk and eth swaps to usdc
         "USDC Balance of to token should increase"
     );

@@ -31,7 +31,7 @@ pub mod AutoSwappr {
     use core::num::traits::Zero;
     use alexandria_math::fast_power::fast_power;
 
-    const SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN: u256 = 100000;
+    const SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN: u256 = 10; //1 decimal point so this is 1
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
@@ -359,14 +359,30 @@ pub mod AutoSwappr {
                 owner: self.ownable.owner()
             }
         }
-        // @notice Checks if an account is an operator
-    // @param address Account address to check
-    // @return bool true if the account is an operator, false otherwise
-
     }
 
     #[generate_trait]
-    impl InternalImpl of InternalTrait {
+    pub impl InternalImpl of InternalTrait {
+        fn get_min_amount_substract_value(self: @ContractState, token_address:ContractAddress) -> u256 {
+            let token = ERC20ABIDispatcher { contract_address: token_address };
+            assert(token.decimals()>0, '0 decimals are not allowed');
+             
+            let mut substract_value = 0;
+            
+            if token.decimals()==1 {
+                substract_value = SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN;
+            }
+            if token.decimals()>1 {
+                let mut multiplier = 1;
+                for _ in 1..(token.decimals()-1) {
+                    multiplier = multiplier * 10;
+                };
+                substract_value = SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN * multiplier;
+            }
+
+            substract_value
+        }
+
         fn _avnu_swap(
             ref self: ContractState,
             token_from_address: ContractAddress,
@@ -380,7 +396,8 @@ pub mod AutoSwappr {
         ) -> bool {
             let avnu = IExchangeDispatcher { contract_address: self.avnu_exchange_address.read() };
 
-            let token_to_min_amount = token_to_amount - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN;
+            let substract_value = self.get_min_amount_substract_value(token_to_address);
+            let token_to_min_amount = token_to_amount - substract_value;
 
             avnu
                 .multi_route_swap(
