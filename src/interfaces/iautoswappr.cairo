@@ -1,6 +1,6 @@
 use core::starknet::ContractAddress;
 use crate::base::types::Route;
-use crate::base::types::{RouteParams, SwapParams};
+use crate::base::types::{RouteParams, SwapParams, FeeType};
 
 #[derive(Copy, Debug, Drop, PartialEq, Serde)]
 pub struct ContractInfo {
@@ -9,7 +9,7 @@ pub struct ContractInfo {
     pub avnu_exchange_address: ContractAddress,
     pub oracle_address: ContractAddress,
     pub owner: ContractAddress,
-    pub fee_type: u8,
+    pub fee_type: FeeType,
     pub percentage_fee: u16
 }
 
@@ -48,6 +48,6 @@ pub trait IAutoSwappr<TContractState> {
     fn get_token_from_status_and_value(
         self: @TContractState, token_from: ContractAddress
     ) -> (bool, felt252);
-    fn set_fee_type(ref self: TContractState, fee_type: u8, percentage_fee: u16);
+    fn set_fee_type(ref self: TContractState, fee_type: FeeType, percentage_fee: u16);
 }
 
