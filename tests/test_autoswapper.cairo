@@ -610,12 +610,12 @@ fn test_set_fee_type_fixed_fee() {
     let mut spy = spy_events();
 
     start_cheat_caller_address_global(OWNER());
-    autoswappr_dispatcher.set_fee_type(FeeType::Fixed, 300); // 500 basis points (5%)
+    autoswappr_dispatcher.set_fee_type(FeeType::Fixed, 300); // 300 basis points (5%)
     stop_cheat_caller_address_global();
 
     let contract_info = autoswappr_dispatcher.contract_parameters();
     assert(contract_info.fee_type == FeeType::Fixed, 'Fee type should be fixed');
-    assert(contract_info.percentage_fee == 500, 'Percentage fee should be 500');
+    assert(contract_info.percentage_fee == 300, 'Percentage fee should be 500');
 
     spy
         .assert_emitted(
@@ -623,7 +623,7 @@ fn test_set_fee_type_fixed_fee() {
                 (
                     autoSwappr_contract_address,
                     Event::FeeTypeChanged(
-                        FeeTypeChanged { new_fee_type: FeeType::Fixed, new_percentage_fee: 500 }
+                        FeeTypeChanged { new_fee_type: FeeType::Fixed, new_percentage_fee: 300 }
                     )
                 )
             ]
