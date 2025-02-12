@@ -3,35 +3,41 @@
 // @dev Implements upgradeable pattern and ownership control
 
 pub mod AutoSwappr {
+    // External imports
     use pragma_lib::abi::{IPragmaABIDispatcher, IPragmaABIDispatcherTrait};
     use pragma_lib::types::{AggregationMode, DataType, PragmaPricesResponse};
-    use crate::interfaces::iautoswappr::{IAutoSwappr, ContractInfo};
-    use crate::base::types::{Route, Assets, RouteParams, SwapParams, FeeType};
+    use alexandria_math::fast_power::fast_power;
+
+    // OZ imports
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
+    use openzeppelin::access::ownable::OwnableComponent;
+    use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+
     use starknet::storage::{
         Map, StoragePointerReadAccess, StoragePointerWriteAccess, StoragePathEntry
     };
-    use crate::base::errors::Errors;
-
-    use core::starknet::{
-        ContractAddress, get_caller_address, contract_address_const, get_contract_address,
-        ClassHash, get_block_timestamp
+    use starknet::{
+        ContractAddress, get_caller_address, contract_address_const, get_contract_address, ClassHash
     };
 
-    use openzeppelin::access::ownable::OwnableComponent;
+    // Package imports
+    use crate::base::errors::Errors;
+    use crate::interfaces::iautoswappr::{IAutoSwappr, ContractInfo};
+    use crate::base::types::{Route, Assets, RouteParams, SwapParams, FeeType};
+    use crate::components::operator::OperatorComponent;
     use crate::interfaces::iavnu_exchange::{IExchangeDispatcher, IExchangeDispatcherTrait};
     use crate::interfaces::ifibrous_exchange::{
         IFibrousExchangeDispatcher, IFibrousExchangeDispatcherTrait
     };
-    use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 
+    // Core imports
     use core::integer::{u256, u128};
     use core::num::traits::Zero;
-    use alexandria_math::fast_power::fast_power;
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
+    component!(path: OperatorComponent, storage: operator, event: OperatorEvent);
 
     #[abi(embed_v0)]
     impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
@@ -39,6 +45,7 @@ pub mod AutoSwappr {
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
 
     impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
+
 
     // @notice Storage struct containing all contract state variables
     // @dev Includes mappings for supported assets and critical contract addresses
@@ -57,32 +64,33 @@ pub mod AutoSwappr {
         ownable: OwnableComponent::Storage,
         #[substorage(v0)]
         upgradeable: UpgradeableComponent::Storage,
+        #[substorage(v0)]
+        operator: OperatorComponent::Storage,
     }
 
     // @notice Events emitted by the contract
-
     #[event]
     #[derive(starknet::Event, Drop)]
     pub enum Event {
+        SwapSuccessful: SwapSuccessful,
+        Subscribed: Subscribed,
+        Unsubscribed: Unsubscribed,
+        FeeTypeChanged: FeeTypeChanged,
         #[flat]
         OwnableEvent: OwnableComponent::Event,
         #[flat]
         UpgradeableEvent: UpgradeableComponent::Event,
-        SwapSuccessful: SwapSuccessful,
-        Subscribed: Subscribed,
-        Unsubscribed: Unsubscribed,
-        OperatorAdded: OperatorAdded,
-        OperatorRemoved: OperatorRemoved,
-        FeeTypeChanged: FeeTypeChanged,
+        #[flat]
+        OperatorEvent: OperatorComponent::Event,
     }
 
-    #[derive(Drop, starknet::Event)]
     // @notice Event emitted when a swap is successfully executed
     // @param token_from_address Address of the token being sold
     // @param token_from_amount Amount of tokens being sold
     // @param token_to_address Address of the token being bought
     // @param token_to_amount Amount of tokens being bought
     // @param beneficiary Address receiving the bought tokens
+    #[derive(Drop, starknet::Event)]
     pub struct SwapSuccessful {
         pub token_from_address: ContractAddress,
         pub token_from_amount: u256,
@@ -105,25 +113,12 @@ pub mod AutoSwappr {
     }
 
     #[derive(Copy, Drop, Debug, PartialEq, starknet::Event)]
-    pub struct OperatorAdded {
-        pub operator: ContractAddress,
-        pub time_added: u64
-    }
-
-    #[derive(Copy, Drop, Debug, PartialEq, starknet::Event)]
-    pub struct OperatorRemoved {
-        pub operator: ContractAddress,
-        pub time_removed: u64
-    }
-
-    #[derive(Copy, Drop, Debug, PartialEq, starknet::Event)]
     pub struct FeeTypeChanged {
         pub new_fee_type: FeeType,
         pub new_percentage_fee: u16,
     }
 
     const MAX_FEE_PERCENTAGE: u16 = 300; // 3% in basis points (300 basis points)
-
 
     #[constructor]
     fn constructor(
@@ -299,42 +294,6 @@ pub mod AutoSwappr {
             price.into() * token_amount / fast_power(10_u32, decimals).into()
         }
 
-        fn set_operator(ref self: ContractState, address: ContractAddress) {
-            // Check if caller is owner
-            self.ownable.assert_only_owner();
-
-            // Check if operator doesn't already exist
-            assert(!self.autoswappr_addresses.read(address), Errors::EXISTING_ADDRESS);
-
-            // Add operator
-            self.autoswappr_addresses.write(address, true);
-
-            // Emit event
-            self
-                .emit(
-                    OperatorAdded { operator: address, time_added: get_block_timestamp().into() }
-                );
-        }
-
-        fn remove_operator(ref self: ContractState, address: ContractAddress) {
-            // Check if caller is owner
-            self.ownable.assert_only_owner();
-
-            // Check if operator exists
-            assert(self.autoswappr_addresses.read(address), Errors::NON_EXISTING_ADDRESS);
-
-            // Remove operator
-            self.autoswappr_addresses.write(address, false);
-
-            // Emit event
-            self
-                .emit(
-                    OperatorRemoved {
-                        operator: address, time_removed: get_block_timestamp().into()
-                    }
-                );
-        }
-
 
         fn support_new_token_from(
             ref self: ContractState, token_from: ContractAddress, feed_id: felt252
@@ -382,13 +341,6 @@ pub mod AutoSwappr {
                 .emit(
                     FeeTypeChanged { new_fee_type: fee_type, new_percentage_fee: percentage_fee }
                 );
-        }
-        
-        // @notice Checks if an account is an operator
-        // @param address Account address to check
-        // @return bool true if the account is an operator, false otherwise
-        fn is_operator(self: @ContractState, address: ContractAddress) -> bool {
-            self.autoswappr_addresses.read(address)
         }
     }
 

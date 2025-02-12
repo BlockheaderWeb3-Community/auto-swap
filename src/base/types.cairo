@@ -40,3 +40,9 @@ pub enum FeeType {
     Fixed,
     Percentage
 }
+
+#[derive(Copy, Drop, Debug, PartialEq, Serde, Clone, starknet::Store)]
+pub enum Token {
+    STRK,
+    USDT,
+}
