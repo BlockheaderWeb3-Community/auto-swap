@@ -7,8 +7,7 @@ pub mod FeeCollector {
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
     use openzeppelin_access::ownable::OwnableComponent;
-    use openzeppelin_token::erc20::{ERC20Component, ERC20HooksEmptyImpl};
-    use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+    use openzeppelin_token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
     // Package imports
     use crate::interfaces::ifee_collector::IFeeCollector;
@@ -18,7 +17,6 @@ pub mod FeeCollector {
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
-    component!(path: ERC20Component, storage: erc20, event: ERC20Event);
     component!(path: OperatorComponent, storage: operator, event: OperatorEvent);
 
     #[abi(embed_v0)]
@@ -26,10 +24,6 @@ pub mod FeeCollector {
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
 
     impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
-
-    #[abi(embed_v0)]
-    impl ERC20MixinImpl = ERC20Component::ERC20MixinImpl<ContractState>;
-    impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
 
     #[abi(embed_v0)]
     impl OperatorImpl = OperatorComponent::OperatorComponent<ContractState>;
@@ -40,8 +34,6 @@ pub mod FeeCollector {
         ownable: OwnableComponent::Storage,
         #[substorage(v0)]
         upgradeable: UpgradeableComponent::Storage,
-        #[substorage(v0)]
-        erc20: ERC20Component::Storage,
         #[substorage(v0)]
         operator: OperatorComponent::Storage,
         strk_contract_address: ContractAddress,
@@ -56,8 +48,6 @@ pub mod FeeCollector {
         OwnableEvent: OwnableComponent::Event,
         #[flat]
         UpgradeableEvent: UpgradeableComponent::Event,
-        #[flat]
-        ERC20Event: ERC20Component::Event,
         #[flat]
         OperatorEvent: OperatorComponent::Event,
         FeesWithdrawn: FeesWithdrawn
@@ -92,22 +82,24 @@ pub mod FeeCollector {
         }
     }
 
+    #[abi(embed_v0)]
     impl FeeCollectorImpl of IFeeCollector<ContractState> {
         fn withdraw(ref self: ContractState, address: ContractAddress, amount: u256, token: Token) {
             self.ownable.assert_only_owner();
             assert(self.operator.is_operator(address), Errors::NOT_OPERATOR);
 
-            let token_contract_dispactcher: ERC20ABIDispatcher = match token {
+            let token_contract_dispactcher: IERC20Dispatcher = match token {
                 Token::STRK => {
-                    ERC20ABIDispatcher { contract_address: self.strk_contract_address.read() }
+                    IERC20Dispatcher { contract_address: self.strk_contract_address.read() }
                 },
                 Token::USDT => {
-                    ERC20ABIDispatcher { contract_address: self.usdt_contract_address.read() }
+                    IERC20Dispatcher { contract_address: self.usdt_contract_address.read() }
                 }
             };
 
             let contract_balance: u256 = token_contract_dispactcher
                 .balance_of(get_contract_address());
+
             assert(contract_balance > amount, Errors::INSUFFICIENT_BALANCE);
 
             token_contract_dispactcher.transfer(address, amount);
@@ -116,12 +108,12 @@ pub mod FeeCollector {
         }
 
         fn get_token_balance(self: @ContractState, token: Token) -> u256 {
-            let token_contract_dispactcher: ERC20ABIDispatcher = match token {
+            let token_contract_dispactcher: IERC20Dispatcher = match token {
                 Token::STRK => {
-                    ERC20ABIDispatcher { contract_address: self.strk_contract_address.read() }
+                    IERC20Dispatcher { contract_address: self.strk_contract_address.read() }
                 },
                 Token::USDT => {
-                    ERC20ABIDispatcher { contract_address: self.usdt_contract_address.read() }
+                    IERC20Dispatcher { contract_address: self.usdt_contract_address.read() }
                 }
             };
 

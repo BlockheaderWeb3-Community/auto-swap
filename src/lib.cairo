@@ -13,6 +13,7 @@ pub mod interfaces {
     pub mod ifibrous_exchange;
     pub mod ifee_collector;
     pub mod ioperator;
+    pub mod ierc20_mintable;
 }
 
 pub mod presets {
