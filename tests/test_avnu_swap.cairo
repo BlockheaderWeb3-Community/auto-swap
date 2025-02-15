@@ -1,19 +1,28 @@
 // *************************************************************************
 //                              AVNU SWAP TEST
 // *************************************************************************
+// core imports
 use core::result::ResultTrait;
+
+// starknet imports
 use starknet::{ContractAddress, contract_address_const};
 
+// snforge imports
 use snforge_std::{
     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
     DeclareResultTrait, start_cheat_account_contract_address, stop_cheat_account_contract_address,
     spy_events, EventSpyAssertionsTrait
 };
 
+// OZ imports
+use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+
+// Autoswappr
 use auto_swappr::autoswappr::AutoSwappr::{Event, SwapSuccessful};
 use auto_swappr::interfaces::iautoswappr::{IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait};
+use auto_swappr::interfaces::ioperator::{IOperatorDispatcher, IOperatorDispatcherTrait};
 use auto_swappr::base::types::{Route, FeeType};
-use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+
 
 const FEE_COLLECTOR: felt252 = 0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
 
@@ -425,8 +434,12 @@ fn __setup__() -> IAutoSwapprDispatcher {
         contract_address: auto_swappr_contract_address,
     };
 
+    let operator_dispatcher = IOperatorDispatcher {
+        contract_address: auto_swappr_contract_address,
+    };
+
     start_cheat_caller_address(auto_swappr_contract_address, OWNER().try_into().unwrap());
-    autoSwappr_dispatcher.set_operator(ADDRESS_WITH_FUNDS());
+    operator_dispatcher.set_operator(ADDRESS_WITH_FUNDS());
     stop_cheat_caller_address(auto_swappr_contract_address);
 
     autoSwappr_dispatcher
