@@ -1,21 +1,33 @@
 // *************************************************************************
-//                              Events TEST
+//                              TEST
 // *************************************************************************
+// core imports
 use core::result::ResultTrait;
+
+// starknet imports
 use starknet::{ContractAddress, contract_address_const};
 
+// snforge imports
 use snforge_std::{
     declare, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address_global,
     stop_cheat_caller_address_global, spy_events, start_cheat_block_timestamp,
     EventSpyAssertionsTrait
 };
 
+// OZ imports
+use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+
+// Autoswappr imports
 use auto_swappr::interfaces::iautoswappr::{
     IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait, ContractInfo
 };
+use auto_swappr::components::operator::OperatorComponent;
 use auto_swappr::base::types::{Route, FeeType};
-use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
-use auto_swappr::autoswappr::AutoSwappr::{Event, OperatorAdded, OperatorRemoved, FeeTypeChanged};
+use auto_swappr::autoswappr::AutoSwappr::{Event, FeeTypeChanged};
+use auto_swappr::interfaces::ioperator::{IOperatorDispatcher, IOperatorDispatcherTrait};
+use auto_swappr::interfaces::ierc20_mintable::{
+    IERC20MintableDispatcher, IERC20MintableDispatcherTrait
+};
 
 // Contract Address Constants
 pub fn USER() -> ContractAddress {
@@ -62,11 +74,12 @@ const INITIAL_PERCENTAGE_FEE: u16 = 100;
 // *************************************************************************
 //                              SETUP
 // *************************************************************************
-fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
+fn __setup__() -> (ContractAddress, IOperatorDispatcher, IERC20Dispatcher, IERC20Dispatcher) {
     let strk_token_name: ByteArray = "STARKNET_TOKEN";
 
     let strk_token_symbol: ByteArray = "STRK";
-    let supply: u256 = 1_000_000_000_000_000_000;
+
+    let decimals: u8 = 18;
 
     let eth_token_name: ByteArray = "ETHER";
     let eth_token_symbol: ByteArray = "ETH";
@@ -75,35 +88,47 @@ fn __setup__() -> (ContractAddress, IERC20Dispatcher, IERC20Dispatcher) {
     let mut strk_constructor_calldata = array![];
     strk_token_name.serialize(ref strk_constructor_calldata);
     strk_token_symbol.serialize(ref strk_constructor_calldata);
-    supply.serialize(ref strk_constructor_calldata);
-    USER().serialize(ref strk_constructor_calldata);
+    decimals.serialize(ref strk_constructor_calldata);
     OWNER().serialize(ref strk_constructor_calldata);
 
     let (strk_contract_address, _) = erc20_class_hash.deploy(@strk_constructor_calldata).unwrap();
 
+    let strk_mintable_dispatcher = IERC20MintableDispatcher {
+        contract_address: strk_contract_address
+    };
+    start_cheat_caller_address_global(OWNER());
+    strk_mintable_dispatcher.mint(USER(), 1_000_000_000_000_000_000);
+    stop_cheat_caller_address_global();
+
     let mut eth_constructor_calldata = array![];
     eth_token_name.serialize(ref eth_constructor_calldata);
     eth_token_symbol.serialize(ref eth_constructor_calldata);
-    supply.serialize(ref eth_constructor_calldata);
-    USER().serialize(ref eth_constructor_calldata);
+    decimals.serialize(ref eth_constructor_calldata);
     OWNER().serialize(ref eth_constructor_calldata);
 
     let (eth_contract_address, _) = erc20_class_hash.deploy(@eth_constructor_calldata).unwrap();
+
+    let eth_mintable_dispatcher = IERC20MintableDispatcher {
+        contract_address: eth_contract_address
+    };
+    start_cheat_caller_address_global(OWNER());
+    eth_mintable_dispatcher.mint(USER(), 1_000_000_000_000_000_000);
+    stop_cheat_caller_address_global();
 
     let strk_dispatcher = IERC20Dispatcher { contract_address: strk_contract_address };
     let eth_dispatcher = IERC20Dispatcher { contract_address: eth_contract_address };
 
     // deploy AutoSwappr
-    let autoSwappr_contract_address = deploy_autoSwappr(
+    let (autoSwappr_contract_address, operator_dispatcher) = deploy_autoSwappr(
         array![eth_contract_address, strk_contract_address], array!['ETH/USD', 'STRK/USD']
     );
 
-    return (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher);
+    return (autoSwappr_contract_address, operator_dispatcher, strk_dispatcher, eth_dispatcher);
 }
 
 fn deploy_autoSwappr(
     supported_assets: Array<ContractAddress>, supported_assets_priceFeeds_ids: Array<felt252>
-) -> ContractAddress {
+) -> (ContractAddress, IOperatorDispatcher) {
     let autoswappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
     let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
     FEE_COLLECTOR_ADDR().serialize(ref autoSwappr_constructor_calldata);
@@ -119,12 +144,13 @@ fn deploy_autoSwappr(
     let (autoSwappr_contract_address, _) = autoswappr_class_hash
         .deploy(@autoSwappr_constructor_calldata)
         .unwrap();
-    let autoswappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address
-    };
+
+    let operator_dispatcher = IOperatorDispatcher { contract_address: autoSwappr_contract_address };
+
     start_cheat_caller_address_global(OWNER());
-    autoswappr_dispatcher.set_operator(OPERATOR());
-    autoSwappr_contract_address
+    operator_dispatcher.set_operator(OPERATOR());
+
+    (autoSwappr_contract_address, operator_dispatcher)
 }
 
 #[test]
@@ -147,7 +173,7 @@ fn test_constructor_reverts_if_supported_assets_array_length_doesnt_match_priceF
 
 #[test]
 fn test_constructor_initializes_correctly() {
-    let (autoSwappr_contract_address, _, _,) = __setup__();
+    let (autoSwappr_contract_address, _, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -167,7 +193,7 @@ fn test_constructor_initializes_correctly() {
 #[test]
 #[should_panic(expected: 'Amount is zero')]
 fn test_swap_reverts_if_token_from_amount_is_zero() {
-    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let (autoSwappr_contract_address, _, strk_dispatcher, _) = __setup__();
 
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
@@ -200,7 +226,7 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
 #[test]
 #[should_panic(expected: 'Token not supported')]
 fn test_swap_reverts_if_token_is_not_supported() {
-    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let (autoSwappr_contract_address, _, strk_dispatcher, _) = __setup__();
 
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
@@ -233,7 +259,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
 #[test]
 #[should_panic(expected: 'Insufficient Allowance')]
 fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
-    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let (autoSwappr_contract_address, _, strk_dispatcher, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
@@ -259,7 +285,7 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
 #[test]
 #[should_panic(expected: 'Insufficient Allowance')]
 fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() {
-    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let (autoSwappr_contract_address, _, strk_dispatcher, eth_dispatcher) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -286,99 +312,80 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
 #[test]
 #[should_panic(expected: 'Caller is not the owner')]
 fn test_set_operator_reverts_if_caller_is_not_owner() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address
-    };
+    let (_, operator_dispatcher, _, _) = __setup__();
 
     start_cheat_caller_address_global(USER());
-    autoSwappr_dispatcher.set_operator(NEW_OPERATOR());
+    operator_dispatcher.set_operator(NEW_OPERATOR());
     stop_cheat_caller_address_global();
 }
 
 #[test]
 #[should_panic(expected: 'address already exist')]
 fn test_set_operator_reverts_if_operator_already_exists() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address
-    };
+    let (_, operator_dispatcher, _, _) = __setup__();
 
     start_cheat_caller_address_global(OWNER());
-    autoSwappr_dispatcher.set_operator(OPERATOR());
+    operator_dispatcher.set_operator(OPERATOR());
+    operator_dispatcher.set_operator(OPERATOR());
     stop_cheat_caller_address_global();
 }
 
 #[test]
 fn test_set_operator_succeeds_when_called_by_owner() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
-    let autoswappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address
-    };
+    let (_, operator_dispatcher, _, _) = __setup__();
 
     start_cheat_caller_address_global(OWNER());
-    autoswappr_dispatcher.set_operator(NEW_OPERATOR());
+    operator_dispatcher.set_operator(NEW_OPERATOR());
     stop_cheat_caller_address_global();
 
     // Assert that NEW_OPERATOR is now an operator
-    assert(autoswappr_dispatcher.is_operator(NEW_OPERATOR()) == true, 'should be operator');
+    assert(operator_dispatcher.is_operator(NEW_OPERATOR()) == true, 'should be operator');
 }
 
 #[test]
 #[should_panic(expected: 'Caller is not the owner')]
 fn test_remove_operator_reverts_if_caller_is_not_owner() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address
-    };
+    let (_, operator_dispatcher, _, _) = __setup__();
 
     start_cheat_caller_address_global(USER());
-    autoSwappr_dispatcher.remove_operator(OPERATOR());
+    operator_dispatcher.remove_operator(OPERATOR());
     stop_cheat_caller_address_global();
 }
 
 #[test]
 #[should_panic(expected: 'address does not exist')]
 fn test_remove_operator_reverts_if_operator_does_not_exist() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address
-    };
+    let (_, operator_dispatcher, _, _) = __setup__();
 
     start_cheat_caller_address_global(OWNER());
-    autoSwappr_dispatcher.remove_operator(NON_EXISTENT_OPERATOR());
+    operator_dispatcher.remove_operator(NON_EXISTENT_OPERATOR());
     stop_cheat_caller_address_global();
 }
 
 #[test]
 fn test_remove_operator_succeeds_when_called_by_owner() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
-    let autoswappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address
-    };
+    let (_, operator_dispatcher, _, _) = __setup__();
 
     // Remove the operator
     start_cheat_caller_address_global(OWNER());
-    autoswappr_dispatcher.remove_operator(OPERATOR());
+
+    operator_dispatcher.remove_operator(OPERATOR());
     stop_cheat_caller_address_global();
 
     // Assert that OPERATOR is no longer an operator
-    assert(autoswappr_dispatcher.is_operator(OPERATOR()) == false, 'should not be operator');
+    assert(operator_dispatcher.is_operator(OPERATOR()) == false, 'should not be operator');
 }
 
 #[test]
 fn test_set_operator_emits_event() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address
-    };
+    let (autoSwappr_contract_address, operator_dispatcher, _, _) = __setup__();
 
     let mut spy = spy_events();
     let timestamp: u64 = 1000;
 
     start_cheat_block_timestamp(autoSwappr_contract_address, timestamp);
     start_cheat_caller_address_global(OWNER());
-    autoSwappr_dispatcher.set_operator(NEW_OPERATOR());
+    operator_dispatcher.set_operator(NEW_OPERATOR());
     stop_cheat_caller_address_global();
 
     spy
@@ -386,8 +393,10 @@ fn test_set_operator_emits_event() {
             @array![
                 (
                     autoSwappr_contract_address,
-                    Event::OperatorAdded(
-                        OperatorAdded { operator: NEW_OPERATOR(), time_added: timestamp }
+                    OperatorComponent::Event::OperatorAdded(
+                        OperatorComponent::OperatorAdded {
+                            operator: NEW_OPERATOR(), time_added: timestamp
+                        }
                     )
                 )
             ]
@@ -396,17 +405,15 @@ fn test_set_operator_emits_event() {
 
 #[test]
 fn test_remove_operator_emits_event() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address
-    };
+    let (autoSwappr_contract_address, operator_dispatcher, _, _) = __setup__();
 
     let mut spy = spy_events();
     let timestamp: u64 = 1000;
 
     start_cheat_block_timestamp(autoSwappr_contract_address, timestamp);
     start_cheat_caller_address_global(OWNER());
-    autoSwappr_dispatcher.remove_operator(OPERATOR());
+
+    operator_dispatcher.remove_operator(OPERATOR());
     stop_cheat_caller_address_global();
 
     spy
@@ -414,29 +421,26 @@ fn test_remove_operator_emits_event() {
             @array![
                 (
                     autoSwappr_contract_address,
-                    Event::OperatorRemoved(
-                        OperatorRemoved { operator: OPERATOR(), time_removed: timestamp }
+                    OperatorComponent::Event::OperatorRemoved(
+                        OperatorComponent::OperatorRemoved {
+                            operator: OPERATOR(), time_removed: timestamp
+                        }
                     )
                 )
             ]
         );
 }
 
-
 fn test_is_operator() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
-
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: autoSwappr_contract_address
-    };
+    let (_, operator_dispatcher, _, _) = __setup__();
 
     start_cheat_caller_address_global(OWNER());
 
-    assert(autoSwappr_dispatcher.is_operator(USER()) == false, 'non operator');
+    assert(operator_dispatcher.is_operator(USER()) == false, 'non operator');
 
-    autoSwappr_dispatcher.set_operator(USER());
+    operator_dispatcher.set_operator(USER());
 
-    assert(autoSwappr_dispatcher.is_operator(USER()) == true, 'is operator');
+    assert(operator_dispatcher.is_operator(USER()) == true, 'is operator');
     stop_cheat_caller_address_global();
 }
 
@@ -448,7 +452,7 @@ fn test_is_operator() {
 
 #[test]
 fn test_get_token_from_status_and_value() {
-    let (autoSwappr_contract_address, strk_dispatcher, eth_dispatcher) = __setup__();
+    let (autoSwappr_contract_address, _, strk_dispatcher, eth_dispatcher) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -475,7 +479,7 @@ fn test_get_token_from_status_and_value() {
 #[test]
 #[should_panic(expected: 'Caller Not Owner')]
 fn test_support_new_token_from_reverts_if_caller_is_not_owner() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
+    let (autoSwappr_contract_address, _, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -488,7 +492,7 @@ fn test_support_new_token_from_reverts_if_caller_is_not_owner() {
 #[test]
 #[should_panic(expected: 'Invalid function argument')]
 fn test_support_new_token_from_reverts_if_feed_id_is_invalid() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
+    let (autoSwappr_contract_address, _, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -501,7 +505,7 @@ fn test_support_new_token_from_reverts_if_feed_id_is_invalid() {
 #[test]
 #[should_panic(expected: 'address already exist')]
 fn test_support_new_token_from_reverts_if_token_is_already_supported() {
-    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let (autoSwappr_contract_address, _, strk_dispatcher, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -512,7 +516,7 @@ fn test_support_new_token_from_reverts_if_token_is_already_supported() {
 
 #[test]
 fn test_support_new_token_from_with_valid_arguments() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
+    let (autoSwappr_contract_address, _, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -530,7 +534,7 @@ fn test_support_new_token_from_with_valid_arguments() {
 #[test]
 #[should_panic(expected: 'Caller Not Owner')]
 fn test_remove_token_from_reverts_if_caller_is_not_owner() {
-    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let (autoSwappr_contract_address, _, strk_dispatcher, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -539,11 +543,10 @@ fn test_remove_token_from_reverts_if_caller_is_not_owner() {
     stop_cheat_caller_address_global();
 }
 
-
 #[test]
 #[should_panic(expected: 'Token not supported')]
 fn test_remove_token_from_reverts_if_token_is_not_supported() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
+    let (autoSwappr_contract_address, _, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -554,7 +557,7 @@ fn test_remove_token_from_reverts_if_token_is_not_supported() {
 
 #[test]
 fn test_remove_token_from_with_valid_arguments() {
-    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let (autoSwappr_contract_address, _, strk_dispatcher, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -575,7 +578,7 @@ fn test_remove_token_from_with_valid_arguments() {
 #[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_tag: latest)]
 fn test_contract_fetches_eth_usd_price_correctly() {
-    let (autoSwappr_contract_address, _, eth_dispatcher) = __setup__();
+    let (autoSwappr_contract_address, _, _, eth_dispatcher) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -588,7 +591,7 @@ fn test_contract_fetches_eth_usd_price_correctly() {
 #[test]
 #[fork(url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7", block_tag: latest)]
 fn test_contract_fetches_strk_usd_price_correctly() {
-    let (autoSwappr_contract_address, strk_dispatcher, _) = __setup__();
+    let (autoSwappr_contract_address, _, strk_dispatcher, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -602,7 +605,7 @@ fn test_contract_fetches_strk_usd_price_correctly() {
 #[test]
 #[available_gas(2000000)]
 fn test_set_fee_type_fixed_fee() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
+    let (autoSwappr_contract_address, _, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -633,7 +636,7 @@ fn test_set_fee_type_fixed_fee() {
 #[test]
 #[available_gas(2000000)]
 fn test_set_fee_type_percentage_fee() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
+    let (autoSwappr_contract_address, _, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -667,7 +670,7 @@ fn test_set_fee_type_percentage_fee() {
 #[available_gas(2000000)]
 #[should_panic(expected: ('Caller is not the owner',))]
 fn test_set_fee_type_not_owner() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
+    let (autoSwappr_contract_address, _, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -682,7 +685,7 @@ fn test_set_fee_type_not_owner() {
 #[available_gas(2000000)]
 #[should_panic(expected: ('Invalid function argument',))]
 fn test_set_fee_type_invalid_percentage() {
-    let (autoSwappr_contract_address, _, _) = __setup__();
+    let (autoSwappr_contract_address, _, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
@@ -692,3 +695,4 @@ fn test_set_fee_type_invalid_percentage() {
     // This should panic due to invalid percentage (over 100%)
     autoswappr_dispatcher.set_fee_type(FeeType::Percentage, 10001);
 }
+
