@@ -35,9 +35,7 @@ pub trait IAutoSwappr<TContractState> {
     );
 
     fn contract_parameters(self: @TContractState) -> ContractInfo;
-    fn set_operator(ref self: TContractState, address: ContractAddress);
-    fn remove_operator(ref self: TContractState, address: ContractAddress);
-    fn is_operator(self: @TContractState, address: ContractAddress) -> bool;
+
     fn support_new_token_from(
         ref self: TContractState, token_from: ContractAddress, feed_id: felt252
     );

@@ -35,6 +35,11 @@ name = "MAINNET"        # Fork name
 url = "$RPC_URL"        # Url of the RPC provider
 block_id.tag = "latest" # Block to fork from (block tag)
 
+[[tool.snforge.fork]]
+name = "SEPOLIA_LATEST"
+url = "https://starknet-sepolia.public.blastapi.io/rpc/v0_7"
+block_id.tag = "latest"
+
 # [[tool.snforge.fork]]
 # name = "SOME_SECOND_NAME"
 # url = "http://your.second.rpc.url"

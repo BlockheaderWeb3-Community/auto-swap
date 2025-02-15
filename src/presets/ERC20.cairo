@@ -13,6 +13,7 @@
 pub mod ERC20Upgradeable {
     use openzeppelin_access::ownable::OwnableComponent;
     use openzeppelin_token::erc20::{ERC20Component, ERC20HooksEmptyImpl};
+    use openzeppelin_token::erc20::interface::IERC20Metadata;
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
     use starknet::{ContractAddress, ClassHash};
@@ -26,9 +27,10 @@ pub mod ERC20Upgradeable {
     impl OwnableMixinImpl = OwnableComponent::OwnableMixinImpl<ContractState>;
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
 
-    // ERC20 Mixin
     #[abi(embed_v0)]
-    impl ERC20MixinImpl = ERC20Component::ERC20MixinImpl<ContractState>;
+    impl ERC20Impl = ERC20Component::ERC20Impl<ContractState>;
+    #[abi(embed_v0)]
+    impl ERC20CamelOnlyImpl = ERC20Component::ERC20CamelOnlyImpl<ContractState>;
     impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
 
     // Upgradeable
@@ -41,7 +43,8 @@ pub mod ERC20Upgradeable {
         #[substorage(v0)]
         pub erc20: ERC20Component::Storage,
         #[substorage(v0)]
-        pub upgradeable: UpgradeableComponent::Storage
+        pub upgradeable: UpgradeableComponent::Storage,
+        decimals: u8
     }
 
     #[event]
@@ -63,13 +66,23 @@ pub mod ERC20Upgradeable {
         ref self: ContractState,
         name: ByteArray,
         symbol: ByteArray,
-        fixed_supply: u256,
-        recipient: ContractAddress,
+        decimals: u8,
         owner: ContractAddress
     ) {
+        self._set_decimals(decimals);
+
         self.ownable.initializer(owner);
         self.erc20.initializer(name, symbol);
-        self.erc20.mint(recipient, fixed_supply);
+    }
+
+    #[generate_trait]
+    #[abi(per_item)]
+    impl ExternalImpl of ExternalTrait {
+        #[external(v0)]
+        fn mint(ref self: ContractState, recipient: ContractAddress, amount: u256) {
+            self.ownable.assert_only_owner();
+            self.erc20.mint(recipient, amount);
+        }
     }
 
     #[abi(embed_v0)]
@@ -79,6 +92,28 @@ pub mod ERC20Upgradeable {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             self.ownable.assert_only_owner();
             self.upgradeable.upgrade(new_class_hash);
+        }
+    }
+
+    #[abi(embed_v0)]
+    impl ERC20MetadataImpl of IERC20Metadata<ContractState> {
+        fn name(self: @ContractState) -> ByteArray {
+            self.erc20.name()
+        }
+
+        fn symbol(self: @ContractState) -> ByteArray {
+            self.erc20.symbol()
+        }
+
+        fn decimals(self: @ContractState) -> u8 {
+            self.decimals.read()
+        }
+    }
+
+    #[generate_trait]
+    impl InternalImpl of InternalTrait {
+        fn _set_decimals(ref self: ContractState, decimals: u8) {
+            self.decimals.write(decimals);
         }
     }
 }

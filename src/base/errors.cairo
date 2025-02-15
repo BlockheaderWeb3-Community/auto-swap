@@ -24,4 +24,5 @@ pub mod Errors {
     pub const INVALID_SENDER: felt252 = 'sender can not call';
     pub const INVALID_DECIMALS: felt252 = 'Token has invalid decimal value';
     pub const INVALID_INPUT: felt252 = 'Invalid function argument';
+    pub const NOT_OPERATOR: felt252 = 'Address is not an operator';
 }
