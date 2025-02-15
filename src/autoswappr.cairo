@@ -14,9 +14,7 @@ pub mod AutoSwappr {
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 
-    use starknet::storage::{
-        Map, StoragePointerReadAccess, StoragePointerWriteAccess, StoragePathEntry
-    };
+    use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess};
     use starknet::{
         ContractAddress, get_caller_address, contract_address_const, get_contract_address, ClassHash
     };
@@ -41,10 +39,12 @@ pub mod AutoSwappr {
 
     #[abi(embed_v0)]
     impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
-
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
 
     impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
+
+    #[abi(embed_v0)]
+    impl OperatorImpl = OperatorComponent::OperatorComponent<ContractState>;
 
 
     // @notice Storage struct containing all contract state variables
@@ -59,7 +59,6 @@ pub mod AutoSwappr {
         fibrous_exchange_address: ContractAddress,
         oracle_address: ContractAddress,
         supported_assets_to_feed_id: Map<ContractAddress, felt252>,
-        autoswappr_addresses: Map<ContractAddress, bool>,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
         #[substorage(v0)]
@@ -181,10 +180,7 @@ pub mod AutoSwappr {
             integrator_fee_recipient: ContractAddress,
             routes: Array<Route>,
         ) {
-            assert(
-                self.autoswappr_addresses.entry(get_caller_address()).read() == true,
-                Errors::INVALID_SENDER
-            );
+            assert(self.operator.is_operator(get_caller_address()), Errors::INVALID_SENDER);
 
             assert(!token_from_amount.is_zero(), Errors::ZERO_AMOUNT);
             let (supported, _) = self.get_token_from_status_and_value(token_from_address);
@@ -247,7 +243,7 @@ pub mod AutoSwappr {
             let contract_address = get_contract_address();
 
             // assertions
-            assert(self.autoswappr_addresses.entry(caller_address).read(), Errors::INVALID_SENDER,);
+            assert(self.operator.is_operator(get_caller_address()), Errors::INVALID_SENDER,);
             let (supported, _) = self.get_token_from_status_and_value(routeParams.token_in);
             assert(supported, Errors::UNSUPPORTED_TOKEN,);
             assert(!routeParams.amount_in.is_zero(), Errors::ZERO_AMOUNT);
