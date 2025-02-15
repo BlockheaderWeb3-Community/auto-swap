@@ -80,7 +80,7 @@ fn test_set_operator() {
     set_operator(OWNER(), OPERATOR());
 
     let is_operator = OPERATOR_DISPATCHER().is_operator(OPERATOR());
-    assert(is_operator, 'Operator not add');
+    assert(is_operator, 'Operator not added');
 }
 
 #[test]
