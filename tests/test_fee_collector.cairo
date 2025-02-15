@@ -1,24 +1,24 @@
 // *************************************************************************
 //                              TEST
 // *************************************************************************
-use core::result::ResultTrait;
-use starknet::{ContractAddress, contract_address_const};
+// starknet imports
+use starknet::{ContractAddress, contract_address_const, get_block_timestamp};
 
+// snforge imports
 use snforge_std::{
-    declare, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address,
-    stop_cheat_caller_address, spy_events, start_cheat_block_timestamp, EventSpyAssertionsTrait
+    start_cheat_caller_address, stop_cheat_caller_address, spy_events, EventSpyAssertionsTrait
 };
 
-use auto_swappr::base::types::{Route, FeeType, Token};
-use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait, IERC20};
+// OZ imports
+use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
+// Autoswappr imports
+use auto_swappr::fee_collector::FeeCollector;
+use auto_swappr::components::operator::OperatorComponent;
 use auto_swappr::interfaces::ifee_collector::{
     IFeeCollectorDispatcher, IFeeCollectorDispatcherTrait
 };
 use auto_swappr::interfaces::ioperator::{IOperatorDispatcher, IOperatorDispatcherTrait};
-use auto_swappr::interfaces::ierc20_mintable::{
-    IERC20MintableDispatcher, IERC20MintableDispatcherTrait
-};
 
 // Contract Address Constants
 pub fn USER() -> ContractAddress {
@@ -26,19 +26,15 @@ pub fn USER() -> ContractAddress {
 }
 
 pub fn OWNER() -> ContractAddress {
-    contract_address_const::<'OWNER'>()
+    contract_address_const::<0x01d6abf4f5963082fc6c44d858ac2e89434406ed682fb63155d146c5d69c22d6>()
 }
 
 pub fn OPERATOR() -> ContractAddress {
-    contract_address_const::<'OPERATOR'>()
+    contract_address_const::<0x02fB08aaf620D1a045FBbd0F56a795b1c7fF88B63DDa22028870A48f9a92F4FA>()
 }
 
-pub fn NEW_OPERATOR() -> ContractAddress {
-    contract_address_const::<'NEW_OPERATOR'>()
-}
-
-pub fn NON_EXISTENT_OPERATOR() -> ContractAddress {
-    contract_address_const::<'NON_EXISTENT_OPERATOR'>()
+fn FEE_COLLECTOR_ADDRESS() -> ContractAddress {
+    contract_address_const::<0x02977ce390254822db6d57f71e42180d05e08a9e4f66abe7f3f509f7132eb840>()
 }
 
 fn STRK_TOKEN_ADDRESS() -> ContractAddress {
@@ -49,113 +45,212 @@ fn USDT_TOKEN_ADDRESS() -> ContractAddress {
     contract_address_const::<0x068F5c6a61780768455de69077E07e89787839bf8166dEcfBf92B645209c0fB8>()
 }
 
-
-// *************************************************************************
-//                              SETUP
-// *************************************************************************
-fn deploy_fee_collector(
-    strk_contract_address: ContractAddress, usdt_contract_address: ContractAddress
-) -> ContractAddress {
-    let fee_collector_class_hash = declare("FeeCollector").unwrap().contract_class();
-    let mut fee_collector_constructor_calldata: Array<felt252> = array![];
-    OWNER().serialize(ref fee_collector_constructor_calldata);
-    strk_contract_address.serialize(ref fee_collector_constructor_calldata);
-    usdt_contract_address.serialize(ref fee_collector_constructor_calldata);
-
-    let (fee_collector_contract_address, _) = fee_collector_class_hash
-        .deploy(@fee_collector_constructor_calldata)
-        .unwrap();
-
-    fee_collector_contract_address
+fn STRK_TOKEN() -> IERC20Dispatcher {
+    IERC20Dispatcher { contract_address: STRK_TOKEN_ADDRESS() }
 }
 
-fn __setup__() -> (ContractAddress, IFeeCollectorDispatcher, IERC20Dispatcher, IERC20Dispatcher) {
-    let strk_token_name: ByteArray = "STARKNET TOKEN";
-    let strk_token_symbol: ByteArray = "STRK";
-    let strk_token_decimals: u8 = 18;
+fn USDT_TOKEN() -> IERC20Dispatcher {
+    IERC20Dispatcher { contract_address: USDT_TOKEN_ADDRESS() }
+}
 
-    let usdt_token_name: ByteArray = "TETHER USD";
-    let usdt_token_symbol: ByteArray = "USDT";
-    let usdt_token_decimals: u8 = 6;
+fn FEE_COLLECTOR() -> IFeeCollectorDispatcher {
+    IFeeCollectorDispatcher { contract_address: FEE_COLLECTOR_ADDRESS() }
+}
 
-    let supply: u256 = 1_000_000_000_000_000_000;
+fn OPERATOR_DISPATCHER() -> IOperatorDispatcher {
+    IOperatorDispatcher { contract_address: FEE_COLLECTOR_ADDRESS() }
+}
 
-    let erc20_class_hash = declare("ERC20Upgradeable").unwrap().contract_class();
-    let mut strk_constructor_calldata = array![];
-    strk_token_name.serialize(ref strk_constructor_calldata);
-    strk_token_symbol.serialize(ref strk_constructor_calldata);
-    strk_token_decimals.serialize(ref strk_constructor_calldata);
-    // supply.serialize(ref strk_constructor_calldata);
-    USER().serialize(ref strk_constructor_calldata);
-    OWNER().serialize(ref strk_constructor_calldata);
 
-    let (strk_contract_address, _) = erc20_class_hash.deploy(@strk_constructor_calldata).unwrap();
+fn set_operator(owner: ContractAddress, operator: ContractAddress) {
+    start_cheat_caller_address(FEE_COLLECTOR_ADDRESS(), owner);
+    OPERATOR_DISPATCHER().set_operator(operator);
+    stop_cheat_caller_address(owner);
+}
 
-    let mut usdt_constructor_calldata = array![];
-    usdt_token_name.serialize(ref usdt_constructor_calldata);
-    usdt_token_symbol.serialize(ref usdt_constructor_calldata);
-    usdt_token_decimals.serialize(ref usdt_constructor_calldata);
-    // supply.serialize(ref usdt_constructor_calldata);
-    USER().serialize(ref usdt_constructor_calldata);
-    OWNER().serialize(ref usdt_constructor_calldata);
+fn remove_operator(owner: ContractAddress, operator: ContractAddress) {
+    start_cheat_caller_address(FEE_COLLECTOR_ADDRESS(), owner);
+    OPERATOR_DISPATCHER().remove_operator(operator);
+    stop_cheat_caller_address(owner);
+}
 
-    let (usdt_contract_address, _) = erc20_class_hash.deploy(@usdt_constructor_calldata).unwrap();
+#[test]
+#[fork("SEPOLIA_LATEST")]
+fn test_set_operator() {
+    set_operator(OWNER(), OPERATOR());
 
-    let strk_dispatcher = IERC20Dispatcher { contract_address: strk_contract_address };
-    let usdt_dispatcher = IERC20Dispatcher { contract_address: usdt_contract_address };
+    let is_operator = OPERATOR_DISPATCHER().is_operator(OPERATOR());
+    assert(is_operator, 'Operator not add');
+}
 
-    // deploy FeeCollector
-    let fee_collector_contract_address = deploy_fee_collector(
-        strk_contract_address, usdt_contract_address
-    );
+#[test]
+#[fork("SEPOLIA_LATEST")]
+fn test_set_operator_event() {
+    let mut spy = spy_events();
 
-    start_cheat_caller_address(strk_contract_address, OWNER());
-    let ERC20_mintable_dispatcher = IERC20MintableDispatcher {
-        contract_address: strk_contract_address
-    };
-    ERC20_mintable_dispatcher.mint(fee_collector_contract_address, 1000.try_into().unwrap());
+    set_operator(OWNER(), OPERATOR());
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    FEE_COLLECTOR_ADDRESS(),
+                    OperatorComponent::Event::OperatorAdded(
+                        OperatorComponent::OperatorAdded {
+                            operator: OPERATOR(), time_added: get_block_timestamp()
+                        }
+                    )
+                )
+            ]
+        );
+}
+
+#[test]
+#[fork("SEPOLIA_LATEST")]
+#[should_panic(expected: ('Caller is not the owner',))]
+fn test_set_operator_not_owner() {
+    set_operator(USER(), OPERATOR());
+}
+
+#[test]
+#[fork("SEPOLIA_LATEST")]
+#[should_panic(expected: ('address already exist',))]
+fn test_set_operator_already_exists() {
+    set_operator(OWNER(), OPERATOR());
+    set_operator(OWNER(), OPERATOR());
+}
+
+#[test]
+#[fork("SEPOLIA_LATEST")]
+fn test_remove_operator() {
+    set_operator(OWNER(), OPERATOR());
+    remove_operator(OWNER(), OPERATOR());
+
+    let is_operator = OPERATOR_DISPATCHER().is_operator(OPERATOR());
+    assert(!is_operator, 'Operator not removed');
+}
+
+#[test]
+#[fork("SEPOLIA_LATEST")]
+fn test_remove_operator_event() {
+    let mut spy = spy_events();
+
+    set_operator(OWNER(), OPERATOR());
+    remove_operator(OWNER(), OPERATOR());
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    FEE_COLLECTOR_ADDRESS(),
+                    OperatorComponent::Event::OperatorRemoved(
+                        OperatorComponent::OperatorRemoved {
+                            operator: OPERATOR(), time_removed: get_block_timestamp()
+                        }
+                    )
+                )
+            ]
+        );
+}
+
+#[test]
+#[fork("SEPOLIA_LATEST")]
+#[should_panic(expected: ('Caller is not the owner',))]
+fn test_remove_operator_not_owner() {
+    remove_operator(USER(), OPERATOR());
+}
+
+#[test]
+#[fork("SEPOLIA_LATEST")]
+#[should_panic(expected: ('address does not exist',))]
+fn test_remove_operator_not_exists() {
+    set_operator(OWNER(), OPERATOR());
+    remove_operator(OWNER(), OPERATOR());
+    remove_operator(OWNER(), OPERATOR());
+}
+
+#[test]
+#[fork("SEPOLIA_LATEST")]
+fn test_withdraw_strk_to_operator() {
+    set_operator(OWNER(), OPERATOR());
+
+    let token = 'STRK';
+
+    let initial_fee_collector_strk_balance = FEE_COLLECTOR().get_token_balance(token);
+    let initial_operator_strk_balance = STRK_TOKEN().balance_of(OPERATOR());
+
+    start_cheat_caller_address(FEE_COLLECTOR_ADDRESS(), OWNER());
+    FEE_COLLECTOR().withdraw(OPERATOR(), 500_u256, token);
     stop_cheat_caller_address(OWNER());
 
-    let fee_collector_dispatcher = IFeeCollectorDispatcher {
-        contract_address: fee_collector_contract_address
-    };
+    let operator_strk_balance_after = STRK_TOKEN().balance_of(OPERATOR());
+    assert(
+        operator_strk_balance_after == initial_operator_strk_balance + 500, 'Incorrect strk balance'
+    );
 
-    let operator_dispatcher = IOperatorDispatcher {
-        contract_address: fee_collector_contract_address
-    };
-
-    start_cheat_caller_address(fee_collector_contract_address, OWNER());
-    operator_dispatcher.set_operator(OPERATOR());
-
-    return (
-        fee_collector_contract_address, fee_collector_dispatcher, strk_dispatcher, usdt_dispatcher
+    let fee_collector_strk_balance_after = FEE_COLLECTOR().get_token_balance(token);
+    assert(
+        fee_collector_strk_balance_after == initial_fee_collector_strk_balance - 500,
+        'Incorrect strk balance'
     );
 }
 
 #[test]
-fn test_withdraw_strk_to_operator() {
-    let (fee_collector_contract_address, fee_collector_dispatcher, strk_dispatcher, _) =
-        __setup__();
+#[fork("SEPOLIA_LATEST")]
+fn test_withdraw_strk_to_operator_event() {
+    set_operator(OWNER(), OPERATOR());
 
-    println!("Fee Collector Contract: {:?}", fee_collector_contract_address);
+    let mut spy = spy_events();
 
-    let token = Token::STRK;
+    let token = 'STRK';
 
-    let initial_fee_collector_strk_balance = fee_collector_dispatcher.get_token_balance(token);
-    println!("Fee collector balance before: {}", initial_fee_collector_strk_balance);
-    assert(initial_fee_collector_strk_balance == 1000.try_into().unwrap(), 'Incorrect balance');
+    start_cheat_caller_address(FEE_COLLECTOR_ADDRESS(), OWNER());
+    FEE_COLLECTOR().withdraw(OPERATOR(), 500_u256, token);
+    stop_cheat_caller_address(OWNER());
 
-    let operator_balance_before = strk_dispatcher.balance_of(OPERATOR());
-    println!("Operator balance before: {}", operator_balance_before);
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    FEE_COLLECTOR_ADDRESS(),
+                    FeeCollector::Event::FeesWithdrawn(
+                        FeeCollector::FeesWithdrawn {
+                            address: OPERATOR(), amount: 500_u256, timestamp: get_block_timestamp()
+                        }
+                    )
+                )
+            ]
+        );
+}
 
-    start_cheat_caller_address(fee_collector_contract_address, OWNER());
-    fee_collector_dispatcher.withdraw(OPERATOR(), 500.try_into().unwrap(), token);
+#[test]
+#[fork("SEPOLIA_LATEST")]
+#[should_panic(expected: ('Address is not an operator',))]
+fn test_withdraw_strk_to_not_operator() {
+    let token = 'STRK';
 
-    let operator_balance_after = strk_dispatcher.balance_of(OPERATOR());
-    println!("Operator balance after: {}", operator_balance_after);
+    start_cheat_caller_address(FEE_COLLECTOR_ADDRESS(), OWNER());
+    FEE_COLLECTOR().withdraw(OPERATOR(), 500_u256, token);
+}
 
-    let strk_balance_after = fee_collector_dispatcher.get_token_balance(token);
-    println!("{}", strk_balance_after);
-    assert(strk_balance_after == 500.try_into().unwrap(), 'Incorrect balance');
+#[test]
+#[fork("SEPOLIA_LATEST")]
+#[should_panic(expected: ('Caller is not the owner',))]
+fn test_withdraw_strk_to_not_owner() {
+    let token = 'STRK';
+
+    start_cheat_caller_address(FEE_COLLECTOR_ADDRESS(), USER());
+    FEE_COLLECTOR().withdraw(OPERATOR(), 500_u256, token);
+}
+
+#[test]
+#[fork("SEPOLIA_LATEST")]
+#[should_panic(expected: ('Insufficient Balance',))]
+fn test_withdraw_strk_insufficient_balance() {
+    set_operator(OWNER(), OPERATOR());
+    let token = 'STRK';
+
+    start_cheat_caller_address(FEE_COLLECTOR_ADDRESS(), OWNER());
+    FEE_COLLECTOR().withdraw(OPERATOR(), 900000000000000000000_u256, token);
 }
 
