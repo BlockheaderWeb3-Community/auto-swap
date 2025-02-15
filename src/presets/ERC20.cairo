@@ -67,7 +67,6 @@ pub mod ERC20Upgradeable {
         name: ByteArray,
         symbol: ByteArray,
         decimals: u8,
-        recipient: ContractAddress,
         owner: ContractAddress
     ) {
         self._set_decimals(decimals);
