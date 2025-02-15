@@ -1,7 +1,8 @@
 #[starknet::contract]
 pub mod FeeCollector {
     // starknet imports
-    use starknet::{ContractAddress, get_contract_address, ClassHash};
+    use starknet::{ContractAddress, get_contract_address, ClassHash, get_block_timestamp};
+    use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess};
 
     // OZ imports
     use openzeppelin_upgrades::UpgradeableComponent;
@@ -38,6 +39,7 @@ pub mod FeeCollector {
         operator: OperatorComponent::Storage,
         strk_contract_address: ContractAddress,
         usdt_contract_address: ContractAddress,
+        token_type: Map<felt252, Token>
     }
 
     // @notice Events emitted by the contract
@@ -58,8 +60,9 @@ pub mod FeeCollector {
     // @param amount Amount of fees withdrawn
     #[derive(Drop, starknet::Event)]
     pub struct FeesWithdrawn {
-        address: ContractAddress,
-        amount: u256
+        pub address: ContractAddress,
+        pub amount: u256,
+        pub timestamp: u64
     }
 
     #[constructor]
@@ -72,6 +75,9 @@ pub mod FeeCollector {
         self.ownable.initializer(owner);
         self.strk_contract_address.write(strk_contract_address);
         self.usdt_contract_address.write(usdt_contract_address);
+
+        self.token_type.write('STRK', Token::STRK);
+        self.token_type.write('USDT', Token::USDT);
     }
 
     #[abi(embed_v0)]
@@ -84,11 +90,15 @@ pub mod FeeCollector {
 
     #[abi(embed_v0)]
     impl FeeCollectorImpl of IFeeCollector<ContractState> {
-        fn withdraw(ref self: ContractState, address: ContractAddress, amount: u256, token: Token) {
+        fn withdraw(
+            ref self: ContractState, address: ContractAddress, amount: u256, token: felt252
+        ) {
             self.ownable.assert_only_owner();
             assert(self.operator.is_operator(address), Errors::NOT_OPERATOR);
 
-            let token_contract_dispactcher: IERC20Dispatcher = match token {
+            let token_type = self.token_type.read(token);
+
+            let token_contract_dispactcher: IERC20Dispatcher = match token_type {
                 Token::STRK => {
                     IERC20Dispatcher { contract_address: self.strk_contract_address.read() }
                 },
@@ -104,11 +114,13 @@ pub mod FeeCollector {
 
             token_contract_dispactcher.transfer(address, amount);
 
-            self.emit(FeesWithdrawn { address, amount })
+            self.emit(FeesWithdrawn { address, amount, timestamp: get_block_timestamp() })
         }
 
-        fn get_token_balance(self: @ContractState, token: Token) -> u256 {
-            let token_contract_dispactcher: IERC20Dispatcher = match token {
+        fn get_token_balance(self: @ContractState, token: felt252) -> u256 {
+            let token_type = self.token_type.read(token);
+
+            let token_contract_dispactcher: IERC20Dispatcher = match token_type {
                 Token::STRK => {
                     IERC20Dispatcher { contract_address: self.strk_contract_address.read() }
                 },
