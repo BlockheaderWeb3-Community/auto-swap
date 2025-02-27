@@ -80,6 +80,10 @@ pub fn OWNER() -> ContractAddress {
     contract_address_const::<'OWNER'>()
 }
 
+pub fn OPERATOR() -> ContractAddress {
+    contract_address_const::<'OPERATOR'>()
+}
+
 const AMOUNT_TO_SWAP_STRK: u256 = 1000000000000000000; // 1 STRK
 const AMOUNT_TO_SWAP_ETH: u256 = 10000000000000000; // 0.01 ETH 
 const MIN_RECEIVED_STRK_TO_STABLE: u256 = 550000; // 0.55 USD stable coin (USDC or USDT)
@@ -101,9 +105,9 @@ fn call_fibrous_swap(
     swapParams: Array<SwapParams>,
     beneficiary: ContractAddress
 ) {
-    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, ADDRESS_WITH_FUNDS());
-    start_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS(), ADDRESS_WITH_FUNDS());
-    autoSwappr_dispatcher.fibrous_swap(routeParams, swapParams, beneficiary);
+    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, OPERATOR());
+    start_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS(), OPERATOR());
+    autoSwappr_dispatcher.fibrous_swap(routeParams, swapParams, beneficiary, beneficiary);
     stop_cheat_caller_address(autoSwappr_dispatcher.contract_address);
     stop_cheat_account_contract_address(FIBROUS_EXCHANGE_ADDRESS());
 }
@@ -292,7 +296,7 @@ fn __setup__() -> IAutoSwapprDispatcher {
     };
 
     start_cheat_caller_address(auto_swappr_contract_address, OWNER().try_into().unwrap());
-    operator_dispatcher.set_operator(ADDRESS_WITH_FUNDS());
+    operator_dispatcher.set_operator(OPERATOR());
     stop_cheat_caller_address(auto_swappr_contract_address);
     autoSwappr_dispatcher
 }
