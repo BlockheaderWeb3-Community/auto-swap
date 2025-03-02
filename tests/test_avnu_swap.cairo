@@ -158,7 +158,7 @@ const STRK_USD_PRICE_FEED: felt252 = 'STRK/USD';
 // *************************************************************************
 fn call_avnu_swap(
     autoSwappr_dispatcher: IAutoSwapprDispatcher,
-    token_sender: ContractAddress,
+    protocol_swapper: ContractAddress,
     token_from_address: ContractAddress,
     token_from_amount: u256,
     token_to_address: ContractAddress,
@@ -171,7 +171,7 @@ fn call_avnu_swap(
     start_cheat_caller_address(autoSwappr_dispatcher.contract_address, OPERATOR());
     autoSwappr_dispatcher
         .avnu_swap(
-            token_sender,
+            protocol_swapper,
             token_from_address,
             token_from_amount,
             token_to_address,

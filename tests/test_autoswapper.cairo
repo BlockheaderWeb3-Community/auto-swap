@@ -203,14 +203,14 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
     let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
     let token_to_min_amount: u256 = 5_000_000_000;
     let beneficiary: ContractAddress = USER();
-    let token_sender = USER();
+    let protocol_swapper = USER();
     let integrator_fee_amount_bps = 0;
     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
     let mut routes: Array<Route> = ArrayTrait::new();
     start_cheat_caller_address_global(OPERATOR());
     autoswappr_dispatcher
         .avnu_swap(
-            :token_sender,
+            :protocol_swapper,
             :token_from_address,
             :token_from_amount,
             :token_to_address,
@@ -235,7 +235,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
     let token_from_amount: u256 = strk_dispatcher.balance_of(USER());
     let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
     let token_to_min_amount: u256 = 5_000_000_000;
-    let token_sender = USER();
+    let protocol_swapper = USER();
     let beneficiary: ContractAddress = USER();
     let integrator_fee_amount_bps = 0;
     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
@@ -243,7 +243,7 @@ fn test_swap_reverts_if_token_is_not_supported() {
     start_cheat_caller_address_global(OPERATOR());
     autoswappr_dispatcher
         .avnu_swap(
-            :token_sender,
+            :protocol_swapper,
             :token_from_address,
             :token_from_amount,
             :token_to_address,
@@ -263,7 +263,7 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
-    let token_sender = USER();
+    let protocol_swapper = USER();
     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
     let token_from_amount: u256 = strk_dispatcher.balance_of(USER()) * 2; // Double the balance
 
@@ -271,7 +271,7 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
     start_cheat_caller_address_global(OPERATOR());
     autoswappr_dispatcher
         .avnu_swap(
-            token_sender,
+            protocol_swapper,
             token_from_address,
             token_from_amount,
             strk_dispatcher.contract_address,
@@ -290,14 +290,14 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
-    let token_sender = USER();
+    let protocol_swapper = USER();
     start_cheat_caller_address_global(OPERATOR());
     let balance = strk_dispatcher.balance_of(USER());
     strk_dispatcher.approve(autoSwappr_contract_address, 0);
 
     autoswappr_dispatcher
         .avnu_swap(
-            token_sender,
+            protocol_swapper,
             strk_dispatcher.contract_address,
             balance,
             eth_dispatcher.contract_address,

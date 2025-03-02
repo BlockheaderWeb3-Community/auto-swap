@@ -1,4 +1,30 @@
-mod Helper {
+use core::result::ResultTrait;
+
+// starknet imports
+use starknet::{ContractAddress, contract_address_const};
+
+// snforge imports
+use snforge_std::{
+    declare, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address_global,
+    stop_cheat_caller_address_global, spy_events, start_cheat_block_timestamp,
+    EventSpyAssertionsTrait
+};
+
+// OZ imports
+use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+
+// Autoswappr imports
+use auto_swappr::interfaces::iautoswappr::{
+    IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait, ContractInfo
+};
+use auto_swappr::components::operator::OperatorComponent;
+use auto_swappr::base::types::{Route, FeeType};
+use auto_swappr::autoswappr::AutoSwappr::{Event, FeeTypeChanged};
+use auto_swappr::interfaces::ioperator::{IOperatorDispatcher, IOperatorDispatcherTrait};
+use auto_swappr::interfaces::ierc20_mintable::{
+    IERC20MintableDispatcher, IERC20MintableDispatcherTrait
+};
+
 pub fn USER() -> ContractAddress {
     contract_address_const::<'USER'>()
 }
@@ -121,4 +147,4 @@ fn deploy_autoSwappr(
 
     (autoSwappr_contract_address, operator_dispatcher)
 }
-}
+

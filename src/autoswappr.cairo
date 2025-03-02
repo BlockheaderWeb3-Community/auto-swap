@@ -170,7 +170,7 @@ pub mod AutoSwappr {
     impl AutoSwappr of IAutoSwappr<ContractState> {
         fn avnu_swap(
             ref self: ContractState,
-            token_sender: ContractAddress,
+            protocol_swapper: ContractAddress,
             token_from_address: ContractAddress,
             token_from_amount: u256,
             token_to_address: ContractAddress,
@@ -192,12 +192,12 @@ pub mod AutoSwappr {
 
             assert(
                 token_from_contract
-                    .allowance(token_sender, this_contract) >= token_from_amount,
+                    .allowance(protocol_swapper, this_contract) >= token_from_amount,
                 Errors::INSUFFICIENT_ALLOWANCE,
             );
 
             token_from_contract
-                .transfer_from(token_sender, this_contract, token_from_amount);
+                .transfer_from(protocol_swapper, this_contract, token_from_amount);
             token_from_contract.approve(self.avnu_exchange_address.read(), token_from_amount);
             let contract_token_to_balance = token_to_contract.balance_of(this_contract);
 
@@ -236,7 +236,7 @@ pub mod AutoSwappr {
             ref self: ContractState,
             routeParams: RouteParams,
             swapParams: Array<SwapParams>,
-            token_sender: ContractAddress,
+            protocol_swapper: ContractAddress,
             beneficiary: ContractAddress
         ) {
             let contract_address = get_contract_address();
@@ -252,14 +252,14 @@ pub mod AutoSwappr {
             let token_out_contract = ERC20ABIDispatcher { contract_address: routeParams.token_out };
             assert(
                 token_in_contract
-                    .allowance(token_sender, contract_address) >= routeParams
+                    .allowance(protocol_swapper, contract_address) >= routeParams
                     .amount_in,
                 Errors::INSUFFICIENT_ALLOWANCE,
             );
 
             // Approve commission taking from fibrous
             token_in_contract
-                .transfer_from(token_sender, contract_address, routeParams.amount_in);
+                .transfer_from(protocol_swapper, contract_address, routeParams.amount_in);
             token_in_contract.approve(self.fibrous_exchange_address.read(), routeParams.amount_in);
             let contract_token_out_balance = token_out_contract.balance_of(contract_address);
             self._fibrous_swap(routeParams.clone(), swapParams,);
