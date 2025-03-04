@@ -30,11 +30,11 @@ pub fn OWNER() -> ContractAddress {
 }
 
 pub fn OPERATOR() -> ContractAddress {
-    contract_address_const::<0x02fB08aaf620D1a045FBbd0F56a795b1c7fF88B63DDa22028870A48f9a92F4FA>()
+    contract_address_const::<0x00f5bD62B2E6de30395fbB5d21B2A8A8D647099Bb9B671AA6103e030ae91df8e>()
 }
 
 fn FEE_COLLECTOR_ADDRESS() -> ContractAddress {
-    contract_address_const::<0x02977ce390254822db6d57f71e42180d05e08a9e4f66abe7f3f509f7132eb840>()
+    contract_address_const::<0x7f5a528821f37c06375a47a1c8d2ba0517a2e99ff01c01ef5068e3fb3754b87>()
 }
 
 fn STRK_TOKEN_ADDRESS() -> ContractAddress {
@@ -75,7 +75,7 @@ fn remove_operator(owner: ContractAddress, operator: ContractAddress) {
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 fn test_set_operator() {
     set_operator(OWNER(), OPERATOR());
 
@@ -84,7 +84,7 @@ fn test_set_operator() {
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 fn test_set_operator_event() {
     let mut spy = spy_events();
 
@@ -106,14 +106,14 @@ fn test_set_operator_event() {
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 #[should_panic(expected: ('Caller is not the owner',))]
 fn test_set_operator_not_owner() {
     set_operator(USER(), OPERATOR());
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 #[should_panic(expected: ('address already exist',))]
 fn test_set_operator_already_exists() {
     set_operator(OWNER(), OPERATOR());
@@ -121,7 +121,7 @@ fn test_set_operator_already_exists() {
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 fn test_remove_operator() {
     set_operator(OWNER(), OPERATOR());
     remove_operator(OWNER(), OPERATOR());
@@ -131,7 +131,7 @@ fn test_remove_operator() {
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 fn test_remove_operator_event() {
     let mut spy = spy_events();
 
@@ -154,14 +154,14 @@ fn test_remove_operator_event() {
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 #[should_panic(expected: ('Caller is not the owner',))]
 fn test_remove_operator_not_owner() {
     remove_operator(USER(), OPERATOR());
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 #[should_panic(expected: ('address does not exist',))]
 fn test_remove_operator_not_exists() {
     set_operator(OWNER(), OPERATOR());
@@ -170,7 +170,7 @@ fn test_remove_operator_not_exists() {
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 fn test_withdraw_strk_to_operator() {
     set_operator(OWNER(), OPERATOR());
 
@@ -185,18 +185,19 @@ fn test_withdraw_strk_to_operator() {
 
     let operator_strk_balance_after = STRK_TOKEN().balance_of(OPERATOR());
     assert(
-        operator_strk_balance_after == initial_operator_strk_balance + 500, 'Incorrect strk balance'
+        operator_strk_balance_after == initial_operator_strk_balance + 500_u256,
+        'Incorrect strk balance'
     );
 
     let fee_collector_strk_balance_after = FEE_COLLECTOR().get_token_balance(token);
     assert(
-        fee_collector_strk_balance_after == initial_fee_collector_strk_balance - 500,
+        fee_collector_strk_balance_after == initial_fee_collector_strk_balance - 500_u256,
         'Incorrect strk balance'
     );
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 fn test_withdraw_strk_to_operator_event() {
     set_operator(OWNER(), OPERATOR());
 
@@ -224,7 +225,7 @@ fn test_withdraw_strk_to_operator_event() {
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 #[should_panic(expected: ('Address is not an operator',))]
 fn test_withdraw_strk_to_not_operator() {
     let token = 'STRK';
@@ -234,7 +235,7 @@ fn test_withdraw_strk_to_not_operator() {
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 #[should_panic(expected: ('Caller is not the owner',))]
 fn test_withdraw_strk_to_not_owner() {
     let token = 'STRK';
@@ -244,7 +245,7 @@ fn test_withdraw_strk_to_not_owner() {
 }
 
 #[test]
-#[fork("SEPOLIA_LATEST")]
+#[fork("MAINNET")]
 #[should_panic(expected: ('Insufficient Balance',))]
 fn test_withdraw_strk_insufficient_balance() {
     set_operator(OWNER(), OPERATOR());
