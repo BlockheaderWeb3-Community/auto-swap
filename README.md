@@ -106,7 +106,7 @@ We welcome contributions! Please follow these steps:
 1. Fork the repository
 2. Create your feature branch (git checkout -b revoke-allowance)
 3. Commit your changes (git commit -m 'test: revoke allowance')
-4. Run `bash test_local.sh` to ensure you have a consistent environment with our workflow actions; (Please make you have successfully set `RPC_URL` with this command - `export RPC_URL=https://starknet-mainnet.public.blastapi.io/rpc/v0_7`). All tests must pass locally before proceeding to the next action
+4. Run `bash test_local.sh` to ensure you have a consistent environment with our workflow actions; (Please make you have successfully set `RPC_URL` with this command - `export RPC_URL=https://api.cartridge.gg/x/starknet/mainnet`). All tests must pass locally before proceeding to the next action
 5. Push to the branch (git push origin revoke-allowance)
 6. Open a Pull Request
 
