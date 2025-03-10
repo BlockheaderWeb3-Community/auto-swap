@@ -17,10 +17,10 @@ pub struct ContractInfo {
 pub trait IAutoSwappr<TContractState> {
     fn avnu_swap(
         ref self: TContractState,
+        protocol_swapper: ContractAddress,
         token_from_address: ContractAddress,
         token_from_amount: u256,
         token_to_address: ContractAddress,
-        token_to_amount: u256,
         token_to_min_amount: u256,
         beneficiary: ContractAddress,
         integrator_fee_amount_bps: u128,
@@ -31,6 +31,7 @@ pub trait IAutoSwappr<TContractState> {
         ref self: TContractState,
         routeParams: RouteParams,
         swapParams: Array<SwapParams>,
+        protocol_swapper: ContractAddress,
         beneficiary: ContractAddress,
     );
 

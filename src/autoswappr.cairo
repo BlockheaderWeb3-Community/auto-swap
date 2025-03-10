@@ -52,9 +52,9 @@ pub mod AutoSwappr {
     #[storage]
     struct Storage {
         fees_collector: ContractAddress,
-        fee_amount_bps: u8, // 50 = 0.5$ fee
+        fee_amount_bps: u8, // fixed fee in bps;  50 = 0.5$ fee
         fee_type: FeeType,
-        percentage_fee: u16, // Percentage fee in basis points (e.g., 100 = 1%)
+        percentage_fee_bps: u16, // Percentage fee in basis points (e.g., 100 = 1%)
         avnu_exchange_address: ContractAddress,
         fibrous_exchange_address: ContractAddress,
         oracle_address: ContractAddress,
@@ -153,7 +153,7 @@ pub mod AutoSwappr {
         self.oracle_address.write(oracle_address);
         self.ownable.initializer(owner);
         self.fee_type.write(initial_fee_type);
-        self.percentage_fee.write(initial_percentage_fee);
+        self.percentage_fee_bps.write(initial_percentage_fee);
     }
 
 
@@ -170,10 +170,10 @@ pub mod AutoSwappr {
     impl AutoSwappr of IAutoSwappr<ContractState> {
         fn avnu_swap(
             ref self: ContractState,
+            protocol_swapper: ContractAddress,
             token_from_address: ContractAddress,
             token_from_amount: u256,
             token_to_address: ContractAddress,
-            token_to_amount: u256,
             token_to_min_amount: u256,
             beneficiary: ContractAddress,
             integrator_fee_amount_bps: u128,
@@ -192,12 +192,12 @@ pub mod AutoSwappr {
 
             assert(
                 token_from_contract
-                    .allowance(get_caller_address(), this_contract) >= token_from_amount,
+                    .allowance(protocol_swapper, this_contract) >= token_from_amount,
                 Errors::INSUFFICIENT_ALLOWANCE,
             );
 
             token_from_contract
-                .transfer_from(get_caller_address(), this_contract, token_from_amount);
+                .transfer_from(protocol_swapper, this_contract, token_from_amount);
             token_from_contract.approve(self.avnu_exchange_address.read(), token_from_amount);
             let contract_token_to_balance = token_to_contract.balance_of(this_contract);
 
@@ -206,7 +206,6 @@ pub mod AutoSwappr {
                     token_from_address,
                     token_from_amount,
                     token_to_address,
-                    token_to_amount,
                     token_to_min_amount,
                     // beneficiary,
                     this_contract, // only caller address can be the beneficiary, in this case, the contract. 
@@ -237,9 +236,9 @@ pub mod AutoSwappr {
             ref self: ContractState,
             routeParams: RouteParams,
             swapParams: Array<SwapParams>,
+            protocol_swapper: ContractAddress,
             beneficiary: ContractAddress
         ) {
-            let caller_address = get_caller_address();
             let contract_address = get_contract_address();
 
             // assertions
@@ -247,19 +246,20 @@ pub mod AutoSwappr {
             let (supported, _) = self.get_token_from_status_and_value(routeParams.token_in);
             assert(supported, Errors::UNSUPPORTED_TOKEN,);
             assert(!routeParams.amount_in.is_zero(), Errors::ZERO_AMOUNT);
+            assert(routeParams.destination == contract_address, Errors::ZERO_AMOUNT);
 
             let token_in_contract = ERC20ABIDispatcher { contract_address: routeParams.token_in };
             let token_out_contract = ERC20ABIDispatcher { contract_address: routeParams.token_out };
             assert(
                 token_in_contract
-                    .allowance(caller_address, contract_address) >= routeParams
+                    .allowance(protocol_swapper, contract_address) >= routeParams
                     .amount_in,
                 Errors::INSUFFICIENT_ALLOWANCE,
             );
 
             // Approve commission taking from fibrous
             token_in_contract
-                .transfer_from(caller_address, contract_address, routeParams.amount_in);
+                .transfer_from(protocol_swapper, contract_address, routeParams.amount_in);
             token_in_contract.approve(self.fibrous_exchange_address.read(), routeParams.amount_in);
             let contract_token_out_balance = token_out_contract.balance_of(contract_address);
             self._fibrous_swap(routeParams.clone(), swapParams,);
@@ -294,7 +294,7 @@ pub mod AutoSwappr {
         fn support_new_token_from(
             ref self: ContractState, token_from: ContractAddress, feed_id: felt252
         ) {
-            assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
+            self.ownable.assert_only_owner();
             assert(!(feed_id == ''), Errors::INVALID_INPUT);
             let (supported, _) = self.get_token_from_status_and_value(token_from);
             assert(!supported, Errors::EXISTING_ADDRESS);
@@ -302,7 +302,7 @@ pub mod AutoSwappr {
         }
 
         fn remove_token_from(ref self: ContractState, token_from: ContractAddress) {
-            assert(get_caller_address() == self.ownable.owner(), Errors::NOT_OWNER);
+            self.ownable.assert_only_owner();
             let (supported, _) = self.get_token_from_status_and_value(token_from);
             assert(supported, Errors::UNSUPPORTED_TOKEN);
             self.supported_assets_to_feed_id.write(token_from, '');
@@ -324,7 +324,7 @@ pub mod AutoSwappr {
                 oracle_address: self.oracle_address.read(),
                 owner: self.ownable.owner(),
                 fee_type: self.fee_type.read(),
-                percentage_fee: self.percentage_fee.read()
+                percentage_fee: self.percentage_fee_bps.read()
             }
         }
 
@@ -332,7 +332,7 @@ pub mod AutoSwappr {
             self.ownable.assert_only_owner();
             assert(percentage_fee <= MAX_FEE_PERCENTAGE, Errors::INVALID_INPUT); // Max 3% fee
             self.fee_type.write(fee_type);
-            self.percentage_fee.write(percentage_fee);
+            self.percentage_fee_bps.write(percentage_fee);
             self
                 .emit(
                     FeeTypeChanged { new_fee_type: fee_type, new_percentage_fee: percentage_fee }
@@ -347,7 +347,6 @@ pub mod AutoSwappr {
             token_from_address: ContractAddress,
             token_from_amount: u256,
             token_to_address: ContractAddress,
-            token_to_amount: u256,
             token_to_min_amount: u256,
             beneficiary: ContractAddress,
             integrator_fee_amount_bps: u128,
@@ -361,7 +360,8 @@ pub mod AutoSwappr {
                     token_from_address,
                     token_from_amount,
                     token_to_address,
-                    token_to_amount,
+                    // using token_to_min_amount as token_to_amount as token_to_amount doesn't actually do anything in avnu
+                    token_to_min_amount, 
                     token_to_min_amount,
                     beneficiary,
                     integrator_fee_amount_bps,
@@ -406,7 +406,7 @@ pub mod AutoSwappr {
                 },
                 FeeType::Percentage => {
                     // Percentage fee calculation
-                    token_to_received * self.percentage_fee.read().into() / 10000
+                    token_to_received * self.percentage_fee_bps.read().into() / 10000
                 }
             };
 

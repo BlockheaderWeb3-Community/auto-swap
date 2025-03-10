@@ -201,19 +201,19 @@ fn test_swap_reverts_if_token_from_amount_is_zero() {
     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
     let token_from_amount: u256 = 0;
     let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
-    let token_to_amount: u256 = 5_000_000_000;
     let token_to_min_amount: u256 = 5_000_000_000;
     let beneficiary: ContractAddress = USER();
+    let protocol_swapper = USER();
     let integrator_fee_amount_bps = 0;
     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
     let mut routes: Array<Route> = ArrayTrait::new();
     start_cheat_caller_address_global(OPERATOR());
     autoswappr_dispatcher
         .avnu_swap(
+            :protocol_swapper,
             :token_from_address,
             :token_from_amount,
             :token_to_address,
-            :token_to_amount,
             :token_to_min_amount,
             :beneficiary,
             :integrator_fee_amount_bps,
@@ -234,8 +234,8 @@ fn test_swap_reverts_if_token_is_not_supported() {
     let token_from_address: ContractAddress = contract_address_const::<'RANDOM_TOKEN_ADDRESS'>();
     let token_from_amount: u256 = strk_dispatcher.balance_of(USER());
     let token_to_address: ContractAddress = contract_address_const::<'USDC_TOKEN_ADDRESS'>();
-    let token_to_amount: u256 = 5_000_000_000;
     let token_to_min_amount: u256 = 5_000_000_000;
+    let protocol_swapper = USER();
     let beneficiary: ContractAddress = USER();
     let integrator_fee_amount_bps = 0;
     let integrator_fee_recipient: ContractAddress = contract_address_const::<0x0>();
@@ -243,10 +243,10 @@ fn test_swap_reverts_if_token_is_not_supported() {
     start_cheat_caller_address_global(OPERATOR());
     autoswappr_dispatcher
         .avnu_swap(
+            :protocol_swapper,
             :token_from_address,
             :token_from_amount,
             :token_to_address,
-            :token_to_amount,
             :token_to_min_amount,
             :beneficiary,
             :integrator_fee_amount_bps,
@@ -263,6 +263,7 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address.clone()
     };
+    let protocol_swapper = USER();
     let token_from_address: ContractAddress = strk_dispatcher.contract_address;
     let token_from_amount: u256 = strk_dispatcher.balance_of(USER()) * 2; // Double the balance
 
@@ -270,10 +271,10 @@ fn test_swap_reverts_if_user_balance_is_lesser_than_swap_amount() {
     start_cheat_caller_address_global(OPERATOR());
     autoswappr_dispatcher
         .avnu_swap(
+            protocol_swapper,
             token_from_address,
             token_from_amount,
             strk_dispatcher.contract_address,
-            5_000_000_000,
             5_000_000_000,
             USER(),
             0,
@@ -289,17 +290,17 @@ fn test_swap_reverts_if_user_allowance_to_contract_is_lesser_than_swap_amount() 
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
         contract_address: autoSwappr_contract_address
     };
-
+    let protocol_swapper = USER();
     start_cheat_caller_address_global(OPERATOR());
     let balance = strk_dispatcher.balance_of(USER());
     strk_dispatcher.approve(autoSwappr_contract_address, 0);
 
     autoswappr_dispatcher
         .avnu_swap(
+            protocol_swapper,
             strk_dispatcher.contract_address,
             balance,
             eth_dispatcher.contract_address,
-            5_000_000_000,
             5_000_000_000,
             USER(),
             0,
@@ -477,7 +478,7 @@ fn test_get_token_from_status_and_value() {
 }
 
 #[test]
-#[should_panic(expected: 'Caller Not Owner')]
+#[should_panic(expected: 'Caller is not the owner')]
 fn test_support_new_token_from_reverts_if_caller_is_not_owner() {
     let (autoSwappr_contract_address, _, _, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {
@@ -532,7 +533,7 @@ fn test_support_new_token_from_with_valid_arguments() {
 
 //////////////////////////////////// remove_token_from ////////////
 #[test]
-#[should_panic(expected: 'Caller Not Owner')]
+#[should_panic(expected: 'Caller is not the owner')]
 fn test_remove_token_from_reverts_if_caller_is_not_owner() {
     let (autoSwappr_contract_address, _, strk_dispatcher, _) = __setup__();
     let autoswappr_dispatcher = IAutoSwapprDispatcher {

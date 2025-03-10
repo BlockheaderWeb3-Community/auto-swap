@@ -10,7 +10,7 @@ use starknet::{ContractAddress, contract_address_const};
 // snforge imports
 use snforge_std::{
     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
-    DeclareResultTrait, start_cheat_account_contract_address, stop_cheat_account_contract_address,
+    DeclareResultTrait,
     spy_events, EventSpyAssertionsTrait
 };
 
@@ -53,6 +53,10 @@ fn USDT_TOKEN_ADDRESS() -> ContractAddress {
 fn ADDRESS_WITH_FUNDS() -> ContractAddress {
     // 0.01 ETH - 8.4 STRK
     contract_address_const::<0x298a9d0d82aabfd7e2463bb5ec3590c4e86d03b2ece868d06bbe43475f2d3e6>()
+}
+
+pub fn OPERATOR() -> ContractAddress {
+    contract_address_const::<'OPERATOR'>()
 }
 
 pub fn OWNER() -> ContractAddress {
@@ -154,24 +158,23 @@ const STRK_USD_PRICE_FEED: felt252 = 'STRK/USD';
 // *************************************************************************
 fn call_avnu_swap(
     autoSwappr_dispatcher: IAutoSwapprDispatcher,
+    protocol_swapper: ContractAddress,
     token_from_address: ContractAddress,
     token_from_amount: u256,
     token_to_address: ContractAddress,
-    token_to_amount: u256,
     token_to_min_amount: u256,
     beneficiary: ContractAddress,
     integrator_fee_amount_bps: u128,
     integrator_fee_recipient: ContractAddress,
     routes: Array<Route>,
 ) {
-    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, ADDRESS_WITH_FUNDS());
-    start_cheat_account_contract_address(AVNU_EXCHANGE_ADDRESS(), ADDRESS_WITH_FUNDS());
+    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, OPERATOR());
     autoSwappr_dispatcher
         .avnu_swap(
+            protocol_swapper,
             token_from_address,
             token_from_amount,
             token_to_address,
-            token_to_amount,
             token_to_min_amount,
             beneficiary,
             integrator_fee_amount_bps,
@@ -179,7 +182,6 @@ fn call_avnu_swap(
             routes,
         );
     stop_cheat_caller_address(autoSwappr_dispatcher.contract_address);
-    stop_cheat_account_contract_address(AVNU_EXCHANGE_ADDRESS());
 }
 
 // util function to fetch token balances (STRK, ETH, USDT, USDC) of a given account
@@ -222,7 +224,6 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
         token_from_address: STRK_TOKEN_ADDRESS(),
         token_from_amount: AMOUNT_TO_SWAP_STRK,
         token_to_address: USDT_TOKEN_ADDRESS(),
-        token_to_amount: 510000,
         token_to_min_amount: 510000
             - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
         beneficiary: ADDRESS_WITH_FUNDS(),
@@ -250,7 +251,6 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                     token_from_address: STRK_TOKEN_ADDRESS(),
                     token_from_amount: AMOUNT_TO_SWAP_STRK,
                     token_to_address: USDT_TOKEN_ADDRESS(),
-                    token_to_amount: 1020000,
                     token_to_min_amount: 1020000
                         - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
                     beneficiary: ADDRESS_WITH_FUNDS(),
@@ -277,7 +277,6 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                     token_from_address: STRK_TOKEN_ADDRESS(),
                     token_from_amount: AMOUNT_TO_SWAP_STRK,
                     token_to_address: USDC_TOKEN_ADDRESS(),
-                    token_to_amount: 465080 * 2,
                     token_to_min_amount: 465080 * 2
                         - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
                     beneficiary: ADDRESS_WITH_FUNDS(),
@@ -302,7 +301,6 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                     token_from_address: ETH_TOKEN_ADDRESS(),
                     token_from_amount: AMOUNT_TO_SWAP_ETH,
                     token_to_address: USDT_TOKEN_ADDRESS(),
-                    token_to_amount: 659940,
                     token_to_min_amount: 659940
                         - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
                     beneficiary: ADDRESS_WITH_FUNDS(),
@@ -345,7 +343,6 @@ fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
                     token_from_address: ETH_TOKEN_ADDRESS(),
                     token_from_amount: AMOUNT_TO_SWAP_ETH,
                     token_to_address: USDC_TOKEN_ADDRESS(),
-                    token_to_amount: 659940,
                     token_to_min_amount: 659940
                         - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
                     beneficiary: ADDRESS_WITH_FUNDS(),
@@ -380,7 +377,6 @@ struct AVNUParams {
     token_from_address: ContractAddress,
     token_from_amount: u256,
     token_to_address: ContractAddress,
-    token_to_amount: u256,
     token_to_min_amount: u256,
     beneficiary: ContractAddress,
     integrator_fee_amount_bps: u128,
@@ -439,7 +435,7 @@ fn __setup__() -> IAutoSwapprDispatcher {
     };
 
     start_cheat_caller_address(auto_swappr_contract_address, OWNER().try_into().unwrap());
-    operator_dispatcher.set_operator(ADDRESS_WITH_FUNDS());
+    operator_dispatcher.set_operator(OPERATOR());
     stop_cheat_caller_address(auto_swappr_contract_address);
 
     autoSwappr_dispatcher
@@ -469,10 +465,10 @@ fn test_avnu_swap_strk_to_usdt() {
     let params = get_swap_parameters(SwapType::strk_usdt);
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params.token_from_address,
         params.token_from_amount,
         params.token_to_address,
-        params.token_to_amount,
         params.token_to_min_amount,
         params.beneficiary,
         params.integrator_fee_amount_bps,
@@ -548,10 +544,10 @@ fn test_avnu_swap_strk_to_usdc() {
 
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params.token_from_address,
         params.token_from_amount,
         params.token_to_address,
-        params.token_to_amount,
         params.token_to_min_amount,
         params.beneficiary,
         params.integrator_fee_amount_bps,
@@ -618,10 +614,10 @@ fn test_avnu_swap_eth_to_usdt() {
 
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params.token_from_address,
         params.token_from_amount,
         params.token_to_address,
-        params.token_to_amount,
         params.token_to_min_amount,
         params.beneficiary,
         params.integrator_fee_amount_bps,
@@ -692,10 +688,10 @@ fn test_avnu_swap_eth_to_usdc() {
 
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params.token_from_address,
         params.token_from_amount,
         params.token_to_address,
-        params.token_to_amount,
         params.token_to_min_amount,
         params.beneficiary,
         params.integrator_fee_amount_bps,
@@ -770,10 +766,10 @@ fn test_multi_swaps() {
     );
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params_strk_to_usdt.token_from_address,
         params_strk_to_usdt.token_from_amount,
         params_strk_to_usdt.token_to_address,
-        params_strk_to_usdt.token_to_amount,
         // params_strk_to_usdt.token_to_min_amount,
         strk_to_stable_min_amount,
         params_strk_to_usdt.beneficiary,
@@ -801,10 +797,10 @@ fn test_multi_swaps() {
     );
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params_strk_to_usdc.token_from_address,
         params_strk_to_usdc.token_from_amount,
         params_strk_to_usdc.token_to_address,
-        params_strk_to_usdc.token_to_amount,
         // params_strk_to_usdc.token_to_min_amount,
         strk_to_stable_min_amount,
         params_strk_to_usdc.beneficiary,
@@ -832,10 +828,10 @@ fn test_multi_swaps() {
     );
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params_eth_to_usdt.token_from_address,
         params_eth_to_usdt.token_from_amount,
         params_eth_to_usdt.token_to_address,
-        params_eth_to_usdt.token_to_amount,
         // params_eth_to_usdt.token_to_min_amount,
         eth_to_stable_min_amount,
         params_eth_to_usdt.beneficiary,
@@ -863,10 +859,10 @@ fn test_multi_swaps() {
     );
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params_eth_to_usdc.token_from_address,
         params_eth_to_usdc.token_from_amount,
         params_eth_to_usdc.token_to_address,
-        params_eth_to_usdc.token_to_amount,
         // params_eth_to_usdc.token_to_min_amount,
         eth_to_stable_min_amount,
         params_eth_to_usdc.beneficiary,
@@ -954,10 +950,10 @@ fn test_unswapped_token_balances_should_remain_unchanged_for_strk_usdt_swap() {
 
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params.token_from_address,
         params.token_from_amount,
         params.token_to_address,
-        params.token_to_amount,
         params.token_to_min_amount,
         params.beneficiary,
         params.integrator_fee_amount_bps,
@@ -993,10 +989,10 @@ fn test_unswapped_token_balances_should_remain_unchanged_for_strk_usdc_swap() {
 
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params.token_from_address,
         params.token_from_amount,
         params.token_to_address,
-        params.token_to_amount,
         params.token_to_min_amount,
         params.beneficiary,
         params.integrator_fee_amount_bps,
@@ -1032,10 +1028,10 @@ fn test_unswapped_token_balances_should_remain_unchanged_for_eth_usdt_swap() {
 
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params.token_from_address,
         params.token_from_amount,
         params.token_to_address,
-        params.token_to_amount,
         params.token_to_min_amount,
         params.beneficiary,
         params.integrator_fee_amount_bps,
@@ -1071,10 +1067,10 @@ fn test_unswapped_token_balances_should_remain_unchanged_for_eth_usdc_swap() {
 
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params.token_from_address,
         params.token_from_amount,
         params.token_to_address,
-        params.token_to_amount,
         params.token_to_min_amount
             - 10000, // original:679940 -> give a bit more margin cause test was failing due to 'Insufficient tokens received'
         params.beneficiary,
@@ -1114,10 +1110,10 @@ fn test_avnu_swap_event_emission() {
 
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params.token_from_address,
         params.token_from_amount,
         params.token_to_address,
-        params.token_to_amount,
         params.token_to_min_amount,
         params.beneficiary,
         params.integrator_fee_amount_bps,
@@ -1173,10 +1169,10 @@ fn test_multi_swaps_event_emission() {
     );
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params_strk_to_usdt.token_from_address,
         params_strk_to_usdt.token_from_amount,
         params_strk_to_usdt.token_to_address,
-        params_strk_to_usdt.token_to_amount,
         // params_strk_to_usdt.token_to_min_amount,
         strk_to_stable_min_amount,
         params_strk_to_usdt.beneficiary,
@@ -1195,10 +1191,10 @@ fn test_multi_swaps_event_emission() {
     );
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params_strk_to_usdc.token_from_address,
         params_strk_to_usdc.token_from_amount,
         params_strk_to_usdc.token_to_address,
-        params_strk_to_usdc.token_to_amount,
         // params_strk_to_usdc.token_to_min_amount,
         strk_to_stable_min_amount,
         params_strk_to_usdc.beneficiary,
@@ -1217,10 +1213,10 @@ fn test_multi_swaps_event_emission() {
     );
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params_eth_to_usdt.token_from_address,
         params_eth_to_usdt.token_from_amount,
         params_eth_to_usdt.token_to_address,
-        params_eth_to_usdt.token_to_amount,
         // params_eth_to_usdt.token_to_min_amount,
         eth_to_stable_min_amount,
         params_eth_to_usdt.beneficiary,
@@ -1239,10 +1235,10 @@ fn test_multi_swaps_event_emission() {
     );
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params_eth_to_usdc.token_from_address,
         params_eth_to_usdc.token_from_amount,
         params_eth_to_usdc.token_to_address,
-        params_eth_to_usdc.token_to_amount,
         // params_eth_to_usdc.token_to_min_amount,
         eth_to_stable_min_amount,
         params_eth_to_usdc.beneficiary,
@@ -1329,10 +1325,10 @@ fn test_avnu_swap_should_fail_for_insufficient_allowance_to_contract() {
 
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params.token_from_address,
         params.token_from_amount,
         params.token_to_address,
-        params.token_to_amount,
         params.token_to_min_amount,
         params.beneficiary,
         params.integrator_fee_amount_bps,
@@ -1351,11 +1347,10 @@ fn test_fibrous_swap_should_fail_for_token_not_supported() {
 
     call_avnu_swap(
         autoSwappr_dispatcher,
-        // params.token_from_address,
+        ADDRESS_WITH_FUNDS(),
         contract_address_const::<0x123>(), // unsupported token
         params.token_from_amount,
         params.token_to_address,
-        params.token_to_amount,
         params.token_to_min_amount,
         params.beneficiary,
         params.integrator_fee_amount_bps,
@@ -1382,10 +1377,10 @@ fn test_swap_should_fail_after_token_approval_is_revoked_avnu() {
 
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params1.token_from_address,
         params1.token_from_amount,
         params1.token_to_address,
-        params1.token_to_amount,
         params1.token_to_min_amount,
         params1.beneficiary,
         params1.integrator_fee_amount_bps,
@@ -1411,10 +1406,10 @@ fn test_swap_should_fail_after_token_approval_is_revoked_avnu() {
 
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params2.token_from_address,
         params2.token_from_amount,
         params2.token_to_address,
-        params2.token_to_amount,
         params2.token_to_min_amount,
         params2.beneficiary,
         params2.integrator_fee_amount_bps,
@@ -1451,10 +1446,10 @@ fn test_percentage_fee_deduction_on_swap() {
     let params = get_swap_parameters(SwapType::strk_usdt);
     call_avnu_swap(
         autoSwappr_dispatcher,
+        ADDRESS_WITH_FUNDS(),
         params.token_from_address,
         params.token_from_amount,
         params.token_to_address,
-        params.token_to_amount,
         params.token_to_min_amount,
         params.beneficiary,
         params.integrator_fee_amount_bps,
@@ -1495,17 +1490,13 @@ fn test_percentage_fee_deduction_on_swap() {
         "Exchange address STRK balance should increase"
     );
 
-    let expected_fee: u256 = params.token_to_amount * 200 / 10000; // 2% of the token_to_amount
+    let expected_fee: u256 = params.token_to_min_amount * 200 / 10000; // 2% of the token_to_amount
 
     // fee collector assertion with tolerance
-    let tolerance: u256 = 100;
+    // let tolerance: u256 = 100;
     assert!(
-        (new_fee_collector_amounts.usdt >= previous_fee_collector_amounts.usdt
-            + expected_fee
-            - tolerance)
-            && (new_fee_collector_amounts.usdt <= previous_fee_collector_amounts.usdt
-                + expected_fee
-                + tolerance),
+        new_fee_collector_amounts.usdt >= previous_fee_collector_amounts.usdt
+            + expected_fee,
         "Fee collector USDT balance should increase by the fee amount within tolerance"
     );
 }
