@@ -2,3 +2,5 @@ node_modules
 
 target
 .snfoundry_cache
+
+.env

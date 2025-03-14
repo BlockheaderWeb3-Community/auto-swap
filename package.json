@@ -1,13 +1,17 @@
 {
 	"scripts": {
-		"prepare": "husky"
+		"prepare": "husky",
+		"deploy": "ts-node deploy.ts"
 	},
 	"dependencies": {
-		"husky": "^9.1.6"
+		"dotenv": "^16.4.7",
+		"husky": "^9.1.6",
+		"starknet": "^6.23.1",
+		"ts-node": "^10.9.2"
 	},
-	"type": "module",
 	"devDependencies": {
 		"@commitlint/cli": "^19.5.0",
-		"@commitlint/config-conventional": "^19.5.0"
+		"@commitlint/config-conventional": "^19.5.0",
+		"typescript": "^5.8.2"
 	}
 }
