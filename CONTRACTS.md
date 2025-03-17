@@ -2,8 +2,8 @@
 
 |                      |                              Mainnet                              | Sepolia |
 | :------------------- | :---------------------------------------------------------------: | ------- |
-| **Classhash**        | 0x38598eff03ee31eebe0b64eae4b2870b88e5af90da472bd1514f6ab734af54e |
-| **Contract Address** |                                                                   |
+| **Classhash**        | 0x7a326753d2360215245e97636dc62462bf02d3f7be2d7c98c0045174a0c7574 |
+| **Contract Address** | 0x11a86b17fc6c4158267d88f255a0b98f623c25b97479f6f07a0a83ad7cc2e53 |
 
 # Fee Collector Contract Addresses
 
