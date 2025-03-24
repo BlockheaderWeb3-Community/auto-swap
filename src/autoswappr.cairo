@@ -410,6 +410,8 @@ pub mod AutoSwappr {
             let token_to_received = self._collect_fees(amount_out.into(), token_out_contract);
             token_out_contract.transfer(caller, token_to_received);
 
+            //TODO: Implement slippage check
+            
             self
                 .emit(
                     SwapSuccessful {
