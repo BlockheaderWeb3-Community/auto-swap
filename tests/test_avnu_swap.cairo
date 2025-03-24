@@ -10,8 +10,7 @@ use starknet::{ContractAddress, contract_address_const};
 // snforge imports
 use snforge_std::{
     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
-    DeclareResultTrait,
-    spy_events, EventSpyAssertionsTrait
+    DeclareResultTrait, spy_events, EventSpyAssertionsTrait
 };
 
 // OZ imports
@@ -1495,8 +1494,7 @@ fn test_percentage_fee_deduction_on_swap() {
     // fee collector assertion with tolerance
     // let tolerance: u256 = 100;
     assert!(
-        new_fee_collector_amounts.usdt >= previous_fee_collector_amounts.usdt
-            + expected_fee,
+        new_fee_collector_amounts.usdt >= previous_fee_collector_amounts.usdt + expected_fee,
         "Fee collector USDT balance should increase by the fee amount within tolerance"
     );
 }

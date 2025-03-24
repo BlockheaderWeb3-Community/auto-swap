@@ -8,6 +8,9 @@ pub mod AutoSwappr {
     use pragma_lib::types::{AggregationMode, DataType, PragmaPricesResponse};
     use alexandria_math::fast_power::fast_power;
 
+    // Ekubo imports
+    use ekubo::interfaces::core::{ILocker, ICoreDispatcher, ICoreDispatcherTrait};
+
     // OZ imports
     use openzeppelin_upgrades::UpgradeableComponent;
     use openzeppelin_upgrades::interface::IUpgradeable;
@@ -22,7 +25,7 @@ pub mod AutoSwappr {
     // Package imports
     use crate::base::errors::Errors;
     use crate::interfaces::iautoswappr::{IAutoSwappr, ContractInfo};
-    use crate::base::types::{Route, Assets, RouteParams, SwapParams, FeeType};
+    use crate::base::types::{Route, Assets, RouteParams, SwapParams, FeeType, SwapData, SwapResult};
     use crate::components::operator::OperatorComponent;
     use crate::interfaces::iavnu_exchange::{IExchangeDispatcher, IExchangeDispatcherTrait};
     use crate::interfaces::ifibrous_exchange::{
@@ -57,6 +60,7 @@ pub mod AutoSwappr {
         percentage_fee_bps: u16, // Percentage fee in basis points (e.g., 100 = 1%)
         avnu_exchange_address: ContractAddress,
         fibrous_exchange_address: ContractAddress,
+        ekubo_core_address: ContractAddress,
         oracle_address: ContractAddress,
         supported_assets_to_feed_id: Map<ContractAddress, felt252>,
         #[substorage(v0)]
@@ -117,6 +121,7 @@ pub mod AutoSwappr {
         pub new_percentage_fee: u16,
     }
 
+
     const MAX_FEE_PERCENTAGE: u16 = 300; // 3% in basis points (300 basis points)
 
     #[constructor]
@@ -126,6 +131,7 @@ pub mod AutoSwappr {
         fee_amount_bps: u8,
         avnu_exchange_address: ContractAddress,
         fibrous_exchange_address: ContractAddress,
+        ekubo_core_address: ContractAddress,
         oracle_address: ContractAddress,
         supported_assets: Array<ContractAddress>,
         supported_assets_priceFeeds_ids: Array<felt252>,
@@ -150,6 +156,7 @@ pub mod AutoSwappr {
         self.fee_amount_bps.write(fee_amount_bps);
         self.fibrous_exchange_address.write(fibrous_exchange_address);
         self.avnu_exchange_address.write(avnu_exchange_address);
+        self.ekubo_core_address.write(ekubo_core_address);
         self.oracle_address.write(oracle_address);
         self.ownable.initializer(owner);
         self.fee_type.write(initial_fee_type);
@@ -191,13 +198,11 @@ pub mod AutoSwappr {
             let token_to_contract = ERC20ABIDispatcher { contract_address: token_to_address };
 
             assert(
-                token_from_contract
-                    .allowance(protocol_swapper, this_contract) >= token_from_amount,
+                token_from_contract.allowance(protocol_swapper, this_contract) >= token_from_amount,
                 Errors::INSUFFICIENT_ALLOWANCE,
             );
 
-            token_from_contract
-                .transfer_from(protocol_swapper, this_contract, token_from_amount);
+            token_from_contract.transfer_from(protocol_swapper, this_contract, token_from_amount);
             token_from_contract.approve(self.avnu_exchange_address.read(), token_from_amount);
             let contract_token_to_balance = token_to_contract.balance_of(this_contract);
 
@@ -246,7 +251,7 @@ pub mod AutoSwappr {
             let (supported, _) = self.get_token_from_status_and_value(routeParams.token_in);
             assert(supported, Errors::UNSUPPORTED_TOKEN,);
             assert(!routeParams.amount_in.is_zero(), Errors::ZERO_AMOUNT);
-            assert(routeParams.destination == contract_address, Errors::ZERO_AMOUNT);
+            assert(routeParams.destination == contract_address, Errors::INVALID_SENDER);
 
             let token_in_contract = ERC20ABIDispatcher { contract_address: routeParams.token_in };
             let token_out_contract = ERC20ABIDispatcher { contract_address: routeParams.token_out };
@@ -280,6 +285,42 @@ pub mod AutoSwappr {
                         beneficiary
                     }
                 );
+        }
+
+        fn ekubo_swap(ref self: ContractState, swap_data: SwapData) -> SwapResult {
+            let contract_address = get_contract_address();
+
+            // assertions
+            assert(self.operator.is_operator(get_caller_address()), Errors::INVALID_SENDER);
+            assert(!swap_data.params.amount.mag.is_zero(), Errors::ZERO_AMOUNT);
+            assert(swap_data.caller == contract_address, Errors::INVALID_SENDER);
+            let token_in = if swap_data.params.is_token1 {
+                swap_data.pool_key.token1
+            } else {
+                swap_data.pool_key.token0
+            };
+            let (supported, _) = self.get_token_from_status_and_value(token_in);
+            assert(supported, Errors::UNSUPPORTED_TOKEN);
+            let protocol_swapper = swap_data.caller;
+            let token_in_contract = ERC20ABIDispatcher { contract_address: token_in };
+            assert(
+                token_in_contract
+                    .allowance(protocol_swapper, contract_address) >= swap_data
+                    .params
+                    .amount
+                    .mag
+                    .into(),
+                Errors::INSUFFICIENT_ALLOWANCE,
+            );
+
+            token_in_contract
+                .transfer_from(
+                    protocol_swapper, contract_address, swap_data.params.amount.mag.into()
+                );
+
+            ekubo::components::shared_locker::call_core_with_callback(
+                ICoreDispatcher { contract_address: self.ekubo_core_address.read() }, @swap_data
+            )
         }
 
         fn get_token_amount_in_usd(
@@ -340,6 +381,52 @@ pub mod AutoSwappr {
         }
     }
 
+    #[abi(embed_v0)]
+    impl LockerImpl of ILocker<ContractState> {
+        fn locked(ref self: ContractState, id: u32, data: Span<felt252>) -> Span<felt252> {
+            let core = ICoreDispatcher { contract_address: self.ekubo_core_address.read() };
+            ekubo::components::shared_locker::check_caller_is_core(core);
+            let contract_address = get_contract_address();
+            let SwapData { pool_key, params, caller, } =
+                ekubo::components::shared_locker::consume_callback_data::<
+                SwapData
+            >(core, data);
+            let delta = core.swap(pool_key, params);
+
+            ekubo::components::shared_locker::handle_delta(
+                core, pool_key.token0, delta.amount0, contract_address,
+            );
+            ekubo::components::shared_locker::handle_delta(
+                core, pool_key.token1, delta.amount1, contract_address,
+            );
+            // fee collection
+            // when delta sign is negative, it means the token is token_out
+            let (token_in, token_out, amount_in, amount_out) = if delta.amount0.sign {
+                (pool_key.token1, pool_key.token0, delta.amount1.mag, delta.amount0.mag)
+            } else {
+                (pool_key.token0, pool_key.token1, delta.amount0.mag, delta.amount1.mag)
+            };
+            let token_out_contract = ERC20ABIDispatcher { contract_address: token_out };
+            let token_to_received = self._collect_fees(amount_out.into(), token_out_contract);
+            token_out_contract.transfer(caller, token_to_received);
+
+            self
+                .emit(
+                    SwapSuccessful {
+                        token_from_address: token_in,
+                        token_from_amount: amount_in.into(),
+                        token_to_address: token_out,
+                        token_to_amount: token_to_received,
+                        beneficiary: caller,
+                    }
+                );
+            let swap_result = SwapResult { delta };
+            let mut arr: Array<felt252> = ArrayTrait::new();
+            Serde::serialize(@swap_result, ref arr);
+            arr.span()
+        }
+    }
+
     #[generate_trait]
     impl InternalImpl of InternalTrait {
         fn _avnu_swap(
@@ -360,8 +447,9 @@ pub mod AutoSwappr {
                     token_from_address,
                     token_from_amount,
                     token_to_address,
-                    // using token_to_min_amount as token_to_amount as token_to_amount doesn't actually do anything in avnu
-                    token_to_min_amount, 
+                    // using token_to_min_amount as token_to_amount as token_to_amount doesn't
+                    // actually do anything in avnu
+                    token_to_min_amount,
                     token_to_min_amount,
                     beneficiary,
                     integrator_fee_amount_bps,
