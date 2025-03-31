@@ -134,6 +134,10 @@ pub fn ORACLE_ADDRESS() -> ContractAddress {
     contract_address_const::<0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b>()
 }
 
+fn EKUBO_CORE_ADDRESS() -> ContractAddress {
+    contract_address_const::<0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b>()
+}
+
 
 const AMOUNT_TO_SWAP_STRK: u256 =
     2000000000000000000; // 2 STRK. used 2 so we can enough to take fee from
@@ -410,6 +414,7 @@ fn __setup__() -> IAutoSwapprDispatcher {
     FEE_AMOUNT_BPS.serialize(ref autoSwappr_constructor_calldata);
     AVNU_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
     FIBROUS_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    EKUBO_CORE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
     ORACLE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
     SUPPORTED_ASSETS_COUNT.serialize(ref autoSwappr_constructor_calldata);
     STRK_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);

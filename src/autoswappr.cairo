@@ -293,7 +293,7 @@ pub mod AutoSwappr {
             // assertions
             assert(self.operator.is_operator(get_caller_address()), Errors::INVALID_SENDER);
             assert(!swap_data.params.amount.mag.is_zero(), Errors::ZERO_AMOUNT);
-            assert(swap_data.caller == contract_address, Errors::INVALID_SENDER);
+            // assert(swap_data.caller == contract_address, Errors::INVALID_SENDER);
             let token_in = if swap_data.params.is_token1 {
                 swap_data.pool_key.token1
             } else {
@@ -317,7 +317,6 @@ pub mod AutoSwappr {
                 .transfer_from(
                     protocol_swapper, contract_address, swap_data.params.amount.mag.into()
                 );
-
             ekubo::components::shared_locker::call_core_with_callback(
                 ICoreDispatcher { contract_address: self.ekubo_core_address.read() }, @swap_data
             )
@@ -392,7 +391,6 @@ pub mod AutoSwappr {
                 SwapData
             >(core, data);
             let delta = core.swap(pool_key, params);
-
             ekubo::components::shared_locker::handle_delta(
                 core, pool_key.token0, delta.amount0, contract_address,
             );

@@ -80,6 +80,10 @@ pub fn OWNER() -> ContractAddress {
     contract_address_const::<'OWNER'>()
 }
 
+fn EKUBO_CORE_ADDRESS() -> ContractAddress {
+    contract_address_const::<0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b>()
+}
+
 pub fn OPERATOR() -> ContractAddress {
     contract_address_const::<'OPERATOR'>()
 }
@@ -272,6 +276,7 @@ fn __setup__() -> IAutoSwapprDispatcher {
     FEE_AMOUNT_BPS.serialize(ref autoSwappr_constructor_calldata);
     AVNU_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
     FIBROUS_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    EKUBO_CORE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
     ORACLE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
     SUPPORTED_ASSETS_COUNT.serialize(ref autoSwappr_constructor_calldata);
     STRK_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
