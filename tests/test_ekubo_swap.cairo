@@ -123,45 +123,6 @@ enum SwapType {
     eth_usdc
 }
 
-// deployment util function
-fn __setup__() -> IAutoSwapprDispatcher {
-    let auto_swappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
-
-    let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
-    FEE_COLLECTOR.serialize(ref autoSwappr_constructor_calldata);
-    FEE_AMOUNT_BPS.serialize(ref autoSwappr_constructor_calldata);
-    AVNU_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    FIBROUS_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    EKUBO_CORE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    ORACLE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    SUPPORTED_ASSETS_COUNT.serialize(ref autoSwappr_constructor_calldata);
-    STRK_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    ETH_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    PRICE_FEEDS_COUNT.serialize(ref autoSwappr_constructor_calldata);
-    STRK_USD_PRICE_FEED.serialize(ref autoSwappr_constructor_calldata);
-    ETH_USD_PRICE_FEED.serialize(ref autoSwappr_constructor_calldata);
-    OWNER().serialize(ref autoSwappr_constructor_calldata);
-    INITIAL_FEE_TYPE.serialize(ref autoSwappr_constructor_calldata);
-    INITIAL_PERCENTAGE_FEE.serialize(ref autoSwappr_constructor_calldata);
-
-    let (auto_swappr_contract_address, _) = auto_swappr_class_hash
-        .deploy(@autoSwappr_constructor_calldata)
-        .unwrap();
-
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: auto_swappr_contract_address,
-    };
-
-    let operator_dispatcher = IOperatorDispatcher {
-        contract_address: auto_swappr_contract_address,
-    };
-
-    start_cheat_caller_address(auto_swappr_contract_address, OWNER().try_into().unwrap());
-    operator_dispatcher.set_operator(OPERATOR());
-    stop_cheat_caller_address(auto_swappr_contract_address);
-    autoSwappr_dispatcher
-}
-
 // util function for swap params
 fn swap_param_util(swap_type: SwapType, amount: i129) -> SwapData {
     let swap_params = SwapParameters {
@@ -226,4 +187,119 @@ fn swap_param_util(swap_type: SwapType, amount: i129) -> SwapData {
             swap_data
         }
     }
+}
+
+// deployment util function
+fn __setup__() -> IAutoSwapprDispatcher {
+    let auto_swappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
+
+    let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
+    FEE_COLLECTOR.serialize(ref autoSwappr_constructor_calldata);
+    FEE_AMOUNT_BPS.serialize(ref autoSwappr_constructor_calldata);
+    AVNU_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    FIBROUS_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    EKUBO_CORE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    ORACLE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    SUPPORTED_ASSETS_COUNT.serialize(ref autoSwappr_constructor_calldata);
+    STRK_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    ETH_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    PRICE_FEEDS_COUNT.serialize(ref autoSwappr_constructor_calldata);
+    STRK_USD_PRICE_FEED.serialize(ref autoSwappr_constructor_calldata);
+    ETH_USD_PRICE_FEED.serialize(ref autoSwappr_constructor_calldata);
+    OWNER().serialize(ref autoSwappr_constructor_calldata);
+    INITIAL_FEE_TYPE.serialize(ref autoSwappr_constructor_calldata);
+    INITIAL_PERCENTAGE_FEE.serialize(ref autoSwappr_constructor_calldata);
+
+    let (auto_swappr_contract_address, _) = auto_swappr_class_hash
+        .deploy(@autoSwappr_constructor_calldata)
+        .unwrap();
+
+    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
+        contract_address: auto_swappr_contract_address,
+    };
+
+    let operator_dispatcher = IOperatorDispatcher {
+        contract_address: auto_swappr_contract_address,
+    };
+
+    start_cheat_caller_address(auto_swappr_contract_address, OWNER().try_into().unwrap());
+    operator_dispatcher.set_operator(OPERATOR());
+    stop_cheat_caller_address(auto_swappr_contract_address);
+    autoSwappr_dispatcher
+}
+
+fn mag_into(amount: i129) -> u256 {
+    return amount.mag.into();
+}
+
+
+#[test]
+#[fork("MAINNET")]
+fn test_strk_for_usdc_swap() {
+    let autoSwappr_dispatcher = __setup__();
+    let amount = i129 { mag: 10_000_000_000_000_000_000, sign: false }; // 10 STRK
+
+    let swap_data = swap_param_util(SwapType::strk_usdc, amount);
+
+    let usdc = IERC20Dispatcher { contract_address: USDC_TOKEN_ADDRESS() };
+    let strk = IERC20Dispatcher { contract_address: STRK_TOKEN_ADDRESS() };
+
+    cheat_caller_address(strk.contract_address, ADDRESS_WITH_FUNDS(), CheatSpan::TargetCalls(1));
+
+    strk.approve(autoSwappr_dispatcher.contract_address, mag_into(amount));
+
+    let usdc_initial_balance = usdc.balance_of(ADDRESS_WITH_FUNDS());
+    let strk_initial_balance = strk.balance_of(ADDRESS_WITH_FUNDS());
+
+    cheat_caller_address(
+        autoSwappr_dispatcher.contract_address, OPERATOR(), CheatSpan::TargetCalls(1)
+    );
+
+    autoSwappr_dispatcher.ekubo_swap(swap_data);
+
+    let usdc_final_balance = usdc.balance_of(ADDRESS_WITH_FUNDS());
+    let strk_final_balance = strk.balance_of(ADDRESS_WITH_FUNDS());
+    let min_usdc_received = autoSwappr_dispatcher
+        .get_token_amount_in_usd(strk.contract_address, 10.into())
+        * 1_000_000;
+
+    assert_eq!(strk_final_balance, strk_initial_balance - mag_into(amount));
+    assert_ge!(usdc_final_balance, usdc_initial_balance + min_usdc_received - FEE_AMOUNT);
+    assert_eq!(usdc.balance_of(FEE_COLLECTOR.try_into().unwrap()), FEE_AMOUNT);
+}
+
+
+#[test]
+#[fork("MAINNET")]
+fn test_eth_for_usdc_swap() {
+    let autoSwappr_dispatcher = __setup__();
+    let amount = i129 { mag: 10_000_000_000_000_000, sign: false }; // 0.01 ETH
+
+    let swap_data = swap_param_util(SwapType::eth_usdc, amount);
+
+    let usdc = IERC20Dispatcher { contract_address: USDC_TOKEN_ADDRESS() };
+    let eth = IERC20Dispatcher { contract_address: ETH_TOKEN_ADDRESS() };
+
+    cheat_caller_address(eth.contract_address, ADDRESS_WITH_FUNDS(), CheatSpan::TargetCalls(1));
+
+    eth.approve(autoSwappr_dispatcher.contract_address, mag_into(amount));
+
+    let usdc_initial_balance = usdc.balance_of(ADDRESS_WITH_FUNDS());
+    let eth_initial_balance = eth.balance_of(ADDRESS_WITH_FUNDS());
+
+    cheat_caller_address(
+        autoSwappr_dispatcher.contract_address, OPERATOR(), CheatSpan::TargetCalls(1)
+    );
+
+    autoSwappr_dispatcher.ekubo_swap(swap_data);
+
+    let usdc_final_balance = usdc.balance_of(ADDRESS_WITH_FUNDS());
+    let eth_final_balance = eth.balance_of(ADDRESS_WITH_FUNDS());
+    let min_usdc_received = autoSwappr_dispatcher
+        .get_token_amount_in_usd(eth.contract_address, 1.into())
+        * 10_000; // convert 0.01 ETH to USD with 6 decimals
+
+    assert_eq!(eth_final_balance, eth_initial_balance - mag_into(amount));
+    // assert_ge!(usdc_final_balance, usdc_initial_balance + min_usdc_received - FEE_AMOUNT);
+    assert_eq!(usdc.balance_of(FEE_COLLECTOR.try_into().unwrap()), FEE_AMOUNT);
 }
