@@ -293,7 +293,6 @@ pub mod AutoSwappr {
             // assertions
             assert(self.operator.is_operator(get_caller_address()), Errors::INVALID_SENDER);
             assert(!swap_data.params.amount.mag.is_zero(), Errors::ZERO_AMOUNT);
-            // assert(swap_data.caller == contract_address, Errors::INVALID_SENDER);
             let token_in = if swap_data.params.is_token1 {
                 swap_data.pool_key.token1
             } else {
@@ -409,7 +408,7 @@ pub mod AutoSwappr {
             token_out_contract.transfer(caller, token_to_received);
 
             //TODO: Implement slippage check
-            
+
             self
                 .emit(
                     SwapSuccessful {

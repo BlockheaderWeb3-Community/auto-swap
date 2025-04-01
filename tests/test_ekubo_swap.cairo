@@ -7,13 +7,14 @@ use starknet::{ContractAddress, contract_address_const};
 // snforge imports
 use snforge_std::{
     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
-    DeclareResultTrait, cheat_caller_address, CheatSpan
+    DeclareResultTrait, cheat_caller_address, CheatSpan, spy_events, EventSpyAssertionsTrait
 };
 
 // OZ imports
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
 // Autoswappr imports
+use auto_swappr::autoswappr::AutoSwappr::{Event, SwapSuccessful};
 use auto_swappr::interfaces::iautoswappr::{IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait};
 use auto_swappr::base::types::{FeeType, SwapData};
 use auto_swappr::interfaces::ioperator::{IOperatorDispatcher, IOperatorDispatcherTrait};
@@ -22,6 +23,7 @@ use auto_swappr::interfaces::ioperator::{IOperatorDispatcher, IOperatorDispatche
 use ekubo::types::i129::i129;
 use ekubo::types::keys::PoolKey;
 use ekubo::interfaces::core::SwapParameters;
+use ekubo::interfaces::core::{ILockerDispatcher, ILockerDispatcherTrait};
 
 
 const FEE_COLLECTOR: felt252 = 0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
@@ -92,12 +94,14 @@ pub fn OPERATOR() -> ContractAddress {
     contract_address_const::<'OPERATOR'>()
 }
 
-mod pool_key {
-    pub const FEE: u128 = 170141183460469235273462165868118016;
-    pub const TICK_SPACING: u128 = 1000;
-    pub const EXTENSION: felt252 = 0;
-    pub const SQRT_RATIO_LIMIT: u256 = 18446748437148339061; // min sqrt ratio limit
+#[derive(Debug, Drop, PartialEq, Serde)]
+struct PoolKeyInternal {
+    fee: u128,
+    tick_spacing: u128,
+    extension: felt252,
+    sqrt_ratio_limit: u256
 }
+
 
 const AMOUNT_TO_SWAP_STRK: u256 = 1000000000000000000; // 1 STRK
 const AMOUNT_TO_SWAP_ETH: u256 = 10000000000000000; // 0.01 ETH 
@@ -125,17 +129,24 @@ enum SwapType {
 
 // util function for swap params
 fn swap_param_util(swap_type: SwapType, amount: i129) -> SwapData {
-    let swap_params = SwapParameters {
-        amount, sqrt_ratio_limit: pool_key::SQRT_RATIO_LIMIT, is_token1: false, skip_ahead: 0
+    let pool_key = PoolKeyInternal {
+        fee: 170141183460469235273462165868118016,
+        tick_spacing: 1000,
+        extension: 0,
+        sqrt_ratio_limit: 18446748437148339061, // min sqrt ratio limit
     };
+    let swap_params = SwapParameters {
+        amount, sqrt_ratio_limit: pool_key.sqrt_ratio_limit, is_token1: false, skip_ahead: 0
+    };
+
     match swap_type {
         SwapType::strk_usdc => {
             let pool_key = PoolKey {
                 token0: STRK_TOKEN_ADDRESS(),
                 token1: USDC_TOKEN_ADDRESS(),
-                fee: pool_key::FEE,
-                tick_spacing: pool_key::TICK_SPACING,
-                extension: pool_key::EXTENSION.try_into().unwrap()
+                fee: pool_key.fee,
+                tick_spacing: pool_key.tick_spacing,
+                extension: pool_key.extension.try_into().unwrap()
             };
 
             let swap_data = SwapData {
@@ -145,12 +156,19 @@ fn swap_param_util(swap_type: SwapType, amount: i129) -> SwapData {
             swap_data
         },
         SwapType::strk_usdt => {
+            // have to use another pool key for STRK/USDT as the default one has no trading volume
+            let strk_usdt_pool_key = PoolKeyInternal {
+                fee: 3402823669209384634633746074317682114,
+                tick_spacing: 19802,
+                extension: 0,
+                sqrt_ratio_limit: 18446748437148339061, // min sqrt ratio limit
+            };
             let pool_key = PoolKey {
                 token0: STRK_TOKEN_ADDRESS(),
                 token1: USDT_TOKEN_ADDRESS(),
-                fee: pool_key::FEE,
-                tick_spacing: pool_key::TICK_SPACING,
-                extension: pool_key::EXTENSION.try_into().unwrap()
+                fee: strk_usdt_pool_key.fee,
+                tick_spacing: strk_usdt_pool_key.tick_spacing,
+                extension: strk_usdt_pool_key.extension.try_into().unwrap()
             };
 
             let swap_data = SwapData {
@@ -162,9 +180,9 @@ fn swap_param_util(swap_type: SwapType, amount: i129) -> SwapData {
             let pool_key = PoolKey {
                 token0: ETH_TOKEN_ADDRESS(),
                 token1: USDT_TOKEN_ADDRESS(),
-                fee: pool_key::FEE,
-                tick_spacing: pool_key::TICK_SPACING,
-                extension: pool_key::EXTENSION.try_into().unwrap()
+                fee: pool_key.fee,
+                tick_spacing: pool_key.tick_spacing,
+                extension: pool_key.extension.try_into().unwrap()
             };
 
             let swap_data = SwapData {
@@ -176,9 +194,9 @@ fn swap_param_util(swap_type: SwapType, amount: i129) -> SwapData {
             let pool_key = PoolKey {
                 token0: ETH_TOKEN_ADDRESS(),
                 token1: USDC_TOKEN_ADDRESS(),
-                fee: pool_key::FEE,
-                tick_spacing: pool_key::TICK_SPACING,
-                extension: pool_key::EXTENSION.try_into().unwrap()
+                fee: pool_key.fee,
+                tick_spacing: pool_key.tick_spacing,
+                extension: pool_key.extension.try_into().unwrap()
             };
 
             let swap_data = SwapData {
@@ -229,7 +247,100 @@ fn __setup__() -> IAutoSwapprDispatcher {
 }
 
 fn mag_into(amount: i129) -> u256 {
-    return amount.mag.into();
+    amount.mag.into()
+}
+
+#[test]
+#[should_panic(expected: 'sender can not call')]
+fn test_should_revert_if_non_operator_calls_ekubo_swap() {
+    let autoSwappr_dispatcher = __setup__();
+    let amount = i129 { mag: 10_000_000_000_000_000_000, sign: false }; // 10 STRK
+
+    let swap_data = swap_param_util(SwapType::strk_usdc, amount);
+
+    autoSwappr_dispatcher.ekubo_swap(swap_data);
+}
+
+#[test]
+#[should_panic(expected: 'Amount is zero')]
+fn test_should_revert_if_amountIn_is_equal_to_zero() {
+    let autoSwappr_dispatcher = __setup__();
+    let amount = i129 { mag: 0, sign: false }; // 10 STRK
+
+    let swap_data = swap_param_util(SwapType::strk_usdc, amount);
+    cheat_caller_address(
+        autoSwappr_dispatcher.contract_address, OPERATOR(), CheatSpan::TargetCalls(1)
+    );
+    autoSwappr_dispatcher.ekubo_swap(swap_data);
+}
+
+#[test]
+#[should_panic(expected: 'Token not supported')]
+fn test_should_revert_if_token0_is_not_supported() {
+    let autoSwappr_dispatcher = __setup__();
+    let amount = i129 { mag: 10_000_000_000_000_000_000, sign: false }; // 10 STRK
+
+    let mut swap_data = swap_param_util(SwapType::strk_usdc, amount);
+    swap_data.pool_key.token0 = USDT_TOKEN_ADDRESS(); // unsupported token0
+    cheat_caller_address(
+        autoSwappr_dispatcher.contract_address, OPERATOR(), CheatSpan::TargetCalls(1)
+    );
+    autoSwappr_dispatcher.ekubo_swap(swap_data);
+}
+
+#[test]
+#[fork("MAINNET")]
+#[should_panic(expected: 'Insufficient Allowance')]
+fn test_should_revert_if_allowance_is_insufficient() {
+    let autoSwappr_dispatcher = __setup__();
+    let amount = i129 { mag: 10_000_000_000_000_000_000, sign: false }; // 10 STRK
+
+    let swap_data = swap_param_util(SwapType::strk_usdc, amount);
+
+    let strk = IERC20Dispatcher { contract_address: STRK_TOKEN_ADDRESS() };
+
+    cheat_caller_address(strk.contract_address, ADDRESS_WITH_FUNDS(), CheatSpan::TargetCalls(1));
+
+    strk.approve(autoSwappr_dispatcher.contract_address, mag_into(amount) - 1);
+
+    cheat_caller_address(
+        autoSwappr_dispatcher.contract_address, OPERATOR(), CheatSpan::TargetCalls(1)
+    );
+    autoSwappr_dispatcher.ekubo_swap(swap_data);
+}
+
+#[test]
+#[fork("MAINNET")]
+#[should_panic(expected: 'u256_sub Overflow')]
+fn test_should_revert_if_amountIn_is_greater_than_user_balance() {
+    let autoSwappr_dispatcher = __setup__();
+    let balance = STRK_TOKEN().balance_of(ADDRESS_WITH_FUNDS());
+    let amount = i129 { mag: balance.try_into().unwrap() + 1, sign: false }; // 10 STRK
+
+    let swap_data = swap_param_util(SwapType::strk_usdc, amount);
+
+    let strk = IERC20Dispatcher { contract_address: STRK_TOKEN_ADDRESS() };
+
+    cheat_caller_address(strk.contract_address, ADDRESS_WITH_FUNDS(), CheatSpan::TargetCalls(1));
+
+    strk.approve(autoSwappr_dispatcher.contract_address, mag_into(amount));
+
+    cheat_caller_address(
+        autoSwappr_dispatcher.contract_address, OPERATOR(), CheatSpan::TargetCalls(1)
+    );
+    autoSwappr_dispatcher.ekubo_swap(swap_data);
+}
+
+#[test]
+#[should_panic(expected: 'CORE_ONLY')]
+fn test_should_revert_if_another_address_apart_from_ekubo_core_calls_locked() {
+    let autoSwappr_dispatcher = __setup__();
+    let locker_dispatcher = ILockerDispatcher {
+        contract_address: autoSwappr_dispatcher.contract_address,
+    };
+    let mock_id = 1;
+    let mock_data = array!['mock_data'];
+    locker_dispatcher.locked(mock_id, mock_data.span());
 }
 
 
@@ -254,7 +365,7 @@ fn test_strk_for_usdc_swap() {
     cheat_caller_address(
         autoSwappr_dispatcher.contract_address, OPERATOR(), CheatSpan::TargetCalls(1)
     );
-
+    let mut spy = spy_events();
     autoSwappr_dispatcher.ekubo_swap(swap_data);
 
     let usdc_final_balance = usdc.balance_of(ADDRESS_WITH_FUNDS());
@@ -266,6 +377,23 @@ fn test_strk_for_usdc_swap() {
     assert_eq!(strk_final_balance, strk_initial_balance - mag_into(amount));
     assert_ge!(usdc_final_balance, usdc_initial_balance + min_usdc_received - FEE_AMOUNT);
     assert_eq!(usdc.balance_of(FEE_COLLECTOR.try_into().unwrap()), FEE_AMOUNT);
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_dispatcher.contract_address,
+                    Event::SwapSuccessful(
+                        SwapSuccessful {
+                            token_from_address: strk.contract_address,
+                            token_to_address: usdc.contract_address,
+                            token_from_amount: mag_into(amount),
+                            token_to_amount: usdc_final_balance - usdc_initial_balance,
+                            beneficiary: ADDRESS_WITH_FUNDS(),
+                        }
+                    )
+                )
+            ]
+        );
 }
 
 
@@ -290,7 +418,7 @@ fn test_eth_for_usdc_swap() {
     cheat_caller_address(
         autoSwappr_dispatcher.contract_address, OPERATOR(), CheatSpan::TargetCalls(1)
     );
-
+    let mut spy = spy_events();
     autoSwappr_dispatcher.ekubo_swap(swap_data);
 
     let usdc_final_balance = usdc.balance_of(ADDRESS_WITH_FUNDS());
@@ -298,8 +426,131 @@ fn test_eth_for_usdc_swap() {
     let min_usdc_received = autoSwappr_dispatcher
         .get_token_amount_in_usd(eth.contract_address, 1.into())
         * 10_000; // convert 0.01 ETH to USD with 6 decimals
-
+    let fee_offset = FEE_AMOUNT;
     assert_eq!(eth_final_balance, eth_initial_balance - mag_into(amount));
-    // assert_ge!(usdc_final_balance, usdc_initial_balance + min_usdc_received - FEE_AMOUNT);
+    assert_ge!(
+        usdc_final_balance, usdc_initial_balance + min_usdc_received - FEE_AMOUNT - fee_offset
+    );
     assert_eq!(usdc.balance_of(FEE_COLLECTOR.try_into().unwrap()), FEE_AMOUNT);
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_dispatcher.contract_address,
+                    Event::SwapSuccessful(
+                        SwapSuccessful {
+                            token_from_address: eth.contract_address,
+                            token_to_address: usdc.contract_address,
+                            token_from_amount: mag_into(amount),
+                            token_to_amount: usdc_final_balance - usdc_initial_balance,
+                            beneficiary: ADDRESS_WITH_FUNDS(),
+                        }
+                    )
+                )
+            ]
+        );
+}
+
+#[test]
+#[fork("MAINNET")]
+fn test_strk_for_usdt_swap() {
+    let autoSwappr_dispatcher = __setup__();
+    let amount = i129 { mag: 10_000_000_000_000_000_000, sign: false }; // 10 STRK
+
+    let swap_data = swap_param_util(SwapType::strk_usdt, amount);
+
+    let usdt = IERC20Dispatcher { contract_address: USDT_TOKEN_ADDRESS() };
+    let strk = IERC20Dispatcher { contract_address: STRK_TOKEN_ADDRESS() };
+
+    cheat_caller_address(strk.contract_address, ADDRESS_WITH_FUNDS(), CheatSpan::TargetCalls(1));
+
+    strk.approve(autoSwappr_dispatcher.contract_address, mag_into(amount));
+
+    let usdt_initial_balance = usdt.balance_of(ADDRESS_WITH_FUNDS());
+    let strk_initial_balance = strk.balance_of(ADDRESS_WITH_FUNDS());
+
+    cheat_caller_address(
+        autoSwappr_dispatcher.contract_address, OPERATOR(), CheatSpan::TargetCalls(1)
+    );
+    let mut spy = spy_events();
+    autoSwappr_dispatcher.ekubo_swap(swap_data);
+    let usdt_final_balance = usdt.balance_of(ADDRESS_WITH_FUNDS());
+    let strk_final_balance = strk.balance_of(ADDRESS_WITH_FUNDS());
+    let min_usdt_received = autoSwappr_dispatcher
+        .get_token_amount_in_usd(strk.contract_address, 10.into())
+        * 1_000_000;
+    assert_eq!(strk_final_balance, strk_initial_balance - mag_into(amount));
+    assert_ge!(usdt_final_balance, usdt_initial_balance + min_usdt_received - FEE_AMOUNT);
+    assert_eq!(usdt.balance_of(FEE_COLLECTOR.try_into().unwrap()), FEE_AMOUNT);
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_dispatcher.contract_address,
+                    Event::SwapSuccessful(
+                        SwapSuccessful {
+                            token_from_address: strk.contract_address,
+                            token_to_address: usdt.contract_address,
+                            token_from_amount: mag_into(amount),
+                            token_to_amount: usdt_final_balance - usdt_initial_balance,
+                            beneficiary: ADDRESS_WITH_FUNDS(),
+                        }
+                    )
+                )
+            ]
+        );
+}
+
+#[test]
+#[fork("MAINNET")]
+fn test_eth_for_usdt_swap() {
+    let autoSwappr_dispatcher = __setup__();
+    let amount = i129 { mag: 10_000_000_000_000_000, sign: false }; // 0.01 ETH
+
+    let swap_data = swap_param_util(SwapType::eth_usdt, amount);
+
+    let usdt = IERC20Dispatcher { contract_address: USDT_TOKEN_ADDRESS() };
+    let eth = IERC20Dispatcher { contract_address: ETH_TOKEN_ADDRESS() };
+
+    cheat_caller_address(eth.contract_address, ADDRESS_WITH_FUNDS(), CheatSpan::TargetCalls(1));
+
+    eth.approve(autoSwappr_dispatcher.contract_address, mag_into(amount));
+
+    let usdt_initial_balance = usdt.balance_of(ADDRESS_WITH_FUNDS());
+    let eth_initial_balance = eth.balance_of(ADDRESS_WITH_FUNDS());
+
+    cheat_caller_address(
+        autoSwappr_dispatcher.contract_address, OPERATOR(), CheatSpan::TargetCalls(1)
+    );
+    let mut spy = spy_events();
+    autoSwappr_dispatcher.ekubo_swap(swap_data);
+
+    let usdt_final_balance = usdt.balance_of(ADDRESS_WITH_FUNDS());
+    let eth_final_balance = eth.balance_of(ADDRESS_WITH_FUNDS());
+    let min_usdt_received = autoSwappr_dispatcher
+        .get_token_amount_in_usd(eth.contract_address, 1.into())
+        * 10_000; // convert 0.01 ETH to USD with 6 decimals
+    let fee_offset = FEE_AMOUNT;
+    assert_eq!(eth_final_balance, eth_initial_balance - mag_into(amount));
+    assert_ge!(
+        usdt_final_balance, usdt_initial_balance + min_usdt_received - FEE_AMOUNT - fee_offset
+    );
+    assert_eq!(usdt.balance_of(FEE_COLLECTOR.try_into().unwrap()), FEE_AMOUNT);
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    autoSwappr_dispatcher.contract_address,
+                    Event::SwapSuccessful(
+                        SwapSuccessful {
+                            token_from_address: eth.contract_address,
+                            token_to_address: usdt.contract_address,
+                            token_from_amount: mag_into(amount),
+                            token_to_amount: usdt_final_balance - usdt_initial_balance,
+                            beneficiary: ADDRESS_WITH_FUNDS(),
+                        }
+                    )
+                )
+            ]
+        );
 }
