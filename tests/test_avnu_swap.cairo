@@ -10,8 +10,7 @@ use starknet::{ContractAddress, contract_address_const};
 // snforge imports
 use snforge_std::{
     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
-    DeclareResultTrait,
-    spy_events, EventSpyAssertionsTrait
+    DeclareResultTrait, spy_events, EventSpyAssertionsTrait
 };
 
 // OZ imports
@@ -133,6 +132,10 @@ fn EXCHANGE_ETH_USDC() -> ContractAddress {
 
 pub fn ORACLE_ADDRESS() -> ContractAddress {
     contract_address_const::<0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b>()
+}
+
+fn EKUBO_CORE_ADDRESS() -> ContractAddress {
+    contract_address_const::<0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b>()
 }
 
 
@@ -411,6 +414,7 @@ fn __setup__() -> IAutoSwapprDispatcher {
     FEE_AMOUNT_BPS.serialize(ref autoSwappr_constructor_calldata);
     AVNU_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
     FIBROUS_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
+    EKUBO_CORE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
     ORACLE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
     SUPPORTED_ASSETS_COUNT.serialize(ref autoSwappr_constructor_calldata);
     STRK_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
@@ -1137,6 +1141,7 @@ fn test_avnu_swap_event_emission() {
                                 - amounts_before_strk_to_usdt.usdt
                                 + FEE_AMOUNT,
                             beneficiary: params.beneficiary,
+                            provider: AVNU_EXCHANGE_ADDRESS()
                         }
                     )
                 )
@@ -1263,6 +1268,8 @@ fn test_multi_swaps_event_emission() {
                                 - amounts_before_strk_to_usdt.usdt
                                 + FEE_AMOUNT,
                             beneficiary: params_strk_to_usdt.beneficiary,
+                            provider: AVNU_EXCHANGE_ADDRESS()
+
                         }
                     )
                 ),
@@ -1277,6 +1284,8 @@ fn test_multi_swaps_event_emission() {
                                 - amounts_after_strk_to_usdt.usdc
                                 + FEE_AMOUNT,
                             beneficiary: params_strk_to_usdc.beneficiary,
+                            provider: AVNU_EXCHANGE_ADDRESS()
+
                         }
                     )
                 ),
@@ -1291,6 +1300,9 @@ fn test_multi_swaps_event_emission() {
                                 - amounts_after_strk_to_usdc.usdt
                                 + FEE_AMOUNT,
                             beneficiary: params_eth_to_usdt.beneficiary,
+                            provider: AVNU_EXCHANGE_ADDRESS()
+
+
                         }
                     )
                 ),
@@ -1305,6 +1317,7 @@ fn test_multi_swaps_event_emission() {
                                 - amounts_after_eth_to_usdt.usdc
                                 + FEE_AMOUNT,
                             beneficiary: params_eth_to_usdc.beneficiary,
+                            provider: AVNU_EXCHANGE_ADDRESS()
                         }
                     )
                 )
@@ -1495,8 +1508,7 @@ fn test_percentage_fee_deduction_on_swap() {
     // fee collector assertion with tolerance
     // let tolerance: u256 = 100;
     assert!(
-        new_fee_collector_amounts.usdt >= previous_fee_collector_amounts.usdt
-            + expected_fee,
+        new_fee_collector_amounts.usdt >= previous_fee_collector_amounts.usdt + expected_fee,
         "Fee collector USDT balance should increase by the fee amount within tolerance"
     );
 }

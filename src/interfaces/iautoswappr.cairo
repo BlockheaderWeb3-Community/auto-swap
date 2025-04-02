@@ -1,6 +1,5 @@
 use core::starknet::ContractAddress;
-use crate::base::types::Route;
-use crate::base::types::{RouteParams, SwapParams, FeeType};
+use crate::base::types::{RouteParams, SwapParams, FeeType, Route, SwapData, SwapResult};
 
 #[derive(Copy, Debug, Drop, PartialEq, Serde)]
 pub struct ContractInfo {
@@ -12,6 +11,7 @@ pub struct ContractInfo {
     pub fee_type: FeeType,
     pub percentage_fee: u16
 }
+
 
 #[starknet::interface]
 pub trait IAutoSwappr<TContractState> {
@@ -48,5 +48,6 @@ pub trait IAutoSwappr<TContractState> {
         self: @TContractState, token_from: ContractAddress
     ) -> (bool, felt252);
     fn set_fee_type(ref self: TContractState, fee_type: FeeType, percentage_fee: u16);
+    fn ekubo_swap(ref self: TContractState, swap_data: SwapData) -> SwapResult;
 }
 
