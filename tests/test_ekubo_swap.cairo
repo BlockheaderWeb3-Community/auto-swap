@@ -127,6 +127,11 @@ enum SwapType {
     eth_usdc
 }
 
+//----UTILS----//
+fn mag_into(amount: i129) -> u256 {
+    amount.mag.into()
+}
+
 // util function for swap params
 fn swap_param_util(swap_type: SwapType, amount: i129) -> SwapData {
     let pool_key = PoolKeyInternal {
@@ -246,9 +251,6 @@ fn __setup__() -> IAutoSwapprDispatcher {
     autoSwappr_dispatcher
 }
 
-fn mag_into(amount: i129) -> u256 {
-    amount.mag.into()
-}
 
 #[test]
 #[should_panic(expected: 'sender can not call')]
@@ -263,7 +265,7 @@ fn test_should_revert_if_non_operator_calls_ekubo_swap() {
 
 #[test]
 #[should_panic(expected: 'Amount is zero')]
-fn test_should_revert_if_amountIn_is_equal_to_zero() {
+fn test_should_revert_if_amount_in_is_zero() {
     let autoSwappr_dispatcher = __setup__();
     let amount = i129 { mag: 0, sign: false }; // 10 STRK
 
@@ -389,6 +391,7 @@ fn test_strk_for_usdc_swap() {
                             token_from_amount: mag_into(amount),
                             token_to_amount: usdc_final_balance - usdc_initial_balance,
                             beneficiary: ADDRESS_WITH_FUNDS(),
+                            provider: EKUBO_CORE_ADDRESS()
                         }
                     )
                 )
@@ -444,6 +447,7 @@ fn test_eth_for_usdc_swap() {
                             token_from_amount: mag_into(amount),
                             token_to_amount: usdc_final_balance - usdc_initial_balance,
                             beneficiary: ADDRESS_WITH_FUNDS(),
+                            provider: EKUBO_CORE_ADDRESS()
                         }
                     )
                 )
@@ -494,6 +498,7 @@ fn test_strk_for_usdt_swap() {
                             token_from_amount: mag_into(amount),
                             token_to_amount: usdt_final_balance - usdt_initial_balance,
                             beneficiary: ADDRESS_WITH_FUNDS(),
+                            provider: EKUBO_CORE_ADDRESS()
                         }
                     )
                 )
@@ -548,6 +553,7 @@ fn test_eth_for_usdt_swap() {
                             token_from_amount: mag_into(amount),
                             token_to_amount: usdt_final_balance - usdt_initial_balance,
                             beneficiary: ADDRESS_WITH_FUNDS(),
+                            provider: EKUBO_CORE_ADDRESS()
                         }
                     )
                 )

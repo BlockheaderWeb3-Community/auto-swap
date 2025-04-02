@@ -1141,6 +1141,7 @@ fn test_avnu_swap_event_emission() {
                                 - amounts_before_strk_to_usdt.usdt
                                 + FEE_AMOUNT,
                             beneficiary: params.beneficiary,
+                            provider: AVNU_EXCHANGE_ADDRESS()
                         }
                     )
                 )
@@ -1267,6 +1268,8 @@ fn test_multi_swaps_event_emission() {
                                 - amounts_before_strk_to_usdt.usdt
                                 + FEE_AMOUNT,
                             beneficiary: params_strk_to_usdt.beneficiary,
+                            provider: AVNU_EXCHANGE_ADDRESS()
+
                         }
                     )
                 ),
@@ -1281,6 +1284,8 @@ fn test_multi_swaps_event_emission() {
                                 - amounts_after_strk_to_usdt.usdc
                                 + FEE_AMOUNT,
                             beneficiary: params_strk_to_usdc.beneficiary,
+                            provider: AVNU_EXCHANGE_ADDRESS()
+
                         }
                     )
                 ),
@@ -1295,6 +1300,9 @@ fn test_multi_swaps_event_emission() {
                                 - amounts_after_strk_to_usdc.usdt
                                 + FEE_AMOUNT,
                             beneficiary: params_eth_to_usdt.beneficiary,
+                            provider: AVNU_EXCHANGE_ADDRESS()
+
+
                         }
                     )
                 ),
@@ -1309,6 +1317,7 @@ fn test_multi_swaps_event_emission() {
                                 - amounts_after_eth_to_usdt.usdc
                                 + FEE_AMOUNT,
                             beneficiary: params_eth_to_usdc.beneficiary,
+                            provider: AVNU_EXCHANGE_ADDRESS()
                         }
                     )
                 )

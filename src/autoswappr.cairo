@@ -99,7 +99,8 @@ pub mod AutoSwappr {
         pub token_from_amount: u256,
         pub token_to_address: ContractAddress,
         pub token_to_amount: u256,
-        pub beneficiary: ContractAddress
+        pub beneficiary: ContractAddress, 
+        pub provider: ContractAddress
     }
 
     #[derive(starknet::Event, Drop)]
@@ -203,7 +204,8 @@ pub mod AutoSwappr {
             );
 
             token_from_contract.transfer_from(protocol_swapper, this_contract, token_from_amount);
-            token_from_contract.approve(self.avnu_exchange_address.read(), token_from_amount);
+            let avnu_addr = self.avnu_exchange_address.read();
+            token_from_contract.approve(avnu_addr, token_from_amount);
             let contract_token_to_balance = token_to_contract.balance_of(this_contract);
 
             let swap = self
@@ -232,7 +234,8 @@ pub mod AutoSwappr {
                         token_from_amount,
                         token_to_address,
                         token_to_amount: token_to_received,
-                        beneficiary
+                        beneficiary, 
+                        provider: avnu_addr
                     }
                 );
         }
@@ -265,7 +268,8 @@ pub mod AutoSwappr {
             // Approve commission taking from fibrous
             token_in_contract
                 .transfer_from(protocol_swapper, contract_address, routeParams.amount_in);
-            token_in_contract.approve(self.fibrous_exchange_address.read(), routeParams.amount_in);
+            let fibrous_addr = self.fibrous_exchange_address.read();
+            token_in_contract.approve(fibrous_addr, routeParams.amount_in);
             let contract_token_out_balance = token_out_contract.balance_of(contract_address);
             self._fibrous_swap(routeParams.clone(), swapParams,);
 
@@ -282,7 +286,8 @@ pub mod AutoSwappr {
                         token_from_amount: routeParams.amount_in,
                         token_to_address: routeParams.token_out,
                         token_to_amount: token_out_received,
-                        beneficiary
+                        beneficiary, 
+                        provider: fibrous_addr
                     }
                 );
         }
@@ -382,7 +387,8 @@ pub mod AutoSwappr {
     #[abi(embed_v0)]
     impl LockerImpl of ILocker<ContractState> {
         fn locked(ref self: ContractState, id: u32, data: Span<felt252>) -> Span<felt252> {
-            let core = ICoreDispatcher { contract_address: self.ekubo_core_address.read() };
+            let ekubo_core_addr = self.ekubo_core_address.read();
+            let core = ICoreDispatcher { contract_address: ekubo_core_addr };
             ekubo::components::shared_locker::check_caller_is_core(core);
             let contract_address = get_contract_address();
             let SwapData { pool_key, params, caller, } =
@@ -417,6 +423,7 @@ pub mod AutoSwappr {
                         token_to_address: token_out,
                         token_to_amount: token_to_received,
                         beneficiary: caller,
+                        provider: ekubo_core_addr
                     }
                 );
             let swap_result = SwapResult { delta };
