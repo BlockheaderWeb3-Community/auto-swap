@@ -34,7 +34,7 @@ test = "snforge test"
 [[tool.snforge.fork]] # Used for fork testing
 name = "MAINNET"        # Fork name
 url = "$RPC_URL"        # Url of the RPC provider
-block_id.tag = "latest" # Block to fork from (block tag)
+block_id.number = "1499087" # Block to fork from (block tag)
 
 [[tool.snforge.fork]]
 name = "SEPOLIA_LATEST"

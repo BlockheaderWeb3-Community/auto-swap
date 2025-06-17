@@ -1,16 +1,13 @@
 // *************************************************************************
 //                              AVNU SWAP TEST
 // *************************************************************************
-// core imports
-use core::result::ResultTrait;
 
 // starknet imports
 use starknet::{ContractAddress, contract_address_const};
 
 // snforge imports
 use snforge_std::{
-    declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
-    DeclareResultTrait, spy_events, EventSpyAssertionsTrait
+    start_cheat_caller_address, stop_cheat_caller_address, spy_events, EventSpyAssertionsTrait
 };
 
 // OZ imports
@@ -19,431 +16,29 @@ use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTr
 // Autoswappr
 use auto_swappr::autoswappr::AutoSwappr::{Event, SwapSuccessful};
 use auto_swappr::interfaces::iautoswappr::{IAutoSwapprDispatcher, IAutoSwapprDispatcherTrait};
-use auto_swappr::interfaces::ioperator::{IOperatorDispatcher, IOperatorDispatcherTrait};
-use auto_swappr::base::types::{Route, FeeType};
+use auto_swappr::base::types::FeeType;
 
+use crate::constants::{
+    FEE_COLLECTOR, STRK_TOKEN, ETH_TOKEN, USDT_TOKEN, USDC_TOKEN, FEE_AMOUNT, SwapType,
+    EXCHANGE_ETH_USDC, EXCHANGE_ETH_USDT_EKUBO, EXCHANGE_STRK_USDT_POOL, AVNU_EXCHANGE_ADDRESS,
+    OWNER, EXCHANGE_STRK_USDC_POOL, EXCHANGE_ETH_USDT_POOL
+};
 
-const FEE_COLLECTOR: felt252 = 0x0114B0b4A160bCC34320835aEFe7f01A2a3885e4340Be0Bc1A63194469984a06;
+use crate::utils::{
+    __setup__, get_wallet_amounts, approve_amount, get_swap_parameters_avnu as get_swap_parameters,
+    call_avnu_swap, get_exchange_amount
+};
 
-fn AVNU_EXCHANGE_ADDRESS() -> ContractAddress {
-    contract_address_const::<0x04270219d365d6b017231b52e92b3fb5d7c8378b05e9abc97724537a80e93b0f>()
-}
-fn FIBROUS_EXCHANGE_ADDRESS() -> ContractAddress {
-    contract_address_const::<0x00f6f4CF62E3C010E0aC2451cC7807b5eEc19a40b0FaaCd00CCA3914280FDf5a>()
-}
-
-fn STRK_TOKEN_ADDRESS() -> ContractAddress {
-    contract_address_const::<0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d>()
-}
-
-fn ETH_TOKEN_ADDRESS() -> ContractAddress {
-    contract_address_const::<0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7>()
-}
-
-fn USDC_TOKEN_ADDRESS() -> ContractAddress {
-    contract_address_const::<0x053C91253BC9682c04929cA02ED00b3E423f6710D2ee7e0D5EBB06F3eCF368A8>()
-}
-
-fn USDT_TOKEN_ADDRESS() -> ContractAddress {
-    contract_address_const::<0x068F5c6a61780768455de69077E07e89787839bf8166dEcfBf92B645209c0fB8>()
-}
-
-
-fn ADDRESS_WITH_FUNDS() -> ContractAddress {
+pub fn ADDRESS_WITH_FUNDS() -> ContractAddress {
     // 0.01 ETH - 8.4 STRK
     contract_address_const::<0x298a9d0d82aabfd7e2463bb5ec3590c4e86d03b2ece868d06bbe43475f2d3e6>()
 }
 
-pub fn OPERATOR() -> ContractAddress {
-    contract_address_const::<'OPERATOR'>()
-}
 
-pub fn OWNER() -> ContractAddress {
-    contract_address_const::<'OWNER'>()
-}
-
-
-fn STRK_TOKEN() -> IERC20Dispatcher {
-    IERC20Dispatcher { contract_address: STRK_TOKEN_ADDRESS() }
-}
-
-fn ETH_TOKEN() -> IERC20Dispatcher {
-    IERC20Dispatcher { contract_address: ETH_TOKEN_ADDRESS() }
-}
-
-fn USDT_TOKEN() -> IERC20Dispatcher {
-    IERC20Dispatcher { contract_address: USDT_TOKEN_ADDRESS() }
-}
-
-fn USDC_TOKEN() -> IERC20Dispatcher {
-    IERC20Dispatcher { contract_address: USDC_TOKEN_ADDRESS() }
-}
-
-fn INTEGRATOR_FEE_RECIPIENT() -> ContractAddress {
-    contract_address_const::<0>()
-}
-
-fn EXCHANGE_STRK_USDT() -> ContractAddress {
-    contract_address_const::<
-        0x359550b990167afd6635fa574f3bdadd83cb51850e1d00061fe693158c23f80
-    >() // jedi swap: swap router v2
-}
-fn EXCHANGE_STRK_USDT_POOL() -> ContractAddress {
-    // Sometimes the exchange contract takes the currencies to swap from another contract, in this
-    // case, the first address of the route extra params
-    contract_address_const::<
-        0xb74193526135104973a1e285bb0372adf41a5d7a8fc5e6f30ea535847613ce
-    >() // jedi swap: swap router v2
-}
-
-fn EXCHANGE_STRK_USDC() -> ContractAddress {
-    contract_address_const::<
-        0x41fd22b238fa21cfcf5dd45a8548974d8263b3a531a60388411c5e230f97023
-    >() // jedi swap: AMM swap
-}
-
-fn EXCHANGE_STRK_USDC_POOL() -> ContractAddress {
-    contract_address_const::<
-        0x05726725e9507c3586cc0516449e2c74d9b201ab2747752bb0251aaa263c9a26
-    >() // jedi swap: AMM swap
-}
-
-fn EXCHANGE_ETH_USDT_POOL() -> ContractAddress {
-    contract_address_const::<0x0351d125294ae90c5ac53405ebc491d5d910e4f903cdc5d8c0d342dfa71fd0e9>()
-}
-
-fn EXCHANGE_ETH_USDT_SITH() -> ContractAddress {
-    contract_address_const::<
-        0x28c858a586fa12123a1ccb337a0a3b369281f91ea00544d0c086524b759f627
-    >() // sith swap: AMM router
-}
-
-fn EXCHANGE_ETH_USDT_EKUBO() -> ContractAddress {
-    contract_address_const::<
-        158098919692956613592021320609952044916245725306097615271255138786123
-    >() // EKUBO core
-}
-
-fn EXCHANGE_ETH_USDC() -> ContractAddress {
-    contract_address_const::<
-        0x1114c7103e12c2b2ecbd3a2472ba9c48ddcbf702b1c242dd570057e26212111
-    >() // myswap: CL AMM swap
-}
-
-pub fn ORACLE_ADDRESS() -> ContractAddress {
-    contract_address_const::<0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b>()
-}
-
-fn EKUBO_CORE_ADDRESS() -> ContractAddress {
-    contract_address_const::<0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b>()
-}
-
-
-const AMOUNT_TO_SWAP_STRK: u256 =
+pub const AMOUNT_TO_SWAP_STRK: u256 =
     2000000000000000000; // 2 STRK. used 2 so we can enough to take fee from
-const AMOUNT_TO_SWAP_ETH: u256 = 200000000000000; // 0.0002 ETH 
+pub const AMOUNT_TO_SWAP_ETH: u256 = 200000000000000; // 0.0002 ETH 
 
-const SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN: u256 = 1000;
-const ROUTES_PERCENT: u128 = 1000000000000;
-const INTEGRATOR_FEE_AMOUNT: u128 = 0;
-const FEE_AMOUNT_BPS: u8 = 50; // $0.5 fee
-const FEE_AMOUNT: u256 = 50 * 1_000_000 / 100; // $0.5 with 6 decimals
-const INITIAL_FEE_TYPE: FeeType = FeeType::Fixed;
-const INITIAL_PERCENTAGE_FEE: u16 = 100;
-const SUPPORTED_ASSETS_COUNT: u8 = 2;
-const PRICE_FEEDS_COUNT: u8 = 2;
-const ETH_USD_PRICE_FEED: felt252 = 'ETH/USD';
-const STRK_USD_PRICE_FEED: felt252 = 'STRK/USD';
-
-
-// *************************************************************************
-//                      UTILS
-// *************************************************************************
-fn call_avnu_swap(
-    autoSwappr_dispatcher: IAutoSwapprDispatcher,
-    protocol_swapper: ContractAddress,
-    token_from_address: ContractAddress,
-    token_from_amount: u256,
-    token_to_address: ContractAddress,
-    token_to_min_amount: u256,
-    beneficiary: ContractAddress,
-    integrator_fee_amount_bps: u128,
-    integrator_fee_recipient: ContractAddress,
-    routes: Array<Route>,
-) {
-    start_cheat_caller_address(autoSwappr_dispatcher.contract_address, OPERATOR());
-    autoSwappr_dispatcher
-        .avnu_swap(
-            protocol_swapper,
-            token_from_address,
-            token_from_amount,
-            token_to_address,
-            token_to_min_amount,
-            beneficiary,
-            integrator_fee_amount_bps,
-            integrator_fee_recipient,
-            routes,
-        );
-    stop_cheat_caller_address(autoSwappr_dispatcher.contract_address);
-}
-
-// util function to fetch token balances (STRK, ETH, USDT, USDC) of a given account
-fn get_wallet_amounts(wallet_address: ContractAddress) -> WalletAmounts {
-    start_cheat_caller_address(STRK_TOKEN().contract_address, wallet_address);
-    start_cheat_caller_address(ETH_TOKEN().contract_address, wallet_address);
-    start_cheat_caller_address(USDT_TOKEN().contract_address, wallet_address);
-    start_cheat_caller_address(USDC_TOKEN().contract_address, wallet_address);
-    let strk = STRK_TOKEN().balance_of(wallet_address);
-    let eth = ETH_TOKEN().balance_of(wallet_address);
-    let usdt = USDT_TOKEN().balance_of(wallet_address);
-    let usdc = USDC_TOKEN().balance_of(wallet_address);
-    stop_cheat_caller_address(STRK_TOKEN().contract_address);
-    stop_cheat_caller_address(ETH_TOKEN().contract_address);
-    stop_cheat_caller_address(USDT_TOKEN().contract_address);
-    stop_cheat_caller_address(USDC_TOKEN().contract_address);
-
-    let amounts = WalletAmounts { strk, eth, usdt, usdc };
-    amounts
-}
-
-fn get_exchange_amount(
-    token_dispatcher: IERC20Dispatcher, exchange_address: ContractAddress
-) -> u256 {
-    let amount = token_dispatcher.balance_of(exchange_address);
-    amount
-}
-
-fn approve_amount(
-    token: ContractAddress, owner: ContractAddress, spender: ContractAddress, amount: u256
-) {
-    start_cheat_caller_address(token, owner);
-    let token_dispatcher = IERC20Dispatcher { contract_address: token };
-    token_dispatcher.approve(spender, amount);
-    stop_cheat_caller_address(token);
-}
-
-fn get_swap_parameters(swap_type: SwapType) -> AVNUParams {
-    let mut params = AVNUParams {
-        token_from_address: STRK_TOKEN_ADDRESS(),
-        token_from_amount: AMOUNT_TO_SWAP_STRK,
-        token_to_address: USDT_TOKEN_ADDRESS(),
-        token_to_min_amount: 510000
-            - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
-        beneficiary: ADDRESS_WITH_FUNDS(),
-        integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
-        integrator_fee_recipient: INTEGRATOR_FEE_RECIPIENT(),
-        routes: array![
-            Route {
-                token_from: STRK_TOKEN_ADDRESS(),
-                token_to: USDT_TOKEN_ADDRESS(),
-                exchange_address: EXCHANGE_STRK_USDT(),
-                percent: ROUTES_PERCENT,
-                additional_swap_params: array![
-                    EXCHANGE_STRK_USDT_POOL().into(), 1018588075927140995502, 3000
-                ],
-            }
-        ]
-    };
-
-    match swap_type {
-        // test based on this tx ->
-        // https://starkscan.co/tx/0x014ed3ebca0d2f1bc33b025da8fb4547f1d45e1b7d1681262e6756bbd698b03a
-        SwapType::strk_usdt => {
-            params =
-                AVNUParams {
-                    token_from_address: STRK_TOKEN_ADDRESS(),
-                    token_from_amount: AMOUNT_TO_SWAP_STRK,
-                    token_to_address: USDT_TOKEN_ADDRESS(),
-                    token_to_min_amount: 1020000
-                        - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
-                    beneficiary: ADDRESS_WITH_FUNDS(),
-                    integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
-                    integrator_fee_recipient: INTEGRATOR_FEE_RECIPIENT(),
-                    routes: array![
-                        Route {
-                            token_from: STRK_TOKEN_ADDRESS(),
-                            token_to: USDT_TOKEN_ADDRESS(),
-                            exchange_address: EXCHANGE_STRK_USDT(),
-                            percent: ROUTES_PERCENT,
-                            additional_swap_params: array![
-                                EXCHANGE_STRK_USDT_POOL().into(), 1018588075927140995502, 3000
-                            ],
-                        }
-                    ]
-                };
-        },
-        // based on tx
-        // https://starkscan.co/tx/0x507b8d0d38e604ecdb87f06254e8d07a2569363520bf15d3d03e5743c299cd3
-        SwapType::strk_usdc => {
-            params =
-                AVNUParams {
-                    token_from_address: STRK_TOKEN_ADDRESS(),
-                    token_from_amount: AMOUNT_TO_SWAP_STRK,
-                    token_to_address: USDC_TOKEN_ADDRESS(),
-                    token_to_min_amount: 465080 * 2
-                        - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
-                    beneficiary: ADDRESS_WITH_FUNDS(),
-                    integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
-                    integrator_fee_recipient: INTEGRATOR_FEE_RECIPIENT(),
-                    routes: array![
-                        Route {
-                            token_from: STRK_TOKEN_ADDRESS(),
-                            token_to: USDC_TOKEN_ADDRESS(),
-                            exchange_address: EXCHANGE_STRK_USDC(),
-                            percent: ROUTES_PERCENT,
-                            additional_swap_params: array![],
-                        }
-                    ]
-                };
-        },
-        // based on tx
-        // https://starkscan.co/tx/0x15df9c1387c59bb7ba0f82703d448e522a1a392ee0d968227b6882f16e80e1f
-        SwapType::eth_usdt => {
-            params =
-                AVNUParams {
-                    token_from_address: ETH_TOKEN_ADDRESS(),
-                    token_from_amount: AMOUNT_TO_SWAP_ETH,
-                    token_to_address: USDT_TOKEN_ADDRESS(),
-                    token_to_min_amount: 659940
-                        - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
-                    beneficiary: ADDRESS_WITH_FUNDS(),
-                    integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
-                    integrator_fee_recipient: INTEGRATOR_FEE_RECIPIENT(),
-                    routes: array![
-                        Route {
-                            token_from: ETH_TOKEN_ADDRESS(), // ETH
-                            token_to: contract_address_const::<
-                                0x124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49
-                            >(), // Realms: LORDS
-                            exchange_address: EXCHANGE_ETH_USDT_EKUBO(),
-                            percent: ROUTES_PERCENT,
-                            additional_swap_params: array![
-                                0x124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49,
-                                0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7,
-                                3402823669209384634633746074317682114,
-                                'MZ',
-                                0,
-                                3519403778994931520712610040380
-                            ],
-                        },
-                        Route {
-                            token_from: contract_address_const::<
-                                0x124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49
-                            >(), // Realms: LORDS
-                            token_to: USDT_TOKEN_ADDRESS(),
-                            exchange_address: EXCHANGE_ETH_USDT_SITH(),
-                            percent: ROUTES_PERCENT,
-                            additional_swap_params: array![0],
-                        }
-                    ]
-                };
-        },
-        // based on tx
-        // https://starkscan.co/tx/0x5be8a02e5c4c41fea081f7f4977439f7029168f6ff1d165949dcbf8be55c200
-        SwapType::eth_usdc => {
-            params =
-                AVNUParams {
-                    token_from_address: ETH_TOKEN_ADDRESS(),
-                    token_from_amount: AMOUNT_TO_SWAP_ETH,
-                    token_to_address: USDC_TOKEN_ADDRESS(),
-                    token_to_min_amount: 659940
-                        - SUBSTRACT_VALUE_FOR_MIN_AMOUNT_MARGIN, // subtract a bit to give a margin
-                    beneficiary: ADDRESS_WITH_FUNDS(),
-                    integrator_fee_amount_bps: INTEGRATOR_FEE_AMOUNT,
-                    integrator_fee_recipient: INTEGRATOR_FEE_RECIPIENT(),
-                    routes: array![
-                        Route {
-                            token_from: contract_address_const::<
-                                0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7
-                            >(), // ETH
-                            token_to: contract_address_const::<
-                                0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8
-                            >(), // USDC
-                            exchange_address: EXCHANGE_ETH_USDC(),
-                            percent: ROUTES_PERCENT,
-                            additional_swap_params: array![
-                                0x71273c5c5780b4be42d9e6567b1b1a6934f43ab8abaf975c0c3da219fc4d040,
-                                4305411938843418615
-                            ],
-                        },
-                    ]
-                };
-        },
-    };
-
-    params
-}
-
-
-#[derive(Drop, Serde, Debug)]
-struct AVNUParams {
-    token_from_address: ContractAddress,
-    token_from_amount: u256,
-    token_to_address: ContractAddress,
-    token_to_min_amount: u256,
-    beneficiary: ContractAddress,
-    integrator_fee_amount_bps: u128,
-    integrator_fee_recipient: ContractAddress,
-    routes: Array<Route>,
-}
-
-#[derive(Drop, Serde, Clone, Debug)]
-struct WalletAmounts {
-    strk: u256,
-    eth: u256,
-    usdt: u256,
-    usdc: u256,
-}
-
-#[derive(Drop, Serde, Clone, Debug)]
-enum SwapType {
-    strk_usdt,
-    strk_usdc,
-    eth_usdt,
-    eth_usdc
-}
-
-// *************************************************************************
-//                              SETUP
-// *************************************************************************
-fn __setup__() -> IAutoSwapprDispatcher {
-    let auto_swappr_class_hash = declare("AutoSwappr").unwrap().contract_class();
-
-    let mut autoSwappr_constructor_calldata: Array<felt252> = array![];
-    FEE_COLLECTOR.serialize(ref autoSwappr_constructor_calldata);
-    FEE_AMOUNT_BPS.serialize(ref autoSwappr_constructor_calldata);
-    AVNU_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    FIBROUS_EXCHANGE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    EKUBO_CORE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    ORACLE_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    SUPPORTED_ASSETS_COUNT.serialize(ref autoSwappr_constructor_calldata);
-    STRK_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    ETH_TOKEN_ADDRESS().serialize(ref autoSwappr_constructor_calldata);
-    PRICE_FEEDS_COUNT.serialize(ref autoSwappr_constructor_calldata);
-    ETH_USD_PRICE_FEED.serialize(ref autoSwappr_constructor_calldata);
-    STRK_USD_PRICE_FEED.serialize(ref autoSwappr_constructor_calldata);
-    OWNER().serialize(ref autoSwappr_constructor_calldata);
-    INITIAL_FEE_TYPE.serialize(ref autoSwappr_constructor_calldata);
-    INITIAL_PERCENTAGE_FEE.serialize(ref autoSwappr_constructor_calldata);
-
-    let (auto_swappr_contract_address, _) = auto_swappr_class_hash
-        .deploy(@autoSwappr_constructor_calldata)
-        .unwrap();
-
-    let autoSwappr_dispatcher = IAutoSwapprDispatcher {
-        contract_address: auto_swappr_contract_address,
-    };
-
-    let operator_dispatcher = IOperatorDispatcher {
-        contract_address: auto_swappr_contract_address,
-    };
-
-    start_cheat_caller_address(auto_swappr_contract_address, OWNER().try_into().unwrap());
-    operator_dispatcher.set_operator(OPERATOR());
-    stop_cheat_caller_address(auto_swappr_contract_address);
-
-    autoSwappr_dispatcher
-}
 
 #[test]
 #[fork("MAINNET", block_number: 996491)]
@@ -1269,7 +864,6 @@ fn test_multi_swaps_event_emission() {
                                 + FEE_AMOUNT,
                             beneficiary: params_strk_to_usdt.beneficiary,
                             provider: AVNU_EXCHANGE_ADDRESS()
-
                         }
                     )
                 ),
@@ -1285,7 +879,6 @@ fn test_multi_swaps_event_emission() {
                                 + FEE_AMOUNT,
                             beneficiary: params_strk_to_usdc.beneficiary,
                             provider: AVNU_EXCHANGE_ADDRESS()
-
                         }
                     )
                 ),
@@ -1301,8 +894,6 @@ fn test_multi_swaps_event_emission() {
                                 + FEE_AMOUNT,
                             beneficiary: params_eth_to_usdt.beneficiary,
                             provider: AVNU_EXCHANGE_ADDRESS()
-
-
                         }
                     )
                 ),
