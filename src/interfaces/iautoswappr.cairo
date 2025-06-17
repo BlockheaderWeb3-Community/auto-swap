@@ -49,5 +49,6 @@ pub trait IAutoSwappr<TContractState> {
     ) -> (bool, felt252);
     fn set_fee_type(ref self: TContractState, fee_type: FeeType, percentage_fee: u16);
     fn ekubo_swap(ref self: TContractState, swap_data: SwapData) -> SwapResult;
+    fn ekubo_manual_swap(ref self: TContractState, swap_data: SwapData) -> SwapResult;
 }
 

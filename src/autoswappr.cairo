@@ -99,7 +99,7 @@ pub mod AutoSwappr {
         pub token_from_amount: u256,
         pub token_to_address: ContractAddress,
         pub token_to_amount: u256,
-        pub beneficiary: ContractAddress, 
+        pub beneficiary: ContractAddress,
         pub provider: ContractAddress
     }
 
@@ -234,7 +234,7 @@ pub mod AutoSwappr {
                         token_from_amount,
                         token_to_address,
                         token_to_amount: token_to_received,
-                        beneficiary, 
+                        beneficiary,
                         provider: avnu_addr
                     }
                 );
@@ -286,7 +286,7 @@ pub mod AutoSwappr {
                         token_from_amount: routeParams.amount_in,
                         token_to_address: routeParams.token_out,
                         token_to_amount: token_out_received,
-                        beneficiary, 
+                        beneficiary,
                         provider: fibrous_addr
                     }
                 );
@@ -320,6 +320,41 @@ pub mod AutoSwappr {
             token_in_contract
                 .transfer_from(
                     protocol_swapper, contract_address, swap_data.params.amount.mag.into()
+                );
+            ekubo::components::shared_locker::call_core_with_callback(
+                ICoreDispatcher { contract_address: self.ekubo_core_address.read() }, @swap_data
+            )
+        }
+
+        // Manual swap function for Ekubo. Allows users to swap tokens directly on ekubo
+        fn ekubo_manual_swap(ref self: ContractState, swap_data: SwapData) -> SwapResult {
+            let contract_address = get_contract_address();
+            let sender_address = get_caller_address();
+
+            // assertions
+            //assert(self.operator.is_operator(get_caller_address()), Errors::INVALID_SENDER);
+            assert(!swap_data.params.amount.mag.is_zero(), Errors::ZERO_AMOUNT);
+            let token_in = if swap_data.params.is_token1 {
+                swap_data.pool_key.token1
+            } else {
+                swap_data.pool_key.token0
+            };
+            let (supported, _) = self.get_token_from_status_and_value(token_in);
+            assert(supported, Errors::UNSUPPORTED_TOKEN);
+            // let protocol_swapper = swap_data.caller;
+            let token_in_contract = ERC20ABIDispatcher { contract_address: token_in };
+            assert(
+                token_in_contract
+                    .allowance(sender_address, contract_address) >= swap_data
+                    .params
+                    .amount
+                    .mag
+                    .into(),
+                Errors::INSUFFICIENT_ALLOWANCE,
+            );
+            token_in_contract
+                .transfer_from(
+                    sender_address, contract_address, swap_data.params.amount.mag.into()
                 );
             ekubo::components::shared_locker::call_core_with_callback(
                 ICoreDispatcher { contract_address: self.ekubo_core_address.read() }, @swap_data
@@ -413,7 +448,7 @@ pub mod AutoSwappr {
             let token_to_received = self._collect_fees(amount_out.into(), token_out_contract);
             token_out_contract.transfer(caller, token_to_received);
 
-            //TODO: Implement slippage check
+            //TODO: Implement slippage check?
 
             self
                 .emit(
