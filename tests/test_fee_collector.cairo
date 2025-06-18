@@ -1,6 +1,9 @@
 // *************************************************************************
 //                              TEST
 // *************************************************************************
+
+use crate::constants::{FEE_COLLECTOR_ADDRESS, STRK_TOKEN, USER, OPERATOR_DISPATCHER, OPERATOR};
+
 // starknet imports
 use starknet::{ContractAddress, contract_address_const, get_block_timestamp};
 
@@ -20,45 +23,13 @@ use auto_swappr::interfaces::ifee_collector::{
 };
 use auto_swappr::interfaces::ioperator::{IOperatorDispatcher, IOperatorDispatcherTrait};
 
-// Contract Address Constants
-pub fn USER() -> ContractAddress {
-    contract_address_const::<'USER'>()
-}
 
 pub fn OWNER() -> ContractAddress {
     contract_address_const::<0x01d6abf4f5963082fc6c44d858ac2e89434406ed682fb63155d146c5d69c22d6>()
 }
 
-pub fn OPERATOR() -> ContractAddress {
-    contract_address_const::<0x00f5bD62B2E6de30395fbB5d21B2A8A8D647099Bb9B671AA6103e030ae91df8e>()
-}
-
-fn FEE_COLLECTOR_ADDRESS() -> ContractAddress {
-    contract_address_const::<0x7f5a528821f37c06375a47a1c8d2ba0517a2e99ff01c01ef5068e3fb3754b87>()
-}
-
-fn STRK_TOKEN_ADDRESS() -> ContractAddress {
-    contract_address_const::<0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d>()
-}
-
-fn USDT_TOKEN_ADDRESS() -> ContractAddress {
-    contract_address_const::<0x068F5c6a61780768455de69077E07e89787839bf8166dEcfBf92B645209c0fB8>()
-}
-
-fn STRK_TOKEN() -> IERC20Dispatcher {
-    IERC20Dispatcher { contract_address: STRK_TOKEN_ADDRESS() }
-}
-
-fn USDT_TOKEN() -> IERC20Dispatcher {
-    IERC20Dispatcher { contract_address: USDT_TOKEN_ADDRESS() }
-}
-
 fn FEE_COLLECTOR() -> IFeeCollectorDispatcher {
     IFeeCollectorDispatcher { contract_address: FEE_COLLECTOR_ADDRESS() }
-}
-
-fn OPERATOR_DISPATCHER() -> IOperatorDispatcher {
-    IOperatorDispatcher { contract_address: FEE_COLLECTOR_ADDRESS() }
 }
 
 
