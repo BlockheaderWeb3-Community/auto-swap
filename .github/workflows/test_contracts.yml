@@ -1,6 +1,7 @@
 name: Build and test AutoSwap contracts
 
 on:
+  workflow_dispatch:  # Add this
   push:
     branches: ["main"]
   pull_request:
